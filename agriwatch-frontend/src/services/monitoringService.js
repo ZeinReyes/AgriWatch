@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const getMonitoringRecords = async () => {
-  const response = await api.get("/monitoring");
+  const response = await api.get("/monitoring/");
   return response.data;
 };
 
@@ -16,7 +16,7 @@ export const getMonitoringRecord = async (monitoringId) => {
 };
 
 export const createMonitoringRecord = async (data) => {
-  const response = await api.post("/monitoring", data);
+  const response = await api.post("/monitoring/", data);
   return response.data;
 };
 
