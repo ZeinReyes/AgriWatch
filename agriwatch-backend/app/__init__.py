@@ -14,36 +14,33 @@ from app.extensions import (
 
 def create_app():
 
-    # =================================================
-    # CREATE FLASK APP
-    # =================================================
-
     app = Flask(__name__)
 
-    app.config.from_object(Config)
+    app.config.from_object(
+        Config
+    )
 
-
-    # =================================================
-    # INITIALIZE EXTENSIONS
-    # =================================================
+    # =====================================================
+    # DATABASE / EXTENSIONS
+    # =====================================================
 
     db.init_app(app)
-
     bcrypt.init_app(app)
-
     jwt.init_app(app)
 
-
-    # =================================================
+    # =====================================================
     # JWT ERROR HANDLERS
-    # =================================================
+    # =====================================================
 
     @jwt.unauthorized_loader
     def unauthorized_callback(reason):
 
         return {
             "status": "error",
-            "message": f"Missing or invalid authorization: {reason}"
+            "message": (
+                f"Missing or invalid authorization: "
+                f"{reason}"
+            )
         }, 401
 
 
@@ -52,7 +49,10 @@ def create_app():
 
         return {
             "status": "error",
-            "message": f"Invalid token: {reason}"
+            "message": (
+                f"Invalid token: "
+                f"{reason}"
+            )
         }, 422
 
 
@@ -64,34 +64,52 @@ def create_app():
 
         return {
             "status": "error",
-            "message": "Your session has expired. Please log in again."
+            "message": (
+                "Your session has expired. "
+                "Please log in again."
+            )
         }, 401
 
-
-    # =================================================
+    # =====================================================
     # CORS
-    # =================================================
+    # =====================================================
+
+    cors_origins = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,https://agriwatch-frontend.onrender.com"
+    )
+
+    allowed_origins = [
+        origin.strip().rstrip("/")
+        for origin in cors_origins.split(",")
+        if origin.strip()
+    ]
 
     CORS(
         app,
         resources={
             r"/api/*": {
-                "origins": [
-                    origin.strip()
-                    for origin in os.getenv(
-                        "CORS_ORIGINS",
-                        "http://localhost:5173"
-                    ).split(",")
-                    if origin.strip()
-                ]
+                "origins": allowed_origins,
+                "methods": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "OPTIONS"
+                ],
+                "allow_headers": [
+                    "Content-Type",
+                    "Authorization"
+                ],
+                "supports_credentials": False
             }
         }
     )
 
-
-    # =================================================
-    # IMPORT MODELS
-    # =================================================
+    # =====================================================
+    # MODELS
+    # =====================================================
 
     from app.models.user import User
     from app.models.otp import OTP
@@ -100,18 +118,17 @@ def create_app():
     from app.models.monitoring import MonitoringRecord
     from app.models.alert import Alert
 
-    # =================================================
+    # =====================================================
     # CREATE DATABASE TABLES
-    # =================================================
+    # =====================================================
 
     with app.app_context():
 
         db.create_all()
 
-
-    # =================================================
-    # REGISTER AUTH ROUTES
-    # =================================================
+    # =====================================================
+    # ROUTES
+    # =====================================================
 
     from app.routes.auth import auth_bp
 
@@ -121,10 +138,6 @@ def create_app():
     )
 
 
-    # =================================================
-    # REGISTER ADMIN ROUTES
-    # =================================================
-
     from app.routes.admin import admin_bp
 
     app.register_blueprint(
@@ -132,10 +145,6 @@ def create_app():
         url_prefix="/api/admin"
     )
 
-
-    # =================================================
-    # REGISTER FARM ROUTES
-    # =================================================
 
     from app.routes.farm import farm_bp
 
@@ -145,10 +154,6 @@ def create_app():
     )
 
 
-    # =================================================
-    # REGISTER CROP ROUTES
-    # =================================================
-
     from app.routes.crop import crop_bp
 
     app.register_blueprint(
@@ -157,27 +162,24 @@ def create_app():
     )
 
 
-    # =================================================
-    # REGISTER MONITORING ROUTES
-    # =================================================
-
     from app.routes.monitoring import monitoring_bp
-    from app.routes.alert import alert_bp
 
     app.register_blueprint(
         monitoring_bp,
         url_prefix="/api/monitoring"
     )
 
+
+    from app.routes.alert import alert_bp
+
     app.register_blueprint(
         alert_bp,
         url_prefix="/api/alerts"
     )
 
-
-    # =================================================
+    # =====================================================
     # HEALTH CHECK
-    # =================================================
+    # =====================================================
 
     @app.get("/api/health")
     def health_check():
@@ -186,10 +188,5 @@ def create_app():
             "status": "success",
             "message": "AgriWatch API is running"
         }
-
-
-    # =================================================
-    # RETURN APP
-    # =================================================
 
     return app
