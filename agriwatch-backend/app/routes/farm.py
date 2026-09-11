@@ -8,6 +8,7 @@ from flask_jwt_extended import (
 
 from app.extensions import db
 from app.models.farm import Farm
+from app.models.crop import Crop
 
 
 farm_bp = Blueprint(
@@ -601,9 +602,58 @@ def delete_farm(farm_id):
         }), 403
 
 
-    db.session.delete(farm)
+    try:
 
-    db.session.commit()
+        # -----------------------------------------
+        # DELETE ALL CROPS BELONGING TO FARM
+        # -----------------------------------------
+        #
+        # Deleting the Crop objects first allows
+        # SQLAlchemy to cascade their related:
+        #
+        # Crop
+        #   ├── Monitoring Records
+        #   └── Alerts
+        #
+        # before the Farm itself is deleted.
+        #
+
+        crops = (
+            Crop.query
+            .filter_by(
+                farm_id=farm.id
+            )
+            .all()
+        )
+
+
+        for crop in crops:
+
+            db.session.delete(crop)
+
+
+        # -----------------------------------------
+        # DELETE FARM
+        # -----------------------------------------
+
+        db.session.delete(farm)
+
+        db.session.commit()
+
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "Farm deletion error:",
+            error
+        )
+
+        return jsonify({
+            "status": "error",
+            "message": "Unable to delete farm. Please try again."
+        }), 500
 
 
     return jsonify({
