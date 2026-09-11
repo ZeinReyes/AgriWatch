@@ -97,7 +97,7 @@ def create_app():
     from app.models.otp import OTP
     from app.models.farm import Farm
     from app.models.crop import Crop
-    from app.models.crop import Crop
+    from app.models.monitoring import MonitoringRecord
 
 
     # =================================================
@@ -155,6 +155,7 @@ def create_app():
         crop_bp,
         url_prefix="/api/crops"
     )
+
 
     # =================================================
     # REGISTER MONITORING ROUTES
