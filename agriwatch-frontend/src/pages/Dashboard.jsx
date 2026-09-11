@@ -19,6 +19,10 @@ import RoleBadge from "../components/dashboard/RoleBadge";
 import api from "../services/api";
 
 
+// =========================================================
+// DASHBOARD
+// =========================================================
+
 const Dashboard = () => {
 
   const {
@@ -227,18 +231,28 @@ const Dashboard = () => {
       try {
 
         setWeatherLoading(true);
+        setWeather(null);
 
 
-        const farmLocation =
-          farms?.[0]?.location;
+        /*
+         * Use the farm's SAVED coordinates directly.
+         *
+         * Example:
+         *
+         * latitude:  14.992554
+         * longitude: 120.846741
+         *
+         * This prevents the weather API from trying to
+         * guess the farm location from the location text.
+         */
+
+        const farm = farms?.[0];
 
 
-        if (!farmLocation) {
+        if (!farm) {
 
-          setWeather(
-            await getWeather(
-              "Manila, Philippines"
-            )
+          console.log(
+            "Weather: No farm found."
           );
 
           return;
@@ -246,18 +260,25 @@ const Dashboard = () => {
         }
 
 
-        const coordinates =
-          await geocodeLocation(
-            farmLocation
-          );
+        const latitude =
+          Number(farm.latitude);
 
 
-        if (!coordinates) {
+        const longitude =
+          Number(farm.longitude);
 
-          setWeather(
-            await getWeather(
-              "Manila, Philippines"
-            )
+
+        /*
+         * Check whether valid coordinates exist.
+         */
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude)
+        ) {
+
+          console.log(
+            "Weather: Farm does not have valid coordinates."
           );
 
           return;
@@ -265,14 +286,24 @@ const Dashboard = () => {
         }
 
 
-        setWeather(
+        /*
+         * Get weather directly from the farm coordinates.
+         */
+
+        const farmWeather =
           await getWeather(
-            null,
-            coordinates.latitude,
-            coordinates.longitude,
-            coordinates.name
-          )
-        );
+            latitude,
+            longitude
+          );
+
+
+        setWeather({
+          ...farmWeather,
+
+          location:
+            farm.location ||
+            "Farm area",
+        });
 
       } catch (err) {
 
@@ -292,9 +323,16 @@ const Dashboard = () => {
     };
 
 
-    loadWeather();
+    /*
+     * Only attempt to load weather after farms
+     * have finished loading.
+     */
 
-  }, [farms]);
+    if (!loading) {
+      loadWeather();
+    }
+
+  }, [farms, loading]);
 
 
   // =====================================================
@@ -1014,6 +1052,7 @@ const Dashboard = () => {
               title="Weather"
               subtitle={
                 weather?.location ||
+                farms?.[0]?.location ||
                 "Farm area"
               }
               link="#"
@@ -1096,7 +1135,11 @@ const Dashboard = () => {
               <EmptyState
                 icon="☁️"
                 title="Weather unavailable"
-                text="Weather information could not be retrieved."
+                text={
+                  farms?.[0]
+                    ? "Weather information could not be retrieved for this farm."
+                    : "Add a farm with coordinates to display weather."
+                }
               />
 
             )}
@@ -1407,6 +1450,7 @@ const PanelHeader = ({
     </div>
 
   );
+
 };
 
 
@@ -1440,6 +1484,7 @@ const HealthRow = ({
     </div>
 
   );
+
 };
 
 
@@ -1481,6 +1526,7 @@ const DetectionRow = ({
     </div>
 
   );
+
 };
 
 
@@ -1513,6 +1559,7 @@ const WeatherDetail = ({
     </div>
 
   );
+
 };
 
 
@@ -1833,110 +1880,56 @@ function formatRelativeTime(
 // WEATHER API
 // =========================================================
 
-async function geocodeLocation(
-  location
-) {
-
-  const response =
-    await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-        location
-      )}&count=1&language=en&format=json`
-    );
-
-
-  if (!response.ok) {
-    throw new Error(
-      "Unable to geocode location."
-    );
-  }
-
-
-  const data =
-    await response.json();
-
-
-  if (
-    !data.results ||
-    !data.results.length
-  ) {
-    return null;
-  }
-
-
-  const result =
-    data.results[0];
-
-
-  return {
-    latitude:
-      result.latitude,
-
-    longitude:
-      result.longitude,
-
-    name:
-      [
-        result.name,
-        result.admin1,
-        result.country,
-      ]
-        .filter(Boolean)
-        .join(", "),
-  };
-
-}
-
+/*
+ * Get weather directly from latitude and longitude.
+ *
+ * IMPORTANT:
+ * We no longer geocode the farm's text location.
+ *
+ * This means:
+ *
+ * Farm coordinates
+ *      ↓
+ * Open-Meteo
+ *      ↓
+ * Exact weather location
+ */
 
 async function getWeather(
-  locationName = null,
-  latitude = null,
-  longitude = null,
-  resolvedName = null
+  latitude,
+  longitude
 ) {
 
   if (
     latitude === null ||
-    longitude === null
+    longitude === null ||
+    latitude === undefined ||
+    longitude === undefined
   ) {
 
-    const coordinates =
-      await geocodeLocation(
-        locationName
-      );
-
-
-    if (!coordinates) {
-      throw new Error(
-        "Weather location not found."
-      );
-    }
-
-
-    latitude =
-      coordinates.latitude;
-
-
-    longitude =
-      coordinates.longitude;
-
-
-    resolvedName =
-      coordinates.name;
+    throw new Error(
+      "Farm coordinates are required."
+    );
 
   }
 
 
   const response =
     await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(
+        latitude
+      )}&longitude=${encodeURIComponent(
+        longitude
+      )}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`
     );
 
 
   if (!response.ok) {
+
     throw new Error(
       "Unable to retrieve weather."
     );
+
   }
 
 
@@ -1945,11 +1938,6 @@ async function getWeather(
 
 
   return {
-
-    location:
-      resolvedName ||
-      locationName ||
-      "Farm area",
 
     temperature:
       data.current?.temperature_2m ??
@@ -1975,6 +1963,10 @@ async function getWeather(
 
 }
 
+
+// =========================================================
+// WEATHER ICON
+// =========================================================
 
 function getWeatherIcon(
   code
@@ -2030,9 +2022,7 @@ function getWeatherIcon(
   }
 
 
-  if (
-    code >= 95
-  ) {
+  if (code >= 95) {
     return "⛈️";
   }
 
@@ -2041,6 +2031,10 @@ function getWeatherIcon(
 
 }
 
+
+// =========================================================
+// WEATHER DESCRIPTION
+// =========================================================
 
 function getWeatherDescription(
   code
