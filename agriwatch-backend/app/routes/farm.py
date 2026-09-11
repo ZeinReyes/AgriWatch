@@ -35,6 +35,70 @@ def get_current_role():
 
 
 # =====================================================
+# COORDINATE VALIDATION
+# =====================================================
+
+def validate_coordinates(
+    latitude,
+    longitude
+):
+
+    if latitude is None and longitude is None:
+        return None, None, None
+
+
+    if latitude is None or longitude is None:
+
+        return (
+            None,
+            None,
+            "Both latitude and longitude are required."
+        )
+
+
+    try:
+
+        latitude = float(latitude)
+        longitude = float(longitude)
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return (
+            None,
+            None,
+            "Latitude and longitude must be valid numbers."
+        )
+
+
+    if latitude < -90 or latitude > 90:
+
+        return (
+            None,
+            None,
+            "Latitude must be between -90 and 90."
+        )
+
+
+    if longitude < -180 or longitude > 180:
+
+        return (
+            None,
+            None,
+            "Longitude must be between -180 and 180."
+        )
+
+
+    return (
+        latitude,
+        longitude,
+        None
+    )
+
+
+# =====================================================
 # GET FARMS
 # =====================================================
 
@@ -177,6 +241,10 @@ def create_farm():
         or ""
     ).strip()
 
+    latitude = data.get("latitude")
+
+    longitude = data.get("longitude")
+
     area = data.get("area")
 
     description = (
@@ -202,6 +270,28 @@ def create_farm():
         return jsonify({
             "status": "error",
             "message": "Farm location is required."
+        }), 400
+
+
+    # ---------------------------------------------
+    # COORDINATE VALIDATION
+    # ---------------------------------------------
+
+    (
+        latitude,
+        longitude,
+        coordinate_error
+    ) = validate_coordinates(
+        latitude,
+        longitude
+    )
+
+
+    if coordinate_error:
+
+        return jsonify({
+            "status": "error",
+            "message": coordinate_error
         }), 400
 
 
@@ -241,6 +331,10 @@ def create_farm():
     farm = Farm(
         farm_name=farm_name,
         location=location,
+
+        latitude=latitude,
+        longitude=longitude,
+
         area=area,
         description=description or None,
         owner_id=current_user_id
@@ -351,6 +445,48 @@ def update_farm(farm_id):
             }), 400
 
         farm.location = location
+
+
+    # ---------------------------------------------
+    # COORDINATES
+    # ---------------------------------------------
+
+    if (
+        "latitude" in data
+        or "longitude" in data
+    ):
+
+        latitude = data.get(
+            "latitude",
+            farm.latitude
+        )
+
+        longitude = data.get(
+            "longitude",
+            farm.longitude
+        )
+
+
+        (
+            latitude,
+            longitude,
+            coordinate_error
+        ) = validate_coordinates(
+            latitude,
+            longitude
+        )
+
+
+        if coordinate_error:
+
+            return jsonify({
+                "status": "error",
+                "message": coordinate_error
+            }), 400
+
+
+        farm.latitude = latitude
+        farm.longitude = longitude
 
 
     # ---------------------------------------------

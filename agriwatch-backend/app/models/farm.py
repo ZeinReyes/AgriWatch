@@ -31,6 +31,16 @@ class Farm(db.Model):
         nullable=False
     )
 
+    latitude = db.Column(
+        db.Float,
+        nullable=True
+    )
+
+    longitude = db.Column(
+        db.Float,
+        nullable=True
+    )
+
     area = db.Column(
         db.Float,
         nullable=True
@@ -93,19 +103,27 @@ class Farm(db.Model):
             "id": self.id,
             "farm_name": self.farm_name,
             "location": self.location,
+
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+
             "area": self.area,
             "description": self.description,
+
             "owner_id": self.owner_id,
+
             "owner_name": (
                 self.owner.full_name
                 if self.owner
                 else None
             ),
+
             "created_at": (
                 self.created_at.isoformat()
                 if self.created_at
                 else None
             ),
+
             "updated_at": (
                 self.updated_at.isoformat()
                 if self.updated_at

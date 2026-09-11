@@ -2805,12 +2805,208 @@ body {
 }
 
 /* =====================================================
-   MY FARM PAGE
+   FARM LOCATION
 ===================================================== */
 
-.farm-page {
-  max-width: 1200px;
-  margin: 0 auto;
+.location-search-row {
+  display: flex;
+  gap: 10px;
+}
+
+.location-search-row input {
+  flex: 1;
+}
+
+.location-search-button {
+  white-space: nowrap;
+}
+
+
+/* =====================================================
+   LOCATION RESULTS
+===================================================== */
+
+.location-results {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card-bg, #ffffff);
+  box-shadow: var(--shadow);
+}
+
+.location-result {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.location-result:last-child {
+  border-bottom: none;
+}
+
+.location-result:hover {
+  background: var(--accent-bg);
+}
+
+.location-result-icon {
+  flex-shrink: 0;
+}
+
+
+/* =====================================================
+   CURRENT LOCATION
+===================================================== */
+
+.current-location-button {
+  margin-top: 10px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.current-location-button:hover {
+  text-decoration: underline;
+}
+
+.current-location-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   FARM MAP
+===================================================== */
+
+.farm-map-wrapper {
+  width: 100%;
+  height: 400px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.farm-map {
+  width: 100%;
+  height: 100%;
+}
+
+
+/* =====================================================
+   LOCATION HELP
+===================================================== */
+
+.location-help {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   COORDINATES
+===================================================== */
+
+.coordinates-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.coordinates-display > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg, #ffffff);
+}
+
+.coordinates-display span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.coordinates-display strong {
+  font-size: 13px;
+  font-family: monospace;
+}
+
+
+/* =====================================================
+   LOCATION ERROR
+===================================================== */
+
+.location-error {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff1f1;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   FORM HELP
+===================================================== */
+
+.form-help-text {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 700px) {
+
+  .location-search-row {
+    flex-direction: column;
+  }
+
+  .location-search-button {
+    width: 100%;
+  }
+
+  .farm-map-wrapper {
+    height: 320px;
+  }
+
+  .coordinates-display {
+    grid-template-columns: 1fr;
+  }
+
 }
 
 

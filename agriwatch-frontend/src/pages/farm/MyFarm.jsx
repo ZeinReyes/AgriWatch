@@ -12,31 +12,176 @@ import {
   updateFarm,
 } from "../../services/farmService";
 
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+
+import L from "leaflet";
+
+import "leaflet/dist/leaflet.css";
+
+
+// =====================================================
+// FIX LEAFLET DEFAULT MARKER ICON
+// =====================================================
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+
+// =====================================================
+// DEFAULT PHILIPPINES LOCATION
+// =====================================================
+
+const DEFAULT_LOCATION = [
+  12.8797,
+  121.7740,
+];
+
+
+// =====================================================
+// MAP CLICK HANDLER
+// =====================================================
+
+const MapClickHandler = ({
+  onLocationSelect,
+}) => {
+
+  useMapEvents({
+
+    click(event) {
+
+      onLocationSelect(
+        event.latlng.lat,
+        event.latlng.lng
+      );
+
+    },
+
+  });
+
+
+  return null;
+};
+
+
+// =====================================================
+// MAP CENTER COMPONENT
+// =====================================================
+
+const MapCenter = ({
+  position,
+}) => {
+
+  const map = useMap();
+
+
+  useEffect(() => {
+
+    if (!position) {
+      return;
+    }
+
+
+    map.flyTo(
+      position,
+      16,
+      {
+        duration: 0.8,
+      }
+    );
+
+  }, [
+    position,
+    map,
+  ]);
+
+
+  return null;
+};
+
+
+// =====================================================
+// MY FARM
+// =====================================================
 
 const MyFarm = () => {
 
-  const [farms, setFarms] = useState([]);
+  const [farms, setFarms] =
+    useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] =
+    useState("");
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] =
+    useState(false);
 
   const [editingFarm, setEditingFarm] =
     useState(null);
 
 
-  const [formData, setFormData] = useState({
-    farm_name: "",
-    location: "",
-    area: "",
-    description: "",
-  });
+  // =================================================
+  // LOCATION STATE
+  // =================================================
+
+  const [mapPosition, setMapPosition] =
+    useState(DEFAULT_LOCATION);
+
+  const [locationSearch, setLocationSearch] =
+    useState("");
+
+  const [locationResults, setLocationResults] =
+    useState([]);
+
+  const [searchingLocation, setSearchingLocation] =
+    useState(false);
+
+  const [locationError, setLocationError] =
+    useState("");
+
+  const [gettingLocation, setGettingLocation] =
+    useState(false);
+
+
+  // =================================================
+  // FORM DATA
+  // =================================================
+
+  const [formData, setFormData] =
+    useState({
+
+      farm_name: "",
+      location: "",
+      latitude: "",
+      longitude: "",
+      area: "",
+      description: "",
+
+    });
 
 
   // =================================================
@@ -50,7 +195,8 @@ const MyFarm = () => {
       setLoading(true);
       setError("");
 
-      const data = await getFarms();
+      const data =
+        await getFarms();
 
       setFarms(
         data.farms || []
@@ -87,17 +233,41 @@ const MyFarm = () => {
   // HANDLE INPUT
   // =================================================
 
-  const handleChange = (event) => {
+  const handleChange = (
+    event
+  ) => {
 
     const {
       name,
       value,
     } = event.target;
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
+
+  };
+
+
+  // =================================================
+  // RESET LOCATION
+  // =================================================
+
+  const resetLocation = () => {
+
+    setMapPosition(
+      DEFAULT_LOCATION
+    );
+
+    setLocationSearch("");
+
+    setLocationResults([]);
+
+    setLocationError("");
 
   };
 
@@ -109,15 +279,21 @@ const MyFarm = () => {
   const resetForm = () => {
 
     setFormData({
+
       farm_name: "",
       location: "",
+      latitude: "",
+      longitude: "",
       area: "",
       description: "",
+
     });
 
     setEditingFarm(null);
 
     setShowForm(false);
+
+    resetLocation();
 
   };
 
@@ -131,14 +307,28 @@ const MyFarm = () => {
     setSuccess("");
     setError("");
 
+    setLocationError("");
+
     setEditingFarm(null);
 
     setFormData({
+
       farm_name: "",
       location: "",
+      latitude: "",
+      longitude: "",
       area: "",
       description: "",
+
     });
+
+    setMapPosition(
+      DEFAULT_LOCATION
+    );
+
+    setLocationSearch("");
+
+    setLocationResults([]);
 
     setShowForm(true);
 
@@ -149,19 +339,71 @@ const MyFarm = () => {
   // OPEN EDIT FORM
   // =================================================
 
-  const handleEdit = (farm) => {
+  const handleEdit = (
+    farm
+  ) => {
 
     setSuccess("");
     setError("");
+    setLocationError("");
 
     setEditingFarm(farm);
 
+
+    const latitude =
+      farm.latitude ??
+      "";
+
+    const longitude =
+      farm.longitude ??
+      "";
+
+
     setFormData({
-      farm_name: farm.farm_name || "",
-      location: farm.location || "",
-      area: farm.area ?? "",
-      description: farm.description || "",
+
+      farm_name:
+        farm.farm_name || "",
+
+      location:
+        farm.location || "",
+
+      latitude,
+      longitude,
+
+      area:
+        farm.area ?? "",
+
+      description:
+        farm.description || "",
+
     });
+
+
+    if (
+      latitude !== ""
+      &&
+      longitude !== ""
+    ) {
+
+      setMapPosition([
+        Number(latitude),
+        Number(longitude),
+      ]);
+
+    } else {
+
+      setMapPosition(
+        DEFAULT_LOCATION
+      );
+
+    }
+
+
+    setLocationSearch(
+      farm.location || ""
+    );
+
+    setLocationResults([]);
 
     setShowForm(true);
 
@@ -169,10 +411,377 @@ const MyFarm = () => {
 
 
   // =================================================
+  // REVERSE GEOCODE
+  // =================================================
+
+  const reverseGeocode = async (
+    latitude,
+    longitude
+  ) => {
+
+    try {
+
+      const response =
+        await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              Accept:
+                "application/json",
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          "Unable to identify this location."
+        );
+
+      }
+
+
+      const data =
+        await response.json();
+
+
+      const displayName =
+        data.display_name ||
+        `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+
+          location:
+            displayName,
+
+          latitude:
+            latitude.toFixed(6),
+
+          longitude:
+            longitude.toFixed(6),
+
+        })
+      );
+
+
+      setLocationSearch(
+        displayName
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Reverse geocoding failed:",
+        error
+      );
+
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+
+          latitude:
+            latitude.toFixed(6),
+
+          longitude:
+            longitude.toFixed(6),
+
+        })
+      );
+
+      setLocationError(
+        "Location selected, but the address could not be determined."
+      );
+
+    }
+
+  };
+
+
+  // =================================================
+  // SELECT MAP LOCATION
+  // =================================================
+
+  const handleLocationSelect = async (
+    latitude,
+    longitude
+  ) => {
+
+    const position = [
+      latitude,
+      longitude,
+    ];
+
+
+    setMapPosition(
+      position
+    );
+
+    setLocationError("");
+
+
+    setFormData(
+      (previous) => ({
+        ...previous,
+
+        latitude:
+          latitude.toFixed(6),
+
+        longitude:
+          longitude.toFixed(6),
+
+      })
+    );
+
+
+    await reverseGeocode(
+      latitude,
+      longitude
+    );
+
+  };
+
+
+  // =================================================
+  // SEARCH LOCATION
+  // =================================================
+
+  const handleLocationSearch = async (
+    event
+  ) => {
+
+    event.preventDefault();
+
+
+    const query =
+      locationSearch.trim();
+
+
+    if (!query) {
+
+      setLocationError(
+        "Enter a location to search."
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      setSearchingLocation(true);
+
+      setLocationError("");
+
+      setLocationResults([]);
+
+
+      const response =
+        await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&countrycodes=ph&limit=5&addressdetails=1`,
+          {
+            headers: {
+              Accept:
+                "application/json",
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          "Location search failed."
+        );
+
+      }
+
+
+      const results =
+        await response.json();
+
+
+      if (!results.length) {
+
+        setLocationError(
+          "No matching locations were found."
+        );
+
+        return;
+
+      }
+
+
+      setLocationResults(
+        results
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Location search failed:",
+        error
+      );
+
+      setLocationError(
+        "Unable to search for this location. Please try again."
+      );
+
+    } finally {
+
+      setSearchingLocation(false);
+
+    }
+
+  };
+
+
+  // =================================================
+  // SELECT SEARCH RESULT
+  // =================================================
+
+  const handleSearchResult = async (
+    result
+  ) => {
+
+    const latitude =
+      Number(result.lat);
+
+    const longitude =
+      Number(result.lon);
+
+
+    setLocationResults([]);
+
+    setLocationSearch(
+      result.display_name
+    );
+
+
+    await handleLocationSelect(
+      latitude,
+      longitude
+    );
+
+  };
+
+
+  // =================================================
+  // USE CURRENT LOCATION
+  // =================================================
+
+  const handleUseCurrentLocation =
+    () => {
+
+      if (
+        !navigator.geolocation
+      ) {
+
+        setLocationError(
+          "Your browser does not support location services."
+        );
+
+        return;
+
+      }
+
+
+      setGettingLocation(true);
+
+      setLocationError("");
+
+
+      navigator.geolocation.getCurrentPosition(
+
+        async (position) => {
+
+          const latitude =
+            position.coords.latitude;
+
+          const longitude =
+            position.coords.longitude;
+
+
+          await handleLocationSelect(
+            latitude,
+            longitude
+          );
+
+
+          setGettingLocation(false);
+
+        },
+
+        (error) => {
+
+          console.error(
+            "Geolocation error:",
+            error
+          );
+
+
+          let message =
+            "Unable to get your current location.";
+
+
+          if (
+            error.code ===
+            error.PERMISSION_DENIED
+          ) {
+
+            message =
+              "Location permission was denied. Please allow location access in your browser.";
+
+          } else if (
+            error.code ===
+            error.POSITION_UNAVAILABLE
+          ) {
+
+            message =
+              "Your current location is unavailable.";
+
+          } else if (
+            error.code ===
+            error.TIMEOUT
+          ) {
+
+            message =
+              "Getting your location timed out.";
+
+          }
+
+
+          setLocationError(
+            message
+          );
+
+          setGettingLocation(false);
+
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+
+      );
+
+    };
+
+
+  // =================================================
   // SUBMIT FORM
   // =================================================
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (
+    event
+  ) => {
 
     event.preventDefault();
 
@@ -184,11 +793,22 @@ const MyFarm = () => {
     try {
 
       const payload = {
+
         farm_name:
           formData.farm_name.trim(),
 
         location:
           formData.location.trim(),
+
+        latitude:
+          formData.latitude === ""
+            ? null
+            : Number(formData.latitude),
+
+        longitude:
+          formData.longitude === ""
+            ? null
+            : Number(formData.longitude),
 
         area:
           formData.area === ""
@@ -197,7 +817,26 @@ const MyFarm = () => {
 
         description:
           formData.description.trim(),
+
       };
+
+
+      if (
+        payload.latitude === null
+        ||
+        payload.longitude === null
+      ) {
+
+        throw {
+          response: {
+            data: {
+              message:
+                "Please select a location on the map or use the current location button.",
+            },
+          },
+        };
+
+      }
 
 
       let response;
@@ -249,19 +888,24 @@ const MyFarm = () => {
 
       if (!editingFarm) {
 
-        setFarms((previous) => [
-          updatedFarm,
-          ...previous,
-        ]);
+        setFarms(
+          (previous) => [
+            updatedFarm,
+            ...previous,
+          ]
+        );
 
       } else {
 
-        setFarms((previous) =>
-          previous.map((farm) =>
-            farm.id === updatedFarm.id
-              ? updatedFarm
-              : farm
-          )
+        setFarms(
+          (previous) =>
+            previous.map(
+              (farm) =>
+                farm.id ===
+                updatedFarm.id
+                  ? updatedFarm
+                  : farm
+            )
         );
 
       }
@@ -276,6 +920,7 @@ const MyFarm = () => {
         err
       );
 
+
       setError(
         err.response?.data?.message ||
         "Unable to save farm."
@@ -286,6 +931,7 @@ const MyFarm = () => {
       setSaving(false);
 
     }
+
   };
 
 
@@ -293,12 +939,15 @@ const MyFarm = () => {
   // DELETE FARM
   // =================================================
 
-  const handleDelete = async (farm) => {
+  const handleDelete = async (
+    farm
+  ) => {
 
     const confirmed =
       window.confirm(
         `Are you sure you want to delete "${farm.farm_name}"?`
       );
+
 
     if (!confirmed) {
       return;
@@ -310,16 +959,18 @@ const MyFarm = () => {
       setError("");
       setSuccess("");
 
+
       await deleteFarm(
         farm.id
       );
 
 
-      setFarms((previous) =>
-        previous.filter(
-          (item) =>
-            item.id !== farm.id
-        )
+      setFarms(
+        (previous) =>
+          previous.filter(
+            (item) =>
+              item.id !== farm.id
+          )
       );
 
 
@@ -334,12 +985,14 @@ const MyFarm = () => {
         err
       );
 
+
       setError(
         err.response?.data?.message ||
         "Unable to delete farm."
       );
 
     }
+
   };
 
 
@@ -369,36 +1022,44 @@ const MyFarm = () => {
             </h1>
 
             <p>
-              Manage your farm information
-              and prepare your crops for
-              monitoring.
+              Manage your farm information,
+              location, and growing environment.
             </p>
 
           </div>
 
 
           {!showForm && (
+
             <button
               className="primary-button"
               onClick={handleAddFarm}
             >
-              <span>+</span>
+
+              <span>
+                +
+              </span>
+
               Add Farm
+
             </button>
+
           )}
 
         </div>
 
 
         {/* ==========================================
-            SUCCESS MESSAGE
+            SUCCESS
         =========================================== */}
 
         {success && (
 
           <div className="farm-alert farm-alert-success">
 
-            <span>✓</span>
+            <span>
+              ✓
+            </span>
 
             <span>
               {success}
@@ -410,14 +1071,16 @@ const MyFarm = () => {
 
 
         {/* ==========================================
-            ERROR MESSAGE
+            ERROR
         =========================================== */}
 
         {error && (
 
           <div className="farm-alert farm-alert-error">
 
-            <span>!</span>
+            <span>
+              !
+            </span>
 
             <span>
               {error}
@@ -447,11 +1110,12 @@ const MyFarm = () => {
                 </h2>
 
                 <p>
-                  Enter the basic information
-                  about your farm.
+                  Enter your farm information
+                  and pinpoint its location.
                 </p>
 
               </div>
+
 
               <button
                 className="close-button"
@@ -469,7 +1133,9 @@ const MyFarm = () => {
               className="farm-form"
             >
 
-              {/* FARM NAME */}
+              {/* =================================
+                  FARM NAME
+              ================================== */}
 
               <div className="form-group">
 
@@ -481,8 +1147,12 @@ const MyFarm = () => {
                   id="farm_name"
                   name="farm_name"
                   type="text"
-                  value={formData.farm_name}
-                  onChange={handleChange}
+                  value={
+                    formData.farm_name
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="e.g. Green Valley Farm"
                   required
                 />
@@ -490,37 +1160,342 @@ const MyFarm = () => {
               </div>
 
 
-              {/* LOCATION */}
+              {/* =================================
+                  LOCATION SEARCH
+              ================================== */}
+
+              <div className="form-group">
+
+                <label>
+                  Farm Location
+                </label>
+
+                <div className="location-search-row">
+
+                  <input
+                    type="text"
+                    value={
+                      locationSearch
+                    }
+                    onChange={(event) => {
+
+                      setLocationSearch(
+                        event.target.value
+                      );
+
+                      setLocationResults(
+                        []
+                      );
+
+                    }}
+                    placeholder="Search a city, municipality, barangay, or address"
+                  />
+
+                  <button
+                    type="button"
+                    className="secondary-button location-search-button"
+                    onClick={
+                      handleLocationSearch
+                    }
+                    disabled={
+                      searchingLocation
+                    }
+                  >
+
+                    {searchingLocation
+                      ? "Searching..."
+                      : "Search"}
+
+                  </button>
+
+                </div>
+
+
+                {/* SEARCH RESULTS */}
+
+                {locationResults.length >
+                  0 && (
+
+                  <div className="location-results">
+
+                    {locationResults.map(
+                      (result) => (
+
+                        <button
+                          type="button"
+                          key={
+                            result.place_id
+                          }
+                          className="location-result"
+                          onClick={() =>
+                            handleSearchResult(
+                              result
+                            )
+                          }
+                        >
+
+                          <span className="location-result-icon">
+                            📍
+                          </span>
+
+                          <span>
+                            {
+                              result.display_name
+                            }
+                          </span>
+
+                        </button>
+
+                      )
+                    )}
+
+                  </div>
+
+                )}
+
+
+                <button
+                  type="button"
+                  className="current-location-button"
+                  onClick={
+                    handleUseCurrentLocation
+                  }
+                  disabled={
+                    gettingLocation
+                  }
+                >
+
+                  <span>
+                    📍
+                  </span>
+
+                  {gettingLocation
+                    ? "Getting your location..."
+                    : "Use my current location"}
+
+                </button>
+
+              </div>
+
+
+              {/* =================================
+                  MAP
+              ================================== */}
+
+              <div className="form-group">
+
+                <label>
+                  Pinpoint Farm Location
+                </label>
+
+                <div className="farm-map-wrapper">
+
+                  <MapContainer
+                    center={
+                      mapPosition
+                    }
+                    zoom={6}
+                    scrollWheelZoom={true}
+                    className="farm-map"
+                  >
+
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+
+
+                    <MapCenter
+                      position={
+                        mapPosition
+                      }
+                    />
+
+
+                    <MapClickHandler
+                      onLocationSelect={
+                        handleLocationSelect
+                      }
+                    />
+
+
+                    {formData.latitude !== ""
+                      &&
+                      formData.longitude !== "" && (
+
+                      <Marker
+                        position={[
+                          Number(
+                            formData.latitude
+                          ),
+                          Number(
+                            formData.longitude
+                          ),
+                        ]}
+                        draggable={true}
+                        eventHandlers={{
+
+                          dragend: async (
+                            event
+                          ) => {
+
+                            const marker =
+                              event.target;
+
+                            const position =
+                              marker.getLatLng();
+
+
+                            await handleLocationSelect(
+                              position.lat,
+                              position.lng
+                            );
+
+                          },
+
+                        }}
+                      >
+
+                        <Popup>
+                          <strong>
+                            {formData.farm_name ||
+                              "Farm location"}
+                          </strong>
+
+                          <br />
+
+                          Drag this marker or
+                          click on the map to
+                          change the location.
+                        </Popup>
+
+                      </Marker>
+
+                    )}
+
+                  </MapContainer>
+
+                </div>
+
+
+                <div className="location-help">
+
+                  <span>
+                    💡
+                  </span>
+
+                  <span>
+                    Click on the map or drag the
+                    marker to pinpoint the exact
+                    location of your farm.
+                  </span>
+
+                </div>
+
+
+                {formData.latitude !== ""
+                  &&
+                  formData.longitude !== "" && (
+
+                  <div className="coordinates-display">
+
+                    <div>
+
+                      <span>
+                        Latitude
+                      </span>
+
+                      <strong>
+                        {
+                          formData.latitude
+                        }
+                      </strong>
+
+                    </div>
+
+
+                    <div>
+
+                      <span>
+                        Longitude
+                      </span>
+
+                      <strong>
+                        {
+                          formData.longitude
+                        }
+                      </strong>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+
+                {locationError && (
+
+                  <div className="location-error">
+
+                    !
+                    {locationError}
+
+                  </div>
+
+                )}
+
+              </div>
+
+
+              {/* =================================
+                  SELECTED ADDRESS
+              ================================== */}
 
               <div className="form-group">
 
                 <label htmlFor="location">
-                  Location
+                  Selected Location
                 </label>
 
                 <input
                   id="location"
                   name="location"
                   type="text"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="e.g. Batangas, Philippines"
+                  value={
+                    formData.location
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  placeholder="Select a location on the map"
                   required
                 />
+
+                <small className="form-help-text">
+                  This address is automatically
+                  updated when you select a location
+                  on the map.
+                </small>
 
               </div>
 
 
-              {/* AREA */}
+              {/* =================================
+                  AREA
+              ================================== */}
 
               <div className="form-group">
 
                 <label htmlFor="area">
+
                   Farm Area
+
                   <span className="optional-label">
                     Optional
                   </span>
+
                 </label>
+
 
                 <div className="input-with-unit">
 
@@ -530,8 +1505,12 @@ const MyFarm = () => {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={formData.area}
-                    onChange={handleChange}
+                    value={
+                      formData.area
+                    }
+                    onChange={
+                      handleChange
+                    }
                     placeholder="e.g. 2.5"
                   />
 
@@ -544,22 +1523,32 @@ const MyFarm = () => {
               </div>
 
 
-              {/* DESCRIPTION */}
+              {/* =================================
+                  DESCRIPTION
+              ================================== */}
 
               <div className="form-group">
 
                 <label htmlFor="description">
+
                   Description
+
                   <span className="optional-label">
                     Optional
                   </span>
+
                 </label>
+
 
                 <textarea
                   id="description"
                   name="description"
-                  value={formData.description}
-                  onChange={handleChange}
+                  value={
+                    formData.description
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="Describe your farm..."
                   rows="4"
                 />
@@ -567,23 +1556,32 @@ const MyFarm = () => {
               </div>
 
 
-              {/* FORM ACTIONS */}
+              {/* =================================
+                  ACTIONS
+              ================================== */}
 
               <div className="farm-form-actions">
 
                 <button
                   type="button"
                   className="secondary-button"
-                  onClick={resetForm}
-                  disabled={saving}
+                  onClick={
+                    resetForm
+                  }
+                  disabled={
+                    saving
+                  }
                 >
                   Cancel
                 </button>
 
+
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={saving}
+                  disabled={
+                    saving
+                  }
                 >
 
                   {saving
@@ -648,10 +1646,17 @@ const MyFarm = () => {
 
               <button
                 className="primary-button"
-                onClick={handleAddFarm}
+                onClick={
+                  handleAddFarm
+                }
               >
-                <span>+</span>
+
+                <span>
+                  +
+                </span>
+
                 Add Your Farm
+
               </button>
 
             </div>
@@ -668,111 +1673,169 @@ const MyFarm = () => {
 
             <div className="farm-grid">
 
-              {farms.map((farm) => (
+              {farms.map(
+                (farm) => (
 
-                <div
-                  className="farm-card"
-                  key={farm.id}
-                >
+                  <div
+                    className="farm-card"
+                    key={
+                      farm.id
+                    }
+                  >
 
-                  <div className="farm-card-top">
+                    <div className="farm-card-top">
 
-                    <div className="farm-icon">
-                      🌱
+                      <div className="farm-icon">
+                        🌱
+                      </div>
+
+
+                      <div className="farm-card-actions">
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEdit(
+                              farm
+                            )
+                          }
+                          title="Edit farm"
+                        >
+                          Edit
+                        </button>
+
+
+                        <button
+                          type="button"
+                          className="delete-action"
+                          onClick={() =>
+                            handleDelete(
+                              farm
+                            )
+                          }
+                          title="Delete farm"
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+
                     </div>
 
-                    <div className="farm-card-actions">
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleEdit(farm)
-                        }
-                        title="Edit farm"
-                      >
-                        Edit
-                      </button>
+                    <h2>
+                      {
+                        farm.farm_name
+                      }
+                    </h2>
 
-                      <button
-                        type="button"
-                        className="delete-action"
-                        onClick={() =>
-                          handleDelete(farm)
-                        }
-                        title="Delete farm"
-                      >
-                        Delete
-                      </button>
-
-                    </div>
-
-                  </div>
-
-
-                  <h2>
-                    {farm.farm_name}
-                  </h2>
-
-
-                  <div className="farm-detail">
-
-                    <span className="farm-detail-icon">
-                      📍
-                    </span>
-
-                    <span>
-                      {farm.location}
-                    </span>
-
-                  </div>
-
-
-                  {farm.area !== null &&
-                    farm.area !== undefined && (
 
                     <div className="farm-detail">
 
                       <span className="farm-detail-icon">
-                        📐
+                        📍
                       </span>
 
                       <span>
-                        {farm.area} hectares
+                        {
+                          farm.location
+                        }
                       </span>
 
                     </div>
 
-                  )}
+
+                    {farm.latitude !== null
+                      &&
+                      farm.latitude !== undefined
+                      &&
+                      farm.longitude !== null
+                      &&
+                      farm.longitude !== undefined && (
+
+                      <div className="farm-detail">
+
+                        <span className="farm-detail-icon">
+                          🗺️
+                        </span>
+
+                        <span>
+                          {
+                            Number(
+                              farm.latitude
+                            ).toFixed(6)
+                          }
+                          ,{" "}
+                          {
+                            Number(
+                              farm.longitude
+                            ).toFixed(6)
+                          }
+                        </span>
+
+                      </div>
+
+                    )}
 
 
-                  {farm.description && (
+                    {farm.area !== null
+                      &&
+                      farm.area !== undefined && (
 
-                    <p className="farm-description">
-                      {farm.description}
-                    </p>
+                      <div className="farm-detail">
 
-                  )}
+                        <span className="farm-detail-icon">
+                          📐
+                        </span>
+
+                        <span>
+                          {
+                            farm.area
+                          }{" "}
+                          hectares
+                        </span>
+
+                      </div>
+
+                    )}
 
 
-                  <div className="farm-card-footer">
+                    {farm.description && (
 
-                    <span>
-                      Farm ID #{farm.id}
-                    </span>
+                      <p className="farm-description">
+                        {
+                          farm.description
+                        }
+                      </p>
 
-                    <span>
-                      {farm.created_at
-                        ? new Date(
-                            farm.created_at
-                          ).toLocaleDateString()
-                        : ""}
-                    </span>
+                    )}
+
+
+                    <div className="farm-card-footer">
+
+                      <span>
+                        Farm ID #
+                        {
+                          farm.id
+                        }
+                      </span>
+
+                      <span>
+                        {
+                          farm.created_at
+                            ? new Date(
+                                farm.created_at
+                              ).toLocaleDateString()
+                            : ""
+                        }
+                      </span>
+
+                    </div>
 
                   </div>
 
-                </div>
-
-              ))}
+                )
+              )}
 
             </div>
 
