@@ -32,7 +32,7 @@ def user_can_access_crop(crop, user_id, role):
 # GET ALL MONITORING RECORDS
 # =========================================================
 
-@monitoring_bp.get("/")
+@monitoring_bp.get("/", strict_slashes=False)
 @jwt_required()
 def get_monitoring_records():
 
@@ -42,11 +42,15 @@ def get_monitoring_records():
     query = MonitoringRecord.query.join(Crop).join(Farm)
 
     if role != "admin":
-        query = query.filter(Farm.owner_id == user_id)
+        query = query.filter(
+            Farm.owner_id == user_id
+        )
 
     records = (
         query
-        .order_by(MonitoringRecord.recorded_at.desc())
+        .order_by(
+            MonitoringRecord.recorded_at.desc()
+        )
         .all()
     )
 
@@ -70,7 +74,10 @@ def get_crop_monitoring(crop_id):
     user_id = get_current_user_id()
     role = get_current_role()
 
-    crop = db.session.get(Crop, crop_id)
+    crop = db.session.get(
+        Crop,
+        crop_id
+    )
 
     if not crop:
         return jsonify({
@@ -85,7 +92,10 @@ def get_crop_monitoring(crop_id):
     ):
         return jsonify({
             "status": "error",
-            "message": "You do not have permission to view this crop's monitoring records."
+            "message": (
+                "You do not have permission to view "
+                "this crop's monitoring records."
+            )
         }), 403
 
     records = (
@@ -136,7 +146,10 @@ def get_monitoring_record(monitoring_id):
     ):
         return jsonify({
             "status": "error",
-            "message": "You do not have permission to view this monitoring record."
+            "message": (
+                "You do not have permission to view "
+                "this monitoring record."
+            )
         }), 403
 
     return jsonify({
@@ -149,7 +162,7 @@ def get_monitoring_record(monitoring_id):
 # CREATE MONITORING RECORD
 # =========================================================
 
-@monitoring_bp.post("/")
+@monitoring_bp.post("/", strict_slashes=False)
 @jwt_required()
 def create_monitoring_record():
 
@@ -168,13 +181,17 @@ def create_monitoring_record():
 
     try:
         crop_id = int(crop_id)
+
     except (TypeError, ValueError):
         return jsonify({
             "status": "error",
             "message": "crop_id must be a valid integer."
         }), 400
 
-    crop = db.session.get(Crop, crop_id)
+    crop = db.session.get(
+        Crop,
+        crop_id
+    )
 
     if not crop:
         return jsonify({
@@ -189,38 +206,66 @@ def create_monitoring_record():
     ):
         return jsonify({
             "status": "error",
-            "message": "You do not have permission to add monitoring data to this crop."
+            "message": (
+                "You do not have permission to add "
+                "monitoring data to this crop."
+            )
         }), 403
 
     # -----------------------------------------------------
     # Validate numeric values
     # -----------------------------------------------------
 
-    soil_moisture = data.get("soil_moisture")
-    crop_temperature = data.get("crop_temperature")
+    soil_moisture = data.get(
+        "soil_moisture"
+    )
+
+    crop_temperature = data.get(
+        "crop_temperature"
+    )
 
     if soil_moisture is not None:
+
         try:
-            soil_moisture = float(soil_moisture)
+            soil_moisture = float(
+                soil_moisture
+            )
+
         except (TypeError, ValueError):
+
             return jsonify({
                 "status": "error",
-                "message": "soil_moisture must be a valid number."
+                "message": (
+                    "soil_moisture must be "
+                    "a valid number."
+                )
             }), 400
 
         if soil_moisture < 0 or soil_moisture > 100:
+
             return jsonify({
                 "status": "error",
-                "message": "soil_moisture must be between 0 and 100."
+                "message": (
+                    "soil_moisture must be "
+                    "between 0 and 100."
+                )
             }), 400
 
     if crop_temperature is not None:
+
         try:
-            crop_temperature = float(crop_temperature)
+            crop_temperature = float(
+                crop_temperature
+            )
+
         except (TypeError, ValueError):
+
             return jsonify({
                 "status": "error",
-                "message": "crop_temperature must be a valid number."
+                "message": (
+                    "crop_temperature must be "
+                    "a valid number."
+                )
             }), 400
 
     # -----------------------------------------------------
@@ -228,15 +273,24 @@ def create_monitoring_record():
     # -----------------------------------------------------
 
     pest_detected = bool(
-        data.get("pest_detected", False)
+        data.get(
+            "pest_detected",
+            False
+        )
     )
 
     disease_detected = bool(
-        data.get("disease_detected", False)
+        data.get(
+            "disease_detected",
+            False
+        )
     )
 
     discoloration_detected = bool(
-        data.get("discoloration_detected", False)
+        data.get(
+            "discoloration_detected",
+            False
+        )
     )
 
     # -----------------------------------------------------
@@ -255,6 +309,7 @@ def create_monitoring_record():
     ]
 
     if plant_condition not in allowed_conditions:
+
         return jsonify({
             "status": "error",
             "message": (
@@ -264,7 +319,7 @@ def create_monitoring_record():
         }), 400
 
     # -----------------------------------------------------
-    # Create record
+    # Create monitoring record
     # -----------------------------------------------------
 
     record = MonitoringRecord(
@@ -280,9 +335,11 @@ def create_monitoring_record():
     db.session.add(record)
 
     try:
+
         db.session.commit()
 
     except Exception as error:
+
         db.session.rollback()
 
         print(
@@ -292,12 +349,16 @@ def create_monitoring_record():
 
         return jsonify({
             "status": "error",
-            "message": "Unable to create monitoring record."
+            "message": (
+                "Unable to create monitoring record."
+            )
         }), 500
 
     return jsonify({
         "status": "success",
-        "message": "Monitoring record created successfully.",
+        "message": (
+            "Monitoring record created successfully."
+        ),
         "monitoring": record.to_dict()
     }), 201
 
@@ -331,15 +392,20 @@ def delete_monitoring_record(monitoring_id):
     ):
         return jsonify({
             "status": "error",
-            "message": "You do not have permission to delete this monitoring record."
+            "message": (
+                "You do not have permission to "
+                "delete this monitoring record."
+            )
         }), 403
 
     db.session.delete(record)
 
     try:
+
         db.session.commit()
 
     except Exception as error:
+
         db.session.rollback()
 
         print(
@@ -349,10 +415,14 @@ def delete_monitoring_record(monitoring_id):
 
         return jsonify({
             "status": "error",
-            "message": "Unable to delete monitoring record."
+            "message": (
+                "Unable to delete monitoring record."
+            )
         }), 500
 
     return jsonify({
         "status": "success",
-        "message": "Monitoring record deleted successfully."
+        "message": (
+            "Monitoring record deleted successfully."
+        )
     }), 200
