@@ -1,4 +1,5 @@
 from flask import Flask
+import os
 
 from flask_cors import CORS
 
@@ -76,7 +77,12 @@ def create_app():
         resources={
             r"/api/*": {
                 "origins": [
-                    "http://localhost:5173"
+                    origin.strip()
+                    for origin in os.getenv(
+                        "CORS_ORIGINS",
+                        "http://localhost:5173"
+                    ).split(",")
+                    if origin.strip()
                 ]
             }
         }
