@@ -5,4 +5,5 @@ Flask-Cors
 Flask-Bcrypt
 PyMySQL
 python-dotenv
+gunicorn
 email-validator
