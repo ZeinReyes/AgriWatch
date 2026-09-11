@@ -25,6 +25,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import MyFarm from "./pages/farm/MyFarm";
 import MyCrops from "./pages/crops/MyCrops";
 import Monitoring from "./pages/monitoring/Monitoring";
+import Alerts from "./pages/alerts/Alerts";
 
 
 import Dashboard from "./pages/Dashboard";
@@ -163,16 +164,8 @@ const App = () => {
             path="/alerts"
             element={
               <ProtectedRoute>
-                <RoleRoute
-                  allowedRoles={[
-                    "farmer",
-                    "admin",
-                    "viewer",
-                  ]}
-                >
-                  <PlaceholderPage
-                    title="Alerts"
-                  />
+                <RoleRoute allowedRoles={["admin", "farmer", "viewer"]}>
+                  <Alerts />
                 </RoleRoute>
               </ProtectedRoute>
             }
