@@ -43,11 +43,11 @@ class Config:
     )
 
     # =====================================================
-    # Resend Email API
+    # Brevo Email API
     # =====================================================
 
-    RESEND_API_KEY = os.getenv(
-        "RESEND_API_KEY"
+    BREVO_API_KEY = os.getenv(
+        "BREVO_API_KEY"
     )
 
     MAIL_FROM = os.getenv(

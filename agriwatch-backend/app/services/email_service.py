@@ -3,7 +3,7 @@ import requests
 from flask import current_app
 
 
-RESEND_API_URL = "https://api.resend.com/emails"
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 
 # =========================================================
@@ -17,14 +17,15 @@ def send_email(
     html_body=None
 ):
     """
-    Send an email through the Resend Email API.
+    Send an email through the Brevo transactional
+    email API.
 
-    This uses HTTPS instead of SMTP, which is suitable
-    for deployment on Render.
+    Uses HTTPS instead of SMTP so it works on
+    Render Free web services.
     """
 
     api_key = current_app.config.get(
-        "RESEND_API_KEY"
+        "BREVO_API_KEY"
     )
 
     sender_email = current_app.config.get(
@@ -38,7 +39,7 @@ def send_email(
 
     if not api_key:
         raise RuntimeError(
-            "RESEND_API_KEY is not configured."
+            "BREVO_API_KEY is not configured."
         )
 
     if not sender_email:
@@ -47,25 +48,35 @@ def send_email(
         )
 
     headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
     }
 
     payload = {
-        "from": f"{sender_name} <{sender_email}>",
-        "to": [recipient],
+        "sender": {
+            "name": sender_name,
+            "email": sender_email
+        },
+
+        "to": [
+            {
+                "email": recipient
+            }
+        ],
+
         "subject": subject,
-        "text": body
+
+        "textContent": body
     }
 
     if html_body:
-        payload["html"] = html_body
+        payload["htmlContent"] = html_body
 
     try:
 
         response = requests.post(
-            RESEND_API_URL,
+            BREVO_API_URL,
             headers=headers,
             json=payload,
             timeout=8
@@ -74,7 +85,7 @@ def send_email(
     except requests.RequestException as error:
 
         raise RuntimeError(
-            f"Unable to connect to Resend: {error}"
+            f"Unable to connect to Brevo: {error}"
         ) from error
 
     if not response.ok:
@@ -86,7 +97,7 @@ def send_email(
             error_details = response.text
 
         raise RuntimeError(
-            f"Resend API error: {error_details}"
+            f"Brevo API error: {error_details}"
         )
 
     try:
@@ -159,7 +170,9 @@ def build_email_template(
     "
 >
 
-<!-- HEADER -->
+<!-- =====================================================
+     HEADER
+===================================================== -->
 
 <tr>
 
@@ -190,7 +203,9 @@ def build_email_template(
 </tr>
 
 
-<!-- CONTENT -->
+<!-- =====================================================
+     CONTENT
+===================================================== -->
 
 <tr>
 
@@ -213,7 +228,9 @@ def build_email_template(
 </tr>
 
 
-<!-- FOOTER -->
+<!-- =====================================================
+     FOOTER
+===================================================== -->
 
 <tr>
 
