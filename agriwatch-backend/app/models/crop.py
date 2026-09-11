@@ -94,6 +94,12 @@ class Crop(db.Model):
         )
     )
 
+    monitoring_records = db.relationship(
+        "MonitoringRecord",
+        back_populates="crop",
+        cascade="all, delete-orphan"
+    )
+
 
     # =================================================
     # SERIALIZATION

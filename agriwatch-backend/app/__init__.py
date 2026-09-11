@@ -97,6 +97,7 @@ def create_app():
     from app.models.otp import OTP
     from app.models.farm import Farm
     from app.models.crop import Crop
+    from app.models.crop import Crop
 
 
     # =================================================
@@ -153,6 +154,17 @@ def create_app():
     app.register_blueprint(
         crop_bp,
         url_prefix="/api/crops"
+    )
+
+    # =================================================
+    # REGISTER MONITORING ROUTES
+    # =================================================
+
+    from app.routes.monitoring import monitoring_bp
+
+    app.register_blueprint(
+        monitoring_bp,
+        url_prefix="/api/monitoring"
     )
 
 
