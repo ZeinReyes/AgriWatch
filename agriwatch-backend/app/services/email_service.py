@@ -1,14 +1,14 @@
-import smtplib
-
-from email.message import EmailMessage
+import requests
 
 from flask import current_app
 
 
-# =========================================================
-# AgriWatch Email Service
-# =========================================================
+RESEND_API_URL = "https://api.resend.com/emails"
 
+
+# =========================================================
+# Generic Email Sender
+# =========================================================
 
 def send_email(
     recipient,
@@ -17,60 +17,95 @@ def send_email(
     html_body=None
 ):
     """
-    Generic email sender.
+    Send an email through the Resend Email API.
 
-    Sends both plain-text and HTML versions when html_body
-    is provided.
+    This uses HTTPS instead of SMTP, which is suitable
+    for deployment on Render.
     """
 
-    message = EmailMessage()
+    api_key = current_app.config.get(
+        "RESEND_API_KEY"
+    )
 
-    message["Subject"] = subject
-    message["From"] = current_app.config["MAIL_FROM"]
-    message["To"] = recipient
+    sender_email = current_app.config.get(
+        "MAIL_FROM"
+    )
 
-    # Plain-text fallback
-    message.set_content(body)
+    sender_name = current_app.config.get(
+        "MAIL_FROM_NAME",
+        "AgriWatch"
+    )
 
-    # HTML version
+    if not api_key:
+        raise RuntimeError(
+            "RESEND_API_KEY is not configured."
+        )
+
+    if not sender_email:
+        raise RuntimeError(
+            "MAIL_FROM is not configured."
+        )
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    payload = {
+        "from": f"{sender_name} <{sender_email}>",
+        "to": [recipient],
+        "subject": subject,
+        "text": body
+    }
+
     if html_body:
-        message.add_alternative(
-            html_body,
-            subtype="html"
+        payload["html"] = html_body
+
+    try:
+
+        response = requests.post(
+            RESEND_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=8
         )
 
-    host = current_app.config["MAIL_HOST"]
-    port = current_app.config["MAIL_PORT"]
-    username = current_app.config["MAIL_USERNAME"]
-    password = current_app.config["MAIL_PASSWORD"]
+    except requests.RequestException as error:
 
-    with smtplib.SMTP(host, port) as server:
+        raise RuntimeError(
+            f"Unable to connect to Resend: {error}"
+        ) from error
 
-        server.starttls()
+    if not response.ok:
 
-        server.login(
-            username,
-            password
+        try:
+            error_details = response.json()
+
+        except ValueError:
+            error_details = response.text
+
+        raise RuntimeError(
+            f"Resend API error: {error_details}"
         )
 
-        server.send_message(
-            message
-        )
+    try:
+        return response.json()
+
+    except ValueError:
+        return {
+            "status": "sent"
+        }
 
 
 # =========================================================
-# Shared AgriWatch Email Template
+# AgriWatch HTML Email Template
 # =========================================================
-
 
 def build_email_template(
     title,
     content_html
 ):
-    """
-    Creates the standard AgriWatch HTML email layout.
-    """
-
     return f"""
 <!DOCTYPE html>
 
@@ -80,9 +115,10 @@ def build_email_template(
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width,
-                   initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
 </head>
 
@@ -123,9 +159,7 @@ def build_email_template(
     "
 >
 
-<!-- =====================================================
-     HEADER
-===================================================== -->
+<!-- HEADER -->
 
 <tr>
 
@@ -138,15 +172,14 @@ def build_email_template(
         color: #ffffff;
         font-size: 24px;
         font-weight: bold;
-        line-height: 1.2;
     ">
         AgriWatch
     </div>
 
     <div style="
+        margin-top: 5px;
         color: #dcebdd;
         font-size: 12px;
-        margin-top: 5px;
     ">
         Smart Tomato Crop Monitoring
         and Web-Based Alert System
@@ -157,21 +190,18 @@ def build_email_template(
 </tr>
 
 
-<!-- =====================================================
-     CONTENT
-===================================================== -->
+<!-- CONTENT -->
 
 <tr>
 
 <td style="
-    padding: 32px 30px;
+    padding: 30px;
 ">
 
     <h1 style="
-        margin: 0 0 18px 0;
+        margin: 0 0 20px 0;
         color: #183b24;
         font-size: 22px;
-        line-height: 1.3;
     ">
         {title}
     </h1>
@@ -183,9 +213,7 @@ def build_email_template(
 </tr>
 
 
-<!-- =====================================================
-     FOOTER
-===================================================== -->
+<!-- FOOTER -->
 
 <tr>
 
@@ -210,7 +238,8 @@ def build_email_template(
         color: #9aa29d;
         font-size: 11px;
     ">
-        Smart Tomato Crop Monitoring and Web-Based Alert System
+        Smart Tomato Crop Monitoring
+        and Web-Based Alert System
     </p>
 
 </td>
@@ -232,25 +261,22 @@ def build_email_template(
 
 
 # =========================================================
-# Signup Verification Email
+# Email Verification OTP
 # =========================================================
-
 
 def send_verification_otp(
     recipient,
     otp
 ):
 
-    subject = (
-        "AgriWatch - Verify Your Email"
-    )
+    subject = "AgriWatch - Email Verification"
 
     body = f"""
 AgriWatch Email Verification
 
 Hello,
 
-Thank you for creating an AgriWatch account.
+Welcome to AgriWatch.
 
 Your email verification code is:
 
@@ -271,8 +297,7 @@ and Web-Based Alert System
     content_html = f"""
 
 <p style="
-    margin: 0 0 18px 0;
-    color: #4f5d53;
+    color: #68736b;
     font-size: 14px;
     line-height: 1.6;
 ">
@@ -280,39 +305,37 @@ and Web-Based Alert System
 </p>
 
 <p style="
-    margin: 0 0 22px 0;
-    color: #4f5d53;
+    color: #68736b;
     font-size: 14px;
     line-height: 1.6;
 ">
-    Thank you for creating an
-    <strong>AgriWatch</strong> account.
+    Welcome to AgriWatch.
     Please use the verification code below
-    to confirm your email address.
+    to verify your email address.
 </p>
 
 <div style="
-    background-color: #edf6ef;
-    border: 1px solid #d8e9dc;
-    border-radius: 10px;
+    margin: 25px 0;
     padding: 20px;
+    background-color: #f1f7f2;
+    border: 1px solid #d8e8db;
+    border-radius: 10px;
     text-align: center;
-    margin-bottom: 22px;
 ">
 
     <div style="
-        color: #6f7c73;
+        margin-bottom: 8px;
+        color: #718077;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 1px;
-        margin-bottom: 8px;
     ">
         Verification Code
     </div>
 
     <div style="
         color: #2f7543;
-        font-size: 32px;
+        font-size: 30px;
         font-weight: bold;
         letter-spacing: 7px;
     ">
@@ -322,52 +345,46 @@ and Web-Based Alert System
 </div>
 
 <p style="
-    margin: 0 0 10px 0;
-    color: #6c776f;
+    color: #68736b;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
 ">
-    This verification code will expire in
+    This code will expire in
     <strong>5 minutes</strong>.
 </p>
 
 <p style="
-    margin: 20px 0 0 0;
-    color: #7b857e;
-    font-size: 12px;
-    line-height: 1.5;
+    color: #68736b;
+    font-size: 13px;
+    line-height: 1.6;
 ">
     If you did not create an AgriWatch account,
     you can safely ignore this email.
 </p>
+
 """
 
-    html_body = build_email_template(
-        "Verify Your Email",
-        content_html
-    )
-
-    send_email(
-        recipient,
-        subject,
-        body,
-        html_body
+    return send_email(
+        recipient=recipient,
+        subject=subject,
+        body=body,
+        html_body=build_email_template(
+            "Verify Your Email",
+            content_html
+        )
     )
 
 
 # =========================================================
-# Password Reset Email
+# Password Reset OTP
 # =========================================================
-
 
 def send_password_reset_otp(
     recipient,
     otp
 ):
 
-    subject = (
-        "AgriWatch - Password Reset Code"
-    )
+    subject = "AgriWatch - Password Reset"
 
     body = f"""
 AgriWatch Password Reset
@@ -396,8 +413,7 @@ and Web-Based Alert System
     content_html = f"""
 
 <p style="
-    margin: 0 0 18px 0;
-    color: #4f5d53;
+    color: #68736b;
     font-size: 14px;
     line-height: 1.6;
 ">
@@ -405,38 +421,36 @@ and Web-Based Alert System
 </p>
 
 <p style="
-    margin: 0 0 22px 0;
-    color: #4f5d53;
+    color: #68736b;
     font-size: 14px;
     line-height: 1.6;
 ">
     We received a request to reset your
-    <strong>AgriWatch</strong> account password.
-    Use the code below to continue.
+    AgriWatch account password.
 </p>
 
 <div style="
-    background-color: #f5f7f5;
-    border: 1px solid #dfe6e1;
-    border-radius: 10px;
+    margin: 25px 0;
     padding: 20px;
+    background-color: #f1f7f2;
+    border: 1px solid #d8e8db;
+    border-radius: 10px;
     text-align: center;
-    margin-bottom: 22px;
 ">
 
     <div style="
-        color: #6f7c73;
+        margin-bottom: 8px;
+        color: #718077;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 1px;
-        margin-bottom: 8px;
     ">
         Password Reset Code
     </div>
 
     <div style="
         color: #2f7543;
-        font-size: 32px;
+        font-size: 30px;
         font-weight: bold;
         letter-spacing: 7px;
     ">
@@ -446,43 +460,39 @@ and Web-Based Alert System
 </div>
 
 <p style="
-    margin: 0 0 10px 0;
-    color: #6c776f;
+    color: #68736b;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
 ">
-    This password reset code will expire in
+    This code will expire in
     <strong>5 minutes</strong>.
 </p>
 
 <p style="
-    margin: 20px 0 0 0;
-    color: #7b857e;
-    font-size: 12px;
-    line-height: 1.5;
+    color: #68736b;
+    font-size: 13px;
+    line-height: 1.6;
 ">
     If you did not request a password reset,
     you can safely ignore this email.
 </p>
+
 """
 
-    html_body = build_email_template(
-        "Password Reset",
-        content_html
-    )
-
-    send_email(
-        recipient,
-        subject,
-        body,
-        html_body
+    return send_email(
+        recipient=recipient,
+        subject=subject,
+        body=body,
+        html_body=build_email_template(
+            "Reset Your Password",
+            content_html
+        )
     )
 
 
 # =========================================================
-# Monitoring Alert Email
+# Single Alert Email
 # =========================================================
-
 
 def send_alert_email(
     recipient,
@@ -492,80 +502,44 @@ def send_alert_email(
     crop_name=None,
     crop_id=None
 ):
-    """
-    Sends an automated monitoring alert to the farmer.
-    """
-
-    severity_lower = (
-        severity.lower()
-        if severity
-        else "warning"
-    )
-
-    if severity_lower == "critical":
-
-        severity_label = "CRITICAL"
-
-        severity_bg = "#fff0ed"
-
-        severity_text = "#b33b29"
-
-    else:
-
-        severity_label = "WARNING"
-
-        severity_bg = "#fff6df"
-
-        severity_text = "#9a6a05"
-
 
     subject = (
-        f"AgriWatch - {severity_label}: "
+        f"AgriWatch - {severity} Alert: "
         f"{alert_type}"
     )
 
+    crop_display = (
+        crop_name
+        if crop_name
+        else "Tomato Crop"
+    )
 
-    crop_information = ""
-
-    if crop_name:
-
-        crop_information += f"""
-        <div style="
-            margin-bottom: 7px;
-            color: #5f6b63;
-            font-size: 13px;
-        ">
-            <strong>Crop:</strong>
-            {crop_name}
-        </div>
-        """
-
-    elif crop_id:
-
-        crop_information += f"""
-        <div style="
-            margin-bottom: 7px;
-            color: #5f6b63;
-            font-size: 13px;
-        ">
-            <strong>Crop ID:</strong>
-            #{crop_id}
-        </div>
-        """
-
+    crop_id_display = (
+        str(crop_id)
+        if crop_id is not None
+        else "N/A"
+    )
 
     body = f"""
-AgriWatch Monitoring Alert
+AgriWatch Crop Monitoring Alert
 
-Alert Type: {alert_type}
-Severity: {severity_label}
+Alert:
+{alert_type}
 
+Severity:
+{severity}
+
+Crop:
+{crop_display}
+
+Crop ID:
+{crop_id_display}
+
+Message:
 {message}
 
-{f"Crop: {crop_name}" if crop_name else f"Crop ID: #{crop_id}" if crop_id else ""}
-
-Please log in to the AgriWatch monitoring system
-to review the latest crop information.
+Please log in to AgriWatch to review
+the latest crop monitoring information.
 
 Regards,
 
@@ -574,105 +548,103 @@ Smart Tomato Crop Monitoring
 and Web-Based Alert System
 """
 
+    if severity.lower() == "critical":
+
+        badge_background = "#fff0ed"
+        badge_color = "#b33b29"
+
+    else:
+
+        badge_background = "#fff6df"
+        badge_color = "#9a6a05"
 
     content_html = f"""
 
 <p style="
-    margin: 0 0 20px 0;
-    color: #4f5d53;
+    color: #68736b;
     font-size: 14px;
     line-height: 1.6;
 ">
-    A monitoring condition requiring your
-    attention has been detected.
+    AgriWatch detected a condition that
+    may require your attention.
 </p>
 
-
 <div style="
-    background-color: {severity_bg};
-    border: 1px solid {severity_bg};
+    margin: 20px 0;
+    padding: 18px;
+    border: 1px solid #e1e8e3;
     border-radius: 10px;
-    padding: 16px 18px;
-    margin-bottom: 20px;
 ">
 
     <div style="
-        margin-bottom: 6px;
-        color: {severity_text};
-        font-size: 11px;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        margin-bottom: 10px;
     ">
-        {severity_label}
+
+        <span style="
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background-color: {badge_background};
+            color: {badge_color};
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        ">
+            {severity}
+        </span>
+
     </div>
 
     <div style="
+        margin-bottom: 8px;
         color: #203c28;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: bold;
     ">
         {alert_type}
     </div>
 
-</div>
-
-
-<div style="
-    margin-bottom: 20px;
-">
-
     <div style="
-        color: #7b857e;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.7px;
-        margin-bottom: 7px;
-    ">
-        Detection Details
-    </div>
-
-    <div style="
-        background-color: #f7f9f7;
-        border: 1px solid #e3e9e4;
-        border-radius: 9px;
-        padding: 15px;
-
-        color: #4f5d53;
+        margin-bottom: 12px;
+        color: #68736b;
         font-size: 13px;
-        line-height: 1.6;
+        line-height: 1.5;
     ">
         {message}
     </div>
 
+    <div style="
+        color: #7b857e;
+        font-size: 12px;
+    ">
+        Crop:
+        <strong>{crop_display}</strong>
+
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+
+        Crop ID:
+        <strong>{crop_id_display}</strong>
+    </div>
+
 </div>
 
-
-{crop_information}
-
-
 <p style="
-    margin: 20px 0 0 0;
-    color: #6c776f;
+    color: #68736b;
     font-size: 13px;
     line-height: 1.6;
 ">
-    Please log in to the
-    <strong>AgriWatch monitoring system</strong>
-    to review the latest crop information
-    and take appropriate action.
+    Please log in to AgriWatch to review
+    the latest crop monitoring information.
 </p>
 
 """
 
-    html_body = build_email_template(
-        "Crop Monitoring Alert",
-        content_html
-    )
-
-    send_email(
-        recipient,
-        subject,
-        body,
-        html_body
+    return send_email(
+        recipient=recipient,
+        subject=subject,
+        body=body,
+        html_body=build_email_template(
+            "Crop Monitoring Alert",
+            content_html
+        )
     )
