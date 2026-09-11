@@ -54,6 +54,12 @@ class MonitoringRecord(db.Model):
         back_populates="monitoring_records"
     )
 
+    alerts = db.relationship(
+        "Alert",
+        back_populates="monitoring",
+        cascade="all, delete-orphan"
+    )
+
     def to_dict(self):
         return {
             "id": self.id,

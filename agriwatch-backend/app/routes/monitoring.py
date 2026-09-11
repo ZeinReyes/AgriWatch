@@ -1,10 +1,15 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import (
+    jwt_required,
+    get_jwt_identity,
+    get_jwt
+)
 
 from app.extensions import db
 from app.models.crop import Crop
 from app.models.farm import Farm
 from app.models.monitoring import MonitoringRecord
+from app.models.alert import Alert
 
 
 monitoring_bp = Blueprint(
@@ -12,6 +17,10 @@ monitoring_bp = Blueprint(
     __name__
 )
 
+
+# =========================================================
+# HELPER FUNCTIONS
+# =========================================================
 
 def get_current_user_id():
     return int(get_jwt_identity())
@@ -22,10 +31,136 @@ def get_current_role():
 
 
 def user_can_access_crop(crop, user_id, role):
+
     if role == "admin":
         return True
 
     return crop.farm.owner_id == user_id
+
+
+# =========================================================
+# ALERT THRESHOLDS
+# =========================================================
+
+SOIL_MOISTURE_THRESHOLD = 30
+HIGH_TEMP_THRESHOLD = 35
+
+
+# =========================================================
+# ALERT GENERATION
+# =========================================================
+
+def generate_alerts(record):
+    """
+    Generate alerts based on a monitoring record.
+
+    Alert thresholds are based on the
+    AgriWatch research specification.
+    """
+
+    alerts = []
+
+    # -----------------------------------------------------
+    # LOW SOIL MOISTURE
+    # -----------------------------------------------------
+
+    if (
+        record.soil_moisture is not None
+        and record.soil_moisture < SOIL_MOISTURE_THRESHOLD
+    ):
+
+        alerts.append(
+            Alert(
+                crop_id=record.crop_id,
+                monitoring_id=record.id,
+                alert_type="Low Soil Moisture",
+                severity="Warning",
+                message=(
+                    f"Soil moisture is "
+                    f"{record.soil_moisture:.1f}%, "
+                    "which is below the 30% threshold."
+                )
+            )
+        )
+
+    # -----------------------------------------------------
+    # HIGH CROP TEMPERATURE
+    # -----------------------------------------------------
+
+    if (
+        record.crop_temperature is not None
+        and record.crop_temperature > HIGH_TEMP_THRESHOLD
+    ):
+
+        alerts.append(
+            Alert(
+                crop_id=record.crop_id,
+                monitoring_id=record.id,
+                alert_type="High Crop Temperature",
+                severity="Critical",
+                message=(
+                    f"Crop temperature is "
+                    f"{record.crop_temperature:.1f}°C, "
+                    "which is above the 35°C threshold."
+                )
+            )
+        )
+
+    # -----------------------------------------------------
+    # PEST DETECTED
+    # -----------------------------------------------------
+
+    if record.pest_detected:
+
+        alerts.append(
+            Alert(
+                crop_id=record.crop_id,
+                monitoring_id=record.id,
+                alert_type="Pest Detection",
+                severity="Warning",
+                message=(
+                    "Possible pest infestation detected."
+                )
+            )
+        )
+
+    # -----------------------------------------------------
+    # DISEASE DETECTED
+    # -----------------------------------------------------
+
+    if record.disease_detected:
+
+        alerts.append(
+            Alert(
+                crop_id=record.crop_id,
+                monitoring_id=record.id,
+                alert_type="Disease Detection",
+                severity="Critical",
+                message=(
+                    "Possible crop disease detected."
+                )
+            )
+        )
+
+    # -----------------------------------------------------
+    # DISCOLORATION DETECTED
+    # -----------------------------------------------------
+
+    if record.discoloration_detected:
+
+        alerts.append(
+            Alert(
+                crop_id=record.crop_id,
+                monitoring_id=record.id,
+                alert_type="Crop Discoloration",
+                severity="Warning",
+                message=(
+                    "Possible crop discoloration detected."
+                )
+            )
+        )
+
+    return alerts
 
 
 # =========================================================
@@ -39,9 +174,14 @@ def get_monitoring_records():
     user_id = get_current_user_id()
     role = get_current_role()
 
-    query = MonitoringRecord.query.join(Crop).join(Farm)
+    query = (
+        MonitoringRecord.query
+        .join(Crop)
+        .join(Farm)
+    )
 
     if role != "admin":
+
         query = query.filter(
             Farm.owner_id == user_id
         )
@@ -80,6 +220,7 @@ def get_crop_monitoring(crop_id):
     )
 
     if not crop:
+
         return jsonify({
             "status": "error",
             "message": "Crop not found."
@@ -90,6 +231,7 @@ def get_crop_monitoring(crop_id):
         user_id,
         role
     ):
+
         return jsonify({
             "status": "error",
             "message": (
@@ -100,7 +242,9 @@ def get_crop_monitoring(crop_id):
 
     records = (
         MonitoringRecord.query
-        .filter_by(crop_id=crop_id)
+        .filter_by(
+            crop_id=crop_id
+        )
         .order_by(
             MonitoringRecord.recorded_at.desc()
         )
@@ -134,6 +278,7 @@ def get_monitoring_record(monitoring_id):
     )
 
     if not record:
+
         return jsonify({
             "status": "error",
             "message": "Monitoring record not found."
@@ -144,6 +289,7 @@ def get_monitoring_record(monitoring_id):
         user_id,
         role
     ):
+
         return jsonify({
             "status": "error",
             "message": (
@@ -173,20 +319,33 @@ def create_monitoring_record():
 
     crop_id = data.get("crop_id")
 
+    # -----------------------------------------------------
+    # Validate crop ID
+    # -----------------------------------------------------
+
     if crop_id is None:
+
         return jsonify({
             "status": "error",
             "message": "crop_id is required."
         }), 400
 
     try:
+
         crop_id = int(crop_id)
 
     except (TypeError, ValueError):
+
         return jsonify({
             "status": "error",
-            "message": "crop_id must be a valid integer."
+            "message": (
+                "crop_id must be a valid integer."
+            )
         }), 400
+
+    # -----------------------------------------------------
+    # Find crop
+    # -----------------------------------------------------
 
     crop = db.session.get(
         Crop,
@@ -194,16 +353,22 @@ def create_monitoring_record():
     )
 
     if not crop:
+
         return jsonify({
             "status": "error",
             "message": "Crop not found."
         }), 404
+
+    # -----------------------------------------------------
+    # Check crop ownership
+    # -----------------------------------------------------
 
     if not user_can_access_crop(
         crop,
         user_id,
         role
     ):
+
         return jsonify({
             "status": "error",
             "message": (
@@ -212,9 +377,9 @@ def create_monitoring_record():
             )
         }), 403
 
-    # -----------------------------------------------------
-    # Validate numeric values
-    # -----------------------------------------------------
+    # =====================================================
+    # VALIDATE NUMERIC VALUES
+    # =====================================================
 
     soil_moisture = data.get(
         "soil_moisture"
@@ -224,9 +389,14 @@ def create_monitoring_record():
         "crop_temperature"
     )
 
+    # -----------------------------------------------------
+    # Soil moisture
+    # -----------------------------------------------------
+
     if soil_moisture is not None:
 
         try:
+
             soil_moisture = float(
                 soil_moisture
             )
@@ -241,7 +411,10 @@ def create_monitoring_record():
                 )
             }), 400
 
-        if soil_moisture < 0 or soil_moisture > 100:
+        if (
+            soil_moisture < 0
+            or soil_moisture > 100
+        ):
 
             return jsonify({
                 "status": "error",
@@ -251,9 +424,14 @@ def create_monitoring_record():
                 )
             }), 400
 
+    # -----------------------------------------------------
+    # Crop temperature
+    # -----------------------------------------------------
+
     if crop_temperature is not None:
 
         try:
+
             crop_temperature = float(
                 crop_temperature
             )
@@ -268,9 +446,9 @@ def create_monitoring_record():
                 )
             }), 400
 
-    # -----------------------------------------------------
-    # Boolean values
-    # -----------------------------------------------------
+    # =====================================================
+    # BOOLEAN VALUES
+    # =====================================================
 
     pest_detected = bool(
         data.get(
@@ -293,9 +471,9 @@ def create_monitoring_record():
         )
     )
 
-    # -----------------------------------------------------
-    # Plant condition
-    # -----------------------------------------------------
+    # =====================================================
+    # PLANT CONDITION
+    # =====================================================
 
     plant_condition = data.get(
         "plant_condition",
@@ -314,13 +492,15 @@ def create_monitoring_record():
             "status": "error",
             "message": (
                 "plant_condition must be one of: "
-                + ", ".join(allowed_conditions)
+                + ", ".join(
+                    allowed_conditions
+                )
             )
         }), 400
 
-    # -----------------------------------------------------
-    # Create monitoring record
-    # -----------------------------------------------------
+    # =====================================================
+    # CREATE MONITORING RECORD
+    # =====================================================
 
     record = MonitoringRecord(
         crop_id=crop_id,
@@ -335,6 +515,36 @@ def create_monitoring_record():
     db.session.add(record)
 
     try:
+
+        # -------------------------------------------------
+        # Flush monitoring record
+        # -------------------------------------------------
+        # This assigns record.id before commit so alerts
+        # can reference this monitoring record.
+
+        db.session.flush()
+
+        # -------------------------------------------------
+        # Generate alerts
+        # -------------------------------------------------
+
+        alerts = generate_alerts(
+            record
+        )
+
+        # -------------------------------------------------
+        # Add generated alerts
+        # -------------------------------------------------
+
+        for alert in alerts:
+
+            db.session.add(
+                alert
+            )
+
+        # -------------------------------------------------
+        # Commit monitoring + alerts
+        # -------------------------------------------------
 
         db.session.commit()
 
@@ -354,12 +564,17 @@ def create_monitoring_record():
             )
         }), 500
 
+    # =====================================================
+    # SUCCESS RESPONSE
+    # =====================================================
+
     return jsonify({
         "status": "success",
         "message": (
             "Monitoring record created successfully."
         ),
-        "monitoring": record.to_dict()
+        "monitoring": record.to_dict(),
+        "alerts_created": len(alerts)
     }), 201
 
 
@@ -380,9 +595,12 @@ def delete_monitoring_record(monitoring_id):
     )
 
     if not record:
+
         return jsonify({
             "status": "error",
-            "message": "Monitoring record not found."
+            "message": (
+                "Monitoring record not found."
+            )
         }), 404
 
     if not user_can_access_crop(
@@ -390,6 +608,7 @@ def delete_monitoring_record(monitoring_id):
         user_id,
         role
     ):
+
         return jsonify({
             "status": "error",
             "message": (
@@ -398,7 +617,9 @@ def delete_monitoring_record(monitoring_id):
             )
         }), 403
 
-    db.session.delete(record)
+    db.session.delete(
+        record
+    )
 
     try:
 

@@ -98,7 +98,7 @@ def create_app():
     from app.models.farm import Farm
     from app.models.crop import Crop
     from app.models.monitoring import MonitoringRecord
-
+    from app.models.alert import Alert
 
     # =================================================
     # CREATE DATABASE TABLES
@@ -162,10 +162,16 @@ def create_app():
     # =================================================
 
     from app.routes.monitoring import monitoring_bp
+    from app.routes.alert import alert_bp
 
     app.register_blueprint(
         monitoring_bp,
         url_prefix="/api/monitoring"
+    )
+
+    app.register_blueprint(
+        alert_bp,
+        url_prefix="/api/alerts"
     )
 
 

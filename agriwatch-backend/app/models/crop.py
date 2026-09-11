@@ -100,6 +100,12 @@ class Crop(db.Model):
         cascade="all, delete-orphan"
     )
 
+    alerts = db.relationship(
+        "Alert",
+        back_populates="crop",
+        cascade="all, delete-orphan"
+    )
+
 
     # =================================================
     # SERIALIZATION
