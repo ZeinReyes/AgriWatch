@@ -60,12 +60,15 @@ def user_can_access_crop(
     user_id = get_current_user_id()
     role = get_current_role()
 
+    # Administrator can access everything
     if role == "admin":
         return True
 
+    # Crop must belong to a farm
     if not crop or not crop.farm:
         return False
 
+    # Farmer can access their own farm
     if crop.farm.owner_id == user_id:
         return True
 
@@ -80,7 +83,7 @@ def determine_crop_status(
     record
 ):
     """
-    Determines the crop status from the current
+    Determines the crop status from the supplied
     monitoring record.
 
     Priority:
@@ -210,8 +213,15 @@ def get_alert_conditions(
     record
 ):
     """
-    Builds the possible alert conditions for a
-    monitoring record.
+    Builds the possible alert conditions from the
+    current monitoring record.
+
+    Each condition contains:
+
+        alert_type
+        severity
+        message
+        active
     """
 
     return [
@@ -297,32 +307,6 @@ def get_alert_conditions(
 
 
 # =========================================================
-# GET PREVIOUS MONITORING RECORD
-# =========================================================
-
-def get_previous_monitoring_record(
-    record
-):
-    """
-    Gets the previous monitoring record for
-    the same crop.
-    """
-
-    return (
-        MonitoringRecord.query
-        .filter(
-            MonitoringRecord.crop_id == record.crop_id,
-            MonitoringRecord.id != record.id
-        )
-        .order_by(
-            MonitoringRecord.recorded_at.desc(),
-            MonitoringRecord.id.desc()
-        )
-        .first()
-    )
-
-
-# =========================================================
 # SYNCHRONIZE ALERT STATE
 # =========================================================
 
@@ -330,8 +314,23 @@ def synchronize_alerts(
     record
 ):
     """
-    Synchronizes database alert state with the
-    latest monitoring record.
+    Synchronizes the Alert table with the latest
+    monitoring record.
+
+    Behavior:
+
+    1. Bad condition + no active alert
+       -> Create a new active alert.
+
+    2. Bad condition + existing active alert
+       -> Update the existing alert with the latest
+          monitoring information.
+       -> Do not create a duplicate alert.
+
+    3. Condition becomes normal
+       -> Resolve the active alert.
+
+    4. Resolved alerts are never deleted.
 
     Returns:
 
@@ -339,16 +338,9 @@ def synchronize_alerts(
         resolved_alerts
         notification_alerts
 
-    Alert records:
-        - Do not duplicate while a condition remains active.
-        - Resolve when a condition becomes normal.
-        - Remain in history after resolution.
-
-    Notification behavior:
-        - Every new abnormal monitoring reading can
-          generate an email notification.
-        - Continuing alerts do not create duplicate
-          Alert records.
+    notification_alerts contains the alert objects that
+    should be included in the email notification for the
+    current monitoring event.
     """
 
     current_conditions = (
@@ -369,8 +361,11 @@ def synchronize_alerts(
     for condition in current_conditions:
 
         alert_type = condition["alert_type"]
+
         severity = condition["severity"]
+
         message = condition["message"]
+
         is_active = condition["active"]
 
         # -------------------------------------------------
@@ -394,7 +389,8 @@ def synchronize_alerts(
         print(
             f"[ALERT SYNC] {alert_type} | "
             f"current_active={is_active} | "
-            f"existing_active_alerts={len(active_alerts)}"
+            f"existing_active_alerts="
+            f"{len(active_alerts)}"
         )
 
         # =================================================
@@ -404,52 +400,39 @@ def synchronize_alerts(
         if is_active:
 
             # ---------------------------------------------
-            # ACTIVE ALERT ALREADY EXISTS
+            # EXISTING ACTIVE ALERT
             # ---------------------------------------------
 
             if active_alerts:
 
                 current_alert = active_alerts[0]
 
+                # Keep the original alert event and update
+                # its current information.
+                #
+                # created_at remains unchanged because this
+                # is still the same ongoing alert event.
+
+                current_alert.message = message
+
+                current_alert.severity = severity
+
                 print(
-                    f"[ALERT SYNC] Keeping existing active "
+                    f"[ALERT SYNC] Updated existing active "
                     f"alert ID={current_alert.id} "
                     f"for {alert_type}."
                 )
 
-                # -------------------------------------------------
-                # IMPORTANT:
-                # The existing alert is reused for EMAIL.
-                # This means a new monitoring event can still
-                # trigger an email without creating a duplicate
-                # alert record.
-                # -------------------------------------------------
-
-                notification_alert = Alert(
-
-                    crop_id=record.crop_id,
-
-                    monitoring_id=record.id,
-
-                    alert_type=alert_type,
-
-                    severity=severity,
-
-                    message=message,
-
-                    is_read=False,
-
-                    is_resolved=False
-
-                )
+                # Use the updated existing alert for the
+                # email notification.
 
                 notification_alerts.append(
-                    notification_alert
+                    current_alert
                 )
 
-                # ---------------------------------------------
-                # RESOLVE DUPLICATE ACTIVE ALERT RECORDS
-                # ---------------------------------------------
+                # -----------------------------------------
+                # RESOLVE DUPLICATE ACTIVE ALERTS
+                # -----------------------------------------
 
                 if len(active_alerts) > 1:
 
@@ -473,7 +456,7 @@ def synchronize_alerts(
                         )
 
             # ---------------------------------------------
-            # NO ACTIVE ALERT EXISTS
+            # NO ACTIVE ALERT
             # ---------------------------------------------
 
             else:
@@ -509,7 +492,6 @@ def synchronize_alerts(
                     new_alert
                 )
 
-                # Use the actual new alert for the email.
                 notification_alerts.append(
                     new_alert
                 )
@@ -923,6 +905,10 @@ def get_monitoring_records():
 
     query = MonitoringRecord.query
 
+    # -----------------------------------------------------
+    # ADMIN
+    # -----------------------------------------------------
+
     if role == "admin":
 
         records = (
@@ -1261,7 +1247,8 @@ def create_monitoring_record():
                 print(
                     f"[EMAIL] Sending consolidated alert "
                     f"email to {owner.email} "
-                    f"with {len(notification_alerts)} condition(s)."
+                    f"with {len(notification_alerts)} "
+                    f"condition(s)."
                 )
 
                 send_consolidated_alert_email(
