@@ -5,6 +5,8 @@ import {
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
+import "./DashboardLayout.css";
+
 
 const DashboardLayout = ({
   children,

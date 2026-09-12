@@ -1,0 +1,434 @@
+/* =========================================================
+   AGRIWATCH DASHBOARD LAYOUT
+========================================================= */
+
+.dashboard-layout {
+  display: flex;
+
+  width: 100%;
+  min-height: 100vh;
+
+  background: #f4f7f4;
+}
+
+
+/* =========================================================
+   MAIN AREA
+========================================================= */
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+
+  flex: 1;
+
+  width: calc(100% - 260px);
+  min-width: 0;
+  min-height: 100vh;
+
+  margin-left: 260px;
+}
+
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.dashboard-main .topbar {
+  width: 100%;
+
+  flex-shrink: 0;
+
+  position: sticky;
+
+  top: 0;
+
+  z-index: 900;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.dashboard-content {
+  width: 100%;
+  max-width: none;
+
+  flex: 1;
+
+  padding: 32px;
+
+  min-width: 0;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.dashboard-layout .sidebar {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 260px;
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #123524;
+
+  z-index: 1000;
+}
+
+
+/* =========================================================
+   SIDEBAR NAV
+========================================================= */
+
+.dashboard-layout .sidebar-nav {
+  flex: 1;
+
+  min-height: 0;
+
+  padding: 12px 14px;
+
+  /*
+   * The sidebar itself no longer scrolls.
+   * The spacing is compact enough for the
+   * complete navigation to fit on desktop.
+   */
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   SECTION TITLES
+========================================================= */
+
+.dashboard-layout .nav-section-title {
+  padding:
+    9px 12px 5px;
+
+  font-size: 9px;
+
+  line-height: 1.2;
+
+  letter-spacing: 1px;
+}
+
+
+/* =========================================================
+   NAVIGATION ITEMS
+========================================================= */
+
+.dashboard-layout .nav-item {
+  min-height: 39px;
+
+  padding:
+    8px 13px;
+
+  margin-bottom: 2px;
+
+  gap: 11px;
+
+  border-radius: 9px;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   NAV ICON
+========================================================= */
+
+.dashboard-layout .nav-icon {
+  width: 21px;
+
+  flex: 0 0 21px;
+
+  font-size: 15px;
+}
+
+
+/* =========================================================
+   LOGOUT AREA
+========================================================= */
+
+.dashboard-layout .sidebar-bottom {
+  flex-shrink: 0;
+
+  padding: 14px 16px 18px;
+
+  border-top:
+    1px solid
+    rgba(255, 255, 255, 0.08);
+}
+
+
+/*
+ * Override the old sidebar user area
+ * in case old CSS is still loaded.
+ */
+
+.dashboard-layout .sidebar-user,
+.dashboard-layout .user-info,
+.dashboard-layout .user-avatar {
+  display: none;
+}
+
+
+/* =========================================================
+   LOGOUT BUTTON
+========================================================= */
+
+.dashboard-layout .logout-button {
+  width: 100%;
+
+  min-height: 38px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 9px 10px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 255, 255, 0.05);
+
+  color:
+    rgba(255, 255, 255, 0.72);
+
+  font-size: 12px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+
+.dashboard-layout .logout-button:hover {
+  background:
+    rgba(255, 255, 255, 0.1);
+
+  color: #ffffff;
+}
+
+
+.logout-icon {
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   MOBILE OVERLAY
+========================================================= */
+
+.sidebar-overlay {
+  display: none;
+
+  position: fixed;
+
+  inset: 0;
+
+  background:
+    rgba(0, 0, 0, 0.35);
+
+  z-index: 999;
+}
+
+
+/* =========================================================
+   MOBILE MENU BUTTON
+========================================================= */
+
+.mobile-menu-button {
+  display: none;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  flex-shrink: 0;
+
+  padding: 0;
+
+  border:
+    1px solid #dfe6e0;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  color: #31543c;
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   TOPBAR USER
+========================================================= */
+
+.dashboard-layout .topbar-user {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+.dashboard-layout .topbar-user-info {
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+}
+
+
+.dashboard-layout .topbar-user-name {
+  margin-bottom: 3px;
+
+  white-space: nowrap;
+
+  color: #25352a;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .dashboard-main {
+    width: 100%;
+
+    margin-left: 0;
+  }
+
+
+  .dashboard-layout .sidebar {
+    width: 260px;
+
+    transform:
+      translateX(-100%);
+
+    transition:
+      transform 0.25s ease;
+  }
+
+
+  .dashboard-layout
+  .sidebar.sidebar-open {
+    transform:
+      translateX(0);
+  }
+
+
+  .dashboard-layout
+  .sidebar.sidebar-open
+  ~ .sidebar-overlay {
+    display: block;
+  }
+
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+
+  .mobile-menu-button {
+    display: flex;
+  }
+
+
+  .topbar {
+    padding:
+      0 20px !important;
+  }
+
+
+  .topbar-title {
+    margin-left: 10px;
+  }
+
+
+  .dashboard-content {
+    padding: 24px;
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  .dashboard-content {
+    padding: 20px 16px;
+  }
+
+
+  .topbar {
+    padding:
+      0 16px !important;
+  }
+
+
+  .topbar-title {
+    gap: 6px;
+
+    font-size: 11px;
+  }
+
+
+  .topbar-right {
+    gap: 10px;
+  }
+
+
+  .notification-button {
+    font-size: 15px;
+  }
+
+
+  .topbar-user-name {
+    display: none;
+  }
+
+
+  .topbar-user-info {
+    display: flex;
+  }
+
+
+  .topbar-user .role-badge {
+    display: none;
+  }
+
+}

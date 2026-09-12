@@ -1,6 +1,10 @@
-import { NavLink } from "react-router-dom";
+import {
+  NavLink,
+} from "react-router-dom";
 
-import { useAuth } from "../../context/AuthContext";
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 
 const Sidebar = ({
@@ -14,7 +18,8 @@ const Sidebar = ({
   } = useAuth();
 
 
-  const role = user?.role;
+  const role =
+    user?.role;
 
 
   // =====================================================
@@ -24,96 +29,142 @@ const Sidebar = ({
   const navigationSections = [
     {
       title: "Overview",
+
       links: [
         {
           label: "Dashboard",
           icon: "⌂",
           path: "/dashboard",
-          roles: ["admin", "farmer", "viewer"],
+          roles: [
+            "admin",
+            "farmer",
+            "viewer",
+          ],
         },
       ],
     },
 
+
     {
       title: "Monitoring",
+
       links: [
         {
           label: "Crop Monitoring",
           icon: "◉",
           path: "/monitoring",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
+
         {
           label: "Sensor Data",
           icon: "▥",
           path: "/sensor-data",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
+
         {
           label: "Pest & Disease",
           icon: "🐛",
           path: "/pest-disease",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
       ],
     },
 
+
     {
       title: "Alerts & Conditions",
+
       links: [
         {
           label: "Alerts",
           icon: "⚠",
           path: "/alerts",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
+
         {
           label: "Weather",
           icon: "☁",
           path: "/weather",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
+
         {
           label: "Irrigation",
           icon: "💧",
           path: "/irrigation",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
       ],
     },
 
+
     {
       title: "Reporting",
+
       links: [
         {
           label: "Reports",
           icon: "▤",
           path: "/reports",
-          roles: ["admin", "farmer", "viewer"],
+          roles: [
+            "admin",
+            "farmer",
+            "viewer",
+          ],
         },
       ],
     },
 
+
     {
       title: "Account",
+
       links: [
         {
           label: "Settings",
           icon: "⚙",
           path: "/settings",
-          roles: ["admin", "farmer"],
+          roles: [
+            "admin",
+            "farmer",
+          ],
         },
       ],
     },
 
+
     {
       title: "Administration",
+
       links: [
         {
           label: "User Management",
           icon: "♙",
           path: "/admin/users",
-          roles: ["admin"],
+          roles: [
+            "admin",
+          ],
         },
       ],
     },
@@ -121,11 +172,17 @@ const Sidebar = ({
 
 
   // =====================================================
-  // CHECK ROLE
+  // ROLE CHECK
   // =====================================================
 
-  const canAccess = (link) => {
-    return link.roles.includes(role);
+  const canAccess = (
+    link
+  ) => {
+
+    return link.roles.includes(
+      role
+    );
+
   };
 
 
@@ -133,7 +190,9 @@ const Sidebar = ({
   // NAVIGATION ITEM
   // =====================================================
 
-  const renderNavItem = (link) => {
+  const renderNavItem = (
+    link
+  ) => {
 
     if (!canAccess(link)) {
       return null;
@@ -158,12 +217,13 @@ const Sidebar = ({
           {link.icon}
         </span>
 
-        <span>
+        <span className="nav-label">
           {link.label}
         </span>
 
       </NavLink>
     );
+
   };
 
 
@@ -173,11 +233,14 @@ const Sidebar = ({
 
   return (
     <>
+
       {isOpen && (
+
         <div
           className="sidebar-overlay"
           onClick={onClose}
         />
+
       )}
 
 
@@ -189,15 +252,16 @@ const Sidebar = ({
         }`}
       >
 
-        {/* =============================================== */}
-        {/* BRAND */}
-        {/* =============================================== */}
+        {/* ===============================================
+            BRAND
+        =============================================== */}
 
         <div className="sidebar-brand">
 
           <div className="brand-icon">
             🌱
           </div>
+
 
           <div>
 
@@ -214,9 +278,9 @@ const Sidebar = ({
         </div>
 
 
-        {/* =============================================== */}
-        {/* NAVIGATION */}
-        {/* =============================================== */}
+        {/* ===============================================
+            NAVIGATION
+        =============================================== */}
 
         <nav className="sidebar-nav">
 
@@ -229,7 +293,6 @@ const Sidebar = ({
                 );
 
 
-              // Don't render an empty section.
               if (
                 visibleLinks.length === 0
               ) {
@@ -261,37 +324,11 @@ const Sidebar = ({
         </nav>
 
 
-        {/* =============================================== */}
-        {/* USER AREA */}
-        {/* =============================================== */}
+        {/* ===============================================
+            LOGOUT
+        =============================================== */}
 
         <div className="sidebar-bottom">
-
-          <div className="sidebar-user">
-
-            <div className="user-avatar">
-
-              {user?.full_name
-                ?.charAt(0)
-                ?.toUpperCase() || "U"}
-
-            </div>
-
-
-            <div className="user-info">
-
-              <div className="user-name">
-                {user?.full_name || "User"}
-              </div>
-
-              <div className="user-role">
-                {role || "user"}
-              </div>
-
-            </div>
-
-          </div>
-
 
           <button
             type="button"
@@ -299,17 +336,20 @@ const Sidebar = ({
             onClick={logout}
           >
 
-            <span>
+            <span className="logout-icon">
               ↪
             </span>
 
-            Logout
+            <span>
+              Logout
+            </span>
 
           </button>
 
         </div>
 
       </aside>
+
     </>
   );
 };
