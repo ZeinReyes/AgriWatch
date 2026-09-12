@@ -1,10 +1,6 @@
-import {
-  NavLink,
-} from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
-import {
-  useAuth,
-} from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 
 const Sidebar = ({
@@ -18,63 +14,162 @@ const Sidebar = ({
   } = useAuth();
 
 
-  const role =
-    user?.role;
+  const role = user?.role;
 
 
-  const commonLinks = [
+  // =====================================================
+  // NAVIGATION
+  // =====================================================
+
+  const navigationSections = [
     {
-      label: "Dashboard",
-      icon: "⌂",
-      path: "/dashboard",
+      title: "Overview",
+      links: [
+        {
+          label: "Dashboard",
+          icon: "⌂",
+          path: "/dashboard",
+          roles: ["admin", "farmer", "viewer"],
+        },
+      ],
     },
+
     {
-      label: "Monitoring",
-      icon: "◉",
-      path: "/monitoring",
+      title: "Monitoring",
+      links: [
+        {
+          label: "Crop Monitoring",
+          icon: "◉",
+          path: "/monitoring",
+          roles: ["admin", "farmer"],
+        },
+        {
+          label: "Sensor Data",
+          icon: "▥",
+          path: "/sensor-data",
+          roles: ["admin", "farmer"],
+        },
+        {
+          label: "Pest & Disease",
+          icon: "🐛",
+          path: "/pest-disease",
+          roles: ["admin", "farmer"],
+        },
+      ],
     },
+
     {
-      label: "Alerts",
-      icon: "⚠",
-      path: "/alerts",
+      title: "Alerts & Conditions",
+      links: [
+        {
+          label: "Alerts",
+          icon: "⚠",
+          path: "/alerts",
+          roles: ["admin", "farmer"],
+        },
+        {
+          label: "Weather",
+          icon: "☁",
+          path: "/weather",
+          roles: ["admin", "farmer"],
+        },
+        {
+          label: "Irrigation",
+          icon: "💧",
+          path: "/irrigation",
+          roles: ["admin", "farmer"],
+        },
+      ],
+    },
+
+    {
+      title: "Reporting",
+      links: [
+        {
+          label: "Reports",
+          icon: "▤",
+          path: "/reports",
+          roles: ["admin", "farmer", "viewer"],
+        },
+      ],
+    },
+
+    {
+      title: "Account",
+      links: [
+        {
+          label: "Settings",
+          icon: "⚙",
+          path: "/settings",
+          roles: ["admin", "farmer"],
+        },
+      ],
+    },
+
+    {
+      title: "Administration",
+      links: [
+        {
+          label: "User Management",
+          icon: "♙",
+          path: "/admin/users",
+          roles: ["admin"],
+        },
+      ],
     },
   ];
 
 
-  const farmerLinks = [
-    {
-      label: "My Farm",
-      icon: "🌱",
-      path: "/farm",
-    },
-    {
-      label: "My Crops",
-      icon: "🍅",
-      path: "/crops",
-    },
-  ];
+  // =====================================================
+  // CHECK ROLE
+  // =====================================================
 
-
-  const adminLinks = [
-    {
-      label: "Users",
-      icon: "♙",
-      path: "/admin/users",
-    },
-    {
-      label: "System Settings",
-      icon: "⚙",
-      path: "/admin/settings",
-    },
-  ];
-
-
-  const analyticsLink = {
-    label: "Analytics",
-    icon: "▥",
-    path: "/analytics",
+  const canAccess = (link) => {
+    return link.roles.includes(role);
   };
 
+
+  // =====================================================
+  // NAVIGATION ITEM
+  // =====================================================
+
+  const renderNavItem = (link) => {
+
+    if (!canAccess(link)) {
+      return null;
+    }
+
+
+    return (
+      <NavLink
+        key={link.path}
+        to={link.path}
+        onClick={onClose}
+        className={({ isActive }) =>
+          `nav-item ${
+            isActive
+              ? "nav-item-active"
+              : ""
+          }`
+        }
+      >
+
+        <span className="nav-icon">
+          {link.icon}
+        </span>
+
+        <span>
+          {link.label}
+        </span>
+
+      </NavLink>
+    );
+  };
+
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <>
@@ -94,9 +189,9 @@ const Sidebar = ({
         }`}
       >
 
-        {/* ================================= */}
+        {/* =============================================== */}
         {/* BRAND */}
-        {/* ================================= */}
+        {/* =============================================== */}
 
         <div className="sidebar-brand">
 
@@ -105,6 +200,7 @@ const Sidebar = ({
           </div>
 
           <div>
+
             <div className="brand-name">
               AgriWatch
             </div>
@@ -112,209 +208,84 @@ const Sidebar = ({
             <div className="brand-subtitle">
               Smart Crop Monitoring
             </div>
+
           </div>
 
         </div>
 
 
-        {/* ================================= */}
+        {/* =============================================== */}
         {/* NAVIGATION */}
-        {/* ================================= */}
+        {/* =============================================== */}
 
         <nav className="sidebar-nav">
 
-          <div className="nav-section-title">
-            Overview
-          </div>
+          {navigationSections.map(
+            (section) => {
+
+              const visibleLinks =
+                section.links.filter(
+                  canAccess
+                );
 
 
-          {commonLinks.map(
-            (link) => (
-
-              <NavLink
-                key={link.path}
-                to={link.path}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `nav-item ${
-                    isActive
-                      ? "nav-item-active"
-                      : ""
-                  }`
-                }
-              >
-
-                <span className="nav-icon">
-                  {link.icon}
-                </span>
-
-                <span>
-                  {link.label}
-                </span>
-
-              </NavLink>
-
-            )
-          )}
+              // Don't render an empty section.
+              if (
+                visibleLinks.length === 0
+              ) {
+                return null;
+              }
 
 
-          {/* ================================= */}
-          {/* FARMER */}
-          {/* ================================= */}
+              return (
+                <div
+                  key={section.title}
+                  className="sidebar-section"
+                >
 
-          {role === "farmer" && (
-
-            <>
-
-              <div className="nav-section-title">
-                Farm Management
-              </div>
+                  <div className="nav-section-title">
+                    {section.title}
+                  </div>
 
 
-              {farmerLinks.map(
-                (link) => (
+                  {visibleLinks.map(
+                    renderNavItem
+                  )}
 
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    onClick={onClose}
-                    className={({ isActive }) =>
-                      `nav-item ${
-                        isActive
-                          ? "nav-item-active"
-                          : ""
-                      }`
-                    }
-                  >
+                </div>
+              );
 
-                    <span className="nav-icon">
-                      {link.icon}
-                    </span>
-
-                    <span>
-                      {link.label}
-                    </span>
-
-                  </NavLink>
-
-                )
-              )}
-
-            </>
-
-          )}
-
-
-          {/* ================================= */}
-          {/* ANALYTICS */}
-          {/* ================================= */}
-
-          {(role === "admin" ||
-            role === "viewer") && (
-
-            <>
-              <div className="nav-section-title">
-                Insights
-              </div>
-
-              <NavLink
-                to={analyticsLink.path}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `nav-item ${
-                    isActive
-                      ? "nav-item-active"
-                      : ""
-                  }`
-                }
-              >
-
-                <span className="nav-icon">
-                  {analyticsLink.icon}
-                </span>
-
-                <span>
-                  {analyticsLink.label}
-                </span>
-
-              </NavLink>
-            </>
-
-          )}
-
-
-          {/* ================================= */}
-          {/* ADMIN */}
-          {/* ================================= */}
-
-          {role === "admin" && (
-
-            <>
-
-              <div className="nav-section-title">
-                Administration
-              </div>
-
-
-              {adminLinks.map(
-                (link) => (
-
-                  <NavLink
-                    key={link.path}
-                    to={link.path}
-                    onClick={onClose}
-                    className={({ isActive }) =>
-                      `nav-item ${
-                        isActive
-                          ? "nav-item-active"
-                          : ""
-                      }`
-                    }
-                  >
-
-                    <span className="nav-icon">
-                      {link.icon}
-                    </span>
-
-                    <span>
-                      {link.label}
-                    </span>
-
-                  </NavLink>
-
-                )
-              )}
-
-            </>
-
+            }
           )}
 
         </nav>
 
 
-        {/* ================================= */}
+        {/* =============================================== */}
         {/* USER AREA */}
-        {/* ================================= */}
+        {/* =============================================== */}
 
         <div className="sidebar-bottom">
 
           <div className="sidebar-user">
 
             <div className="user-avatar">
+
               {user?.full_name
                 ?.charAt(0)
                 ?.toUpperCase() || "U"}
+
             </div>
 
 
             <div className="user-info">
 
               <div className="user-name">
-                {user?.full_name}
+                {user?.full_name || "User"}
               </div>
 
               <div className="user-role">
-                {role}
+                {role || "user"}
               </div>
 
             </div>
@@ -323,11 +294,17 @@ const Sidebar = ({
 
 
           <button
+            type="button"
             className="logout-button"
             onClick={logout}
           >
-            <span>↪</span>
+
+            <span>
+              ↪
+            </span>
+
             Logout
+
           </button>
 
         </div>
