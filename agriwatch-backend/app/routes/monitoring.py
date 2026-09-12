@@ -4,6 +4,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     get_jwt
 )
+import traceback
 
 from app.extensions import db
 from app.models.user import User
@@ -59,24 +60,17 @@ def user_can_access_crop(
     user_id = get_current_user_id()
     role = get_current_role()
 
-
     # Administrator can access everything
-
     if role == "admin":
         return True
 
-
     # Crop must belong to a farm
-
     if not crop or not crop.farm:
         return False
 
-
     # Farmer can access their own farm
-
     if crop.farm.owner_id == user_id:
         return True
-
 
     return False
 
@@ -119,7 +113,6 @@ def determine_crop_status(
     ):
         return "Harvested"
 
-
     # -----------------------------------------------------
     # CRITICAL CONDITIONS
     # -----------------------------------------------------
@@ -127,17 +120,14 @@ def determine_crop_status(
     if record.plant_condition == "Critical":
         return "Critical"
 
-
     if record.disease_detected:
         return "Critical"
-
 
     if (
         record.crop_temperature is not None
         and record.crop_temperature > HIGH_TEMP_THRESHOLD
     ):
         return "Critical"
-
 
     # -----------------------------------------------------
     # WARNING CONDITIONS
@@ -146,21 +136,17 @@ def determine_crop_status(
     if record.plant_condition == "Needs Attention":
         return "Needs Attention"
 
-
     if (
         record.soil_moisture is not None
         and record.soil_moisture < SOIL_MOISTURE_THRESHOLD
     ):
         return "Needs Attention"
 
-
     if record.pest_detected:
         return "Needs Attention"
 
-
     if record.discoloration_detected:
         return "Needs Attention"
-
 
     # -----------------------------------------------------
     # HEALTHY
@@ -207,7 +193,6 @@ def recalculate_crop_status(
         .first()
     )
 
-
     if latest_record:
 
         crop.status = determine_crop_status(
@@ -232,6 +217,7 @@ def get_alert_conditions(
     current monitoring record.
 
     Each item contains:
+
         alert_type
         severity
         message
@@ -242,12 +228,15 @@ def get_alert_conditions(
 
         {
             "alert_type": "Low Soil Moisture",
+
             "severity": "Warning",
+
             "message": (
                 f"Soil moisture is "
                 f"{record.soil_moisture}%. "
                 f"Immediate monitoring may be needed."
             ),
+
             "active": (
                 record.soil_moisture is not None
                 and record.soil_moisture < SOIL_MOISTURE_THRESHOLD
@@ -256,13 +245,16 @@ def get_alert_conditions(
 
         {
             "alert_type": "High Crop Temperature",
+
             "severity": "Critical",
+
             "message": (
                 f"Crop temperature is "
                 f"{record.crop_temperature}°C, "
                 f"which exceeds the "
                 f"{HIGH_TEMP_THRESHOLD}°C threshold."
             ),
+
             "active": (
                 record.crop_temperature is not None
                 and record.crop_temperature > HIGH_TEMP_THRESHOLD
@@ -271,10 +263,13 @@ def get_alert_conditions(
 
         {
             "alert_type": "Pest Detection",
+
             "severity": "Warning",
+
             "message": (
                 "Possible pest infestation detected."
             ),
+
             "active": bool(
                 record.pest_detected
             )
@@ -282,10 +277,13 @@ def get_alert_conditions(
 
         {
             "alert_type": "Disease Detection",
+
             "severity": "Critical",
+
             "message": (
                 "Possible crop disease detected."
             ),
+
             "active": bool(
                 record.disease_detected
             )
@@ -293,14 +291,17 @@ def get_alert_conditions(
 
         {
             "alert_type": "Crop Discoloration",
+
             "severity": "Warning",
+
             "message": (
                 "Possible crop discoloration detected."
             ),
+
             "active": bool(
                 record.discoloration_detected
             )
-        },
+        }
 
     ]
 
@@ -339,22 +340,25 @@ def synchronize_alerts(
     record
 ):
     """
-    Keeps active alerts synchronized with the latest
+    Synchronizes active alert state with the newest
     monitoring record.
 
     Rules:
 
-    1. If an abnormal condition appears for the first time,
-       create an alert.
+    1. Bad condition + no active alert
+       -> create a new alert.
 
-    2. If the same abnormal condition continues,
-       keep the existing active alert.
+    2. Bad condition + existing active alert
+       -> keep the existing alert.
 
-    3. If an abnormal condition returns to normal,
-       automatically resolve its active alert.
+    3. Condition becomes normal
+       -> resolve the active alert.
 
-    4. Old alerts are never deleted. They remain available
-       as alert history.
+    4. Historical alerts are never deleted.
+
+    The database's active alert state is treated as the
+    source of truth. This prevents missed alerts when
+    monitoring history already contains abnormal readings.
     """
 
     previous_record = (
@@ -363,32 +367,48 @@ def synchronize_alerts(
         )
     )
 
-
     current_conditions = (
         get_alert_conditions(
             record
         )
     )
 
-
     previous_conditions = {}
-
 
     if previous_record:
 
         previous_conditions = {
+
             condition["alert_type"]:
                 condition["active"]
+
             for condition in
             get_alert_conditions(
                 previous_record
             )
-        }
 
+        }
 
     newly_created_alerts = []
     resolved_alerts = []
 
+    print(
+        f"[ALERT SYNC] Monitoring ID={record.id} "
+        f"Crop ID={record.crop_id}"
+    )
+
+    if previous_record:
+
+        print(
+            f"[ALERT SYNC] Previous monitoring ID="
+            f"{previous_record.id}"
+        )
+
+    else:
+
+        print(
+            "[ALERT SYNC] No previous monitoring record."
+        )
 
     for condition in current_conditions:
 
@@ -415,9 +435,8 @@ def synchronize_alerts(
             )
         )
 
-
         # -------------------------------------------------
-        # FIND EXISTING UNRESOLVED ALERTS
+        # FIND CURRENT ACTIVE ALERTS
         # -------------------------------------------------
 
         active_alerts = (
@@ -434,6 +453,12 @@ def synchronize_alerts(
             .all()
         )
 
+        print(
+            f"[ALERT SYNC] {alert_type} | "
+            f"current_active={is_active} | "
+            f"previous_active={was_active} | "
+            f"existing_active_alerts={len(active_alerts)}"
+        )
 
         # =================================================
         # CONDITION IS CURRENTLY ACTIVE
@@ -442,23 +467,28 @@ def synchronize_alerts(
         if is_active:
 
             # ---------------------------------------------
-            # CONDITION CONTINUES FROM PREVIOUS READING
+            # ACTIVE ALERT ALREADY EXISTS
             # ---------------------------------------------
 
-            if was_active:
+            if active_alerts:
 
-                # Keep the existing active alert.
+                print(
+                    f"[ALERT SYNC] Keeping existing active "
+                    f"alert for {alert_type}."
+                )
 
-                # If there happens to be more than one
-                # unresolved alert because of old data,
-                # keep the newest and resolve duplicates.
+                # If old data somehow contains multiple
+                # unresolved alerts of the same type,
+                # keep only the newest one.
 
                 if len(active_alerts) > 1:
 
                     for duplicate in active_alerts[1:]:
 
                         duplicate.is_resolved = True
+
                         duplicate.is_read = True
+
                         duplicate.resolved_at = (
                             record.recorded_at
                         )
@@ -467,30 +497,21 @@ def synchronize_alerts(
                             duplicate
                         )
 
+                        print(
+                            f"[ALERT SYNC] Resolved duplicate "
+                            f"alert ID={duplicate.id}"
+                        )
 
             # ---------------------------------------------
-            # NEW CONDITION
+            # NO ACTIVE ALERT EXISTS
             # ---------------------------------------------
 
             else:
 
-                # Resolve any stale active alerts that
-                # may already exist from older data.
-
-                for stale_alert in active_alerts:
-
-                    stale_alert.is_resolved = True
-                    stale_alert.is_read = True
-                    stale_alert.resolved_at = (
-                        record.recorded_at
-                    )
-
-                    resolved_alerts.append(
-                        stale_alert
-                    )
-
-
-                # Create the new active alert.
+                print(
+                    f"[ALERT SYNC] Creating NEW alert "
+                    f"for {alert_type}."
+                )
 
                 new_alert = Alert(
 
@@ -510,16 +531,13 @@ def synchronize_alerts(
 
                 )
 
-
                 db.session.add(
                     new_alert
                 )
 
-
                 newly_created_alerts.append(
                     new_alert
                 )
-
 
         # =================================================
         # CONDITION IS NO LONGER ACTIVE
@@ -527,8 +545,13 @@ def synchronize_alerts(
 
         else:
 
-            # Automatically resolve every active alert
-            # of this condition.
+            if active_alerts:
+
+                print(
+                    f"[ALERT SYNC] Resolving "
+                    f"{len(active_alerts)} active "
+                    f"alert(s) for {alert_type}."
+                )
 
             for active_alert in active_alerts:
 
@@ -544,6 +567,17 @@ def synchronize_alerts(
                     active_alert
                 )
 
+                print(
+                    f"[ALERT SYNC] Resolved alert "
+                    f"ID={active_alert.id}"
+                )
+
+    print(
+        f"[ALERT SYNC] Created="
+        f"{len(newly_created_alerts)} | "
+        f"Resolved="
+        f"{len(resolved_alerts)}"
+    )
 
     return (
         newly_created_alerts,
@@ -567,13 +601,11 @@ def send_consolidated_alert_email(
         if alert.severity.lower() == "critical"
     ]
 
-
     warning_alerts = [
         alert
         for alert in alerts
         if alert.severity.lower() == "warning"
     ]
-
 
     if critical_alerts:
 
@@ -588,7 +620,6 @@ def send_consolidated_alert_email(
             f"AgriWatch Crop Alert - "
             f"{crop.crop_name}"
         )
-
 
     # =====================================================
     # PLAIN TEXT EMAIL
@@ -612,15 +643,15 @@ def send_consolidated_alert_email(
 
     ]
 
-
     for alert in alerts:
 
         body_lines.append(
+
             f"- {alert.alert_type} "
             f"({alert.severity}): "
             f"{alert.message}"
-        )
 
+        )
 
     body_lines.extend([
 
@@ -636,11 +667,9 @@ def send_consolidated_alert_email(
 
     ])
 
-
     body = "\n".join(
         body_lines
     )
-
 
     # =====================================================
     # HTML EMAIL
@@ -648,15 +677,17 @@ def send_consolidated_alert_email(
 
     alert_rows = ""
 
-
     for alert in alerts:
 
         severity_class = (
-            "critical"
-            if alert.severity.lower() == "critical"
-            else "warning"
-        )
 
+            "critical"
+
+            if alert.severity.lower() == "critical"
+
+            else "warning"
+
+        )
 
         alert_rows += f"""
         <tr>
@@ -669,7 +700,6 @@ def send_consolidated_alert_email(
             ">
                 {alert.alert_type}
             </td>
-
 
             <td style="
                 padding:12px;
@@ -698,7 +728,6 @@ def send_consolidated_alert_email(
 
             </td>
 
-
             <td style="
                 padding:12px;
                 border-bottom:1px solid #e5e7eb;
@@ -709,7 +738,6 @@ def send_consolidated_alert_email(
 
         </tr>
         """
-
 
     html_body = f"""
     <!DOCTYPE html>
@@ -745,7 +773,6 @@ def send_consolidated_alert_email(
                     AgriWatch
                 </h1>
 
-
                 <p style="
                     margin:6px 0 0;
                     opacity:.9;
@@ -755,7 +782,6 @@ def send_consolidated_alert_email(
                 </p>
 
             </div>
-
 
             <div style="
                 padding:25px;
@@ -769,7 +795,6 @@ def send_consolidated_alert_email(
                     Crop Monitoring Alert
                 </h2>
 
-
                 <p style="
                     color:#66736a;
                     font-size:14px;
@@ -778,7 +803,6 @@ def send_consolidated_alert_email(
                     AgriWatch detected one or more
                     conditions that require your attention.
                 </p>
-
 
                 <div style="
                     margin:20px 0;
@@ -796,7 +820,6 @@ def send_consolidated_alert_email(
                         {crop.crop_name}
                     </p>
 
-
                     <p style="
                         margin:0 0 7px;
                         color:#536158;
@@ -805,7 +828,6 @@ def send_consolidated_alert_email(
                         <strong>Farm:</strong>
                         {crop.farm.farm_name}
                     </p>
-
 
                     <p style="
                         margin:0;
@@ -817,7 +839,6 @@ def send_consolidated_alert_email(
                     </p>
 
                 </div>
-
 
                 <table
                     style="
@@ -841,14 +862,12 @@ def send_consolidated_alert_email(
                                 Condition
                             </th>
 
-
                             <th style="
                                 padding:12px;
                                 color:#526056;
                             ">
                                 Severity
                             </th>
-
 
                             <th style="
                                 padding:12px;
@@ -861,7 +880,6 @@ def send_consolidated_alert_email(
 
                     </thead>
 
-
                     <tbody>
 
                         {alert_rows}
@@ -869,7 +887,6 @@ def send_consolidated_alert_email(
                     </tbody>
 
                 </table>
-
 
                 <p style="
                     margin-top:25px;
@@ -883,7 +900,6 @@ def send_consolidated_alert_email(
                 </p>
 
             </div>
-
 
             <div style="
                 padding:18px 25px;
@@ -904,7 +920,6 @@ def send_consolidated_alert_email(
 
     </html>
     """
-
 
     return send_email(
         recipient=recipient,
@@ -930,9 +945,7 @@ def get_monitoring_records():
 
     role = get_current_role()
 
-
     query = MonitoringRecord.query
-
 
     # -----------------------------------------------------
     # ADMIN
@@ -948,7 +961,6 @@ def get_monitoring_records():
             )
             .all()
         )
-
 
     else:
 
@@ -966,7 +978,6 @@ def get_monitoring_records():
             )
             .all()
         )
-
 
     return jsonify({
 
@@ -996,11 +1007,9 @@ def create_monitoring_record():
         silent=True
     ) or {}
 
-
     crop_id = data.get(
         "crop_id"
     )
-
 
     if not crop_id:
 
@@ -1009,12 +1018,10 @@ def create_monitoring_record():
             "message": "crop_id is required."
         }), 400
 
-
     crop = db.session.get(
         Crop,
         crop_id
     )
-
 
     if not crop:
 
@@ -1022,7 +1029,6 @@ def create_monitoring_record():
             "status": "error",
             "message": "Crop not found."
         }), 404
-
 
     # -----------------------------------------------------
     # ACCESS CHECK
@@ -1037,7 +1043,6 @@ def create_monitoring_record():
             "message": "You do not have access to this crop."
         }), 403
 
-
     # -----------------------------------------------------
     # GET VALUES
     # -----------------------------------------------------
@@ -1046,35 +1051,29 @@ def create_monitoring_record():
         "soil_moisture"
     )
 
-
     crop_temperature = data.get(
         "crop_temperature"
     )
-
 
     pest_detected = data.get(
         "pest_detected",
         False
     )
 
-
     disease_detected = data.get(
         "disease_detected",
         False
     )
-
 
     discoloration_detected = data.get(
         "discoloration_detected",
         False
     )
 
-
     plant_condition = data.get(
         "plant_condition",
         "Healthy"
     )
-
 
     # -----------------------------------------------------
     # VALIDATE NUMERIC VALUES
@@ -1088,13 +1087,11 @@ def create_monitoring_record():
                 soil_moisture
             )
 
-
         if crop_temperature is not None:
 
             crop_temperature = float(
                 crop_temperature
             )
-
 
     except (
         TypeError,
@@ -1108,7 +1105,6 @@ def create_monitoring_record():
                 "must be valid numbers."
             )
         }), 400
-
 
     # -----------------------------------------------------
     # CREATE MONITORING RECORD
@@ -1138,18 +1134,40 @@ def create_monitoring_record():
 
     )
 
-
     db.session.add(
         record
     )
-
 
     # -----------------------------------------------------
     # FLUSH
     # -----------------------------------------------------
 
-    db.session.flush()
+    try:
 
+        db.session.flush()
+
+    except Exception as error:
+
+        db.session.rollback()
+
+        print(
+            "[MONITORING] Flush error:",
+            error
+        )
+
+        traceback.print_exc()
+
+        return jsonify({
+            "status": "error",
+            "message": (
+                "Unable to create monitoring record."
+            )
+        }), 500
+
+    print(
+        f"[MONITORING] Creating monitoring record "
+        f"ID={record.id} for crop ID={crop.id}"
+    )
 
     # -----------------------------------------------------
     # UPDATE CROP STATUS
@@ -1160,6 +1178,10 @@ def create_monitoring_record():
         record
     )
 
+    print(
+        f"[MONITORING] Crop status updated to "
+        f"'{crop.status}'"
+    )
 
     # -----------------------------------------------------
     # SYNCHRONIZE ALERTS
@@ -1171,7 +1193,6 @@ def create_monitoring_record():
     ) = synchronize_alerts(
         record
     )
-
 
     # -----------------------------------------------------
     # SAVE EVERYTHING
@@ -1186,9 +1207,11 @@ def create_monitoring_record():
         db.session.rollback()
 
         print(
-            "Monitoring database error:",
+            "[MONITORING] Database commit error:",
             error
         )
+
+        traceback.print_exc()
 
         return jsonify({
             "status": "error",
@@ -1197,25 +1220,74 @@ def create_monitoring_record():
             )
         }), 500
 
+    print(
+        f"[MONITORING] Database commit successful "
+        f"for monitoring ID={record.id}"
+    )
+
+    print(
+        f"[MONITORING] alerts_created="
+        f"{len(alerts)}, "
+        f"alerts_resolved="
+        f"{len(resolved_alerts)}"
+    )
 
     # -----------------------------------------------------
-    # SEND EMAIL ONLY FOR NEW ALERTS
+    # SEND EMAIL FOR NEW ALERT EVENTS
     # -----------------------------------------------------
 
     email_sent = False
-
+    email_error = None
 
     if alerts:
 
+        print(
+            "[EMAIL] New alert event detected. "
+            "Preparing email."
+        )
+
         try:
+
+            owner_id = crop.farm.owner_id
+
+            print(
+                f"[EMAIL] Looking up farm owner "
+                f"ID={owner_id}"
+            )
 
             owner = db.session.get(
                 User,
-                crop.farm.owner_id
+                owner_id
             )
 
+            if not owner:
 
-            if owner and owner.email:
+                print(
+                    f"[EMAIL] ERROR: No user found "
+                    f"for owner ID={owner_id}"
+                )
+
+                email_error = (
+                    "Farm owner account was not found."
+                )
+
+            elif not owner.email:
+
+                print(
+                    f"[EMAIL] ERROR: Farm owner ID="
+                    f"{owner_id} has no email address."
+                )
+
+                email_error = (
+                    "Farm owner does not have an email address."
+                )
+
+            else:
+
+                print(
+                    f"[EMAIL] Sending alert email to "
+                    f"{owner.email}"
+                )
 
                 send_consolidated_alert_email(
                     recipient=owner.email,
@@ -1226,17 +1298,29 @@ def create_monitoring_record():
                 email_sent = True
 
                 print(
-                    f"Alert email sent to {owner.email}"
+                    f"[EMAIL] Alert email sent successfully "
+                    f"to {owner.email}"
                 )
-
 
         except Exception as error:
 
-            print(
-                "Alert email error:",
+            email_error = str(
                 error
             )
 
+            print(
+                "[EMAIL] ERROR:",
+                error
+            )
+
+            traceback.print_exc()
+
+    else:
+
+        print(
+            "[EMAIL] No new alert event. "
+            "Email was not sent."
+        )
 
     # -----------------------------------------------------
     # RESPONSE
@@ -1262,7 +1346,9 @@ def create_monitoring_record():
             resolved_alerts
         ),
 
-        "email_sent": email_sent
+        "email_sent": email_sent,
+
+        "email_error": email_error
 
     }), 201
 
@@ -1285,14 +1371,12 @@ def get_crop_monitoring(
         crop_id
     )
 
-
     if not crop:
 
         return jsonify({
             "status": "error",
             "message": "Crop not found."
         }), 404
-
 
     if not user_can_access_crop(
         crop
@@ -1302,7 +1386,6 @@ def get_crop_monitoring(
             "status": "error",
             "message": "You do not have access to this crop."
         }), 403
-
 
     records = (
         MonitoringRecord.query
@@ -1315,7 +1398,6 @@ def get_crop_monitoring(
         )
         .all()
     )
-
 
     return jsonify({
 
@@ -1347,14 +1429,12 @@ def get_monitoring_record(
         monitoring_id
     )
 
-
     if not record:
 
         return jsonify({
             "status": "error",
             "message": "Monitoring record not found."
         }), 404
-
 
     if not user_can_access_crop(
         record.crop
@@ -1366,7 +1446,6 @@ def get_monitoring_record(
                 "You do not have access to this monitoring record."
             )
         }), 403
-
 
     return jsonify({
 
@@ -1395,7 +1474,6 @@ def delete_monitoring_record(
         monitoring_id
     )
 
-
     if not record:
 
         return jsonify({
@@ -1403,9 +1481,7 @@ def delete_monitoring_record(
             "message": "Monitoring record not found."
         }), 404
 
-
     crop = record.crop
-
 
     if not user_can_access_crop(
         crop
@@ -1418,7 +1494,6 @@ def delete_monitoring_record(
             )
         }), 403
 
-
     # -----------------------------------------------------
     # DELETE RECORD
     # -----------------------------------------------------
@@ -1427,12 +1502,10 @@ def delete_monitoring_record(
         record
     )
 
-
     # Flush so the deleted monitoring record is no longer
     # considered when recalculating status.
 
     db.session.flush()
-
 
     # -----------------------------------------------------
     # RECALCULATE CROP STATUS
@@ -1441,7 +1514,6 @@ def delete_monitoring_record(
     recalculate_crop_status(
         crop
     )
-
 
     try:
 
@@ -1456,13 +1528,14 @@ def delete_monitoring_record(
             error
         )
 
+        traceback.print_exc()
+
         return jsonify({
             "status": "error",
             "message": (
                 "Unable to delete monitoring record."
             )
         }), 500
-
 
     return jsonify({
 
