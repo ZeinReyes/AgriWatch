@@ -1,504 +1,264 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../services/api";
 
-
-const WEATHER_CODES = {
-  0: {
-    label: "Clear sky",
-    icon: "☀️",
-  },
-  1: {
-    label: "Mainly clear",
-    icon: "🌤️",
-  },
-  2: {
-    label: "Partly cloudy",
-    icon: "⛅",
-  },
-  3: {
-    label: "Overcast",
-    icon: "☁️",
-  },
-  45: {
-    label: "Fog",
-    icon: "🌫️",
-  },
-  48: {
-    label: "Depositing rime fog",
-    icon: "🌫️",
-  },
-  51: {
-    label: "Light drizzle",
-    icon: "🌦️",
-  },
-  53: {
-    label: "Moderate drizzle",
-    icon: "🌦️",
-  },
-  55: {
-    label: "Dense drizzle",
-    icon: "🌧️",
-  },
-  56: {
-    label: "Light freezing drizzle",
-    icon: "🌧️",
-  },
-  57: {
-    label: "Dense freezing drizzle",
-    icon: "🌧️",
-  },
-  61: {
-    label: "Slight rain",
-    icon: "🌦️",
-  },
-  63: {
-    label: "Moderate rain",
-    icon: "🌧️",
-  },
-  65: {
-    label: "Heavy rain",
-    icon: "🌧️",
-  },
-  66: {
-    label: "Light freezing rain",
-    icon: "🌧️",
-  },
-  67: {
-    label: "Heavy freezing rain",
-    icon: "🌧️",
-  },
-  71: {
-    label: "Slight snow",
-    icon: "🌨️",
-  },
-  73: {
-    label: "Moderate snow",
-    icon: "🌨️",
-  },
-  75: {
-    label: "Heavy snow",
-    icon: "❄️",
-  },
-  77: {
-    label: "Snow grains",
-    icon: "🌨️",
-  },
-  80: {
-    label: "Slight rain showers",
-    icon: "🌦️",
-  },
-  81: {
-    label: "Moderate rain showers",
-    icon: "🌧️",
-  },
-  82: {
-    label: "Violent rain showers",
-    icon: "⛈️",
-  },
-  85: {
-    label: "Slight snow showers",
-    icon: "🌨️",
-  },
-  86: {
-    label: "Heavy snow showers",
-    icon: "❄️",
-  },
-  95: {
-    label: "Thunderstorm",
-    icon: "⛈️",
-  },
-  96: {
-    label: "Thunderstorm with slight hail",
-    icon: "⛈️",
-  },
-  99: {
-    label: "Thunderstorm with heavy hail",
-    icon: "⛈️",
-  },
-};
+import "./Weather.css";
 
 
-const getWeatherInfo = (code) => {
-  return (
-    WEATHER_CODES[code] || {
-      label: "Unknown condition",
-      icon: "🌤️",
-    }
-  );
-};
+const WEATHER_API =
+  "https://api.open-meteo.com/v1/forecast";
 
 
-const formatDate = (dateString) => {
-  if (!dateString) {
-    return "—";
-  }
-
-  const date = new Date(`${dateString}T00:00:00`);
-
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-
-const formatTime = (dateString) => {
-  if (!dateString) {
-    return "—";
-  }
-
-  const date = new Date(dateString);
-
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+const weatherCodeMap = {
+  0: "Clear sky",
+  1: "Mainly clear",
+  2: "Partly cloudy",
+  3: "Overcast",
+  45: "Fog",
+  48: "Depositing rime fog",
+  51: "Light drizzle",
+  53: "Moderate drizzle",
+  55: "Dense drizzle",
+  61: "Slight rain",
+  63: "Moderate rain",
+  65: "Heavy rain",
+  71: "Slight snow",
+  73: "Moderate snow",
+  75: "Heavy snow",
+  80: "Slight rain showers",
+  81: "Moderate rain showers",
+  82: "Violent rain showers",
+  95: "Thunderstorm",
+  96: "Thunderstorm with slight hail",
+  99: "Thunderstorm with heavy hail",
 };
 
 
 const Weather = () => {
-  const [farms, setFarms] = useState([]);
 
-  const [weather, setWeather] = useState(null);
+  const [
+    farms,
+    setFarms
+  ] = useState([]);
 
-  const [loadingFarms, setLoadingFarms] = useState(true);
-  const [loadingWeather, setLoadingWeather] = useState(false);
+  const [
+    weather,
+    setWeather
+  ] = useState(null);
 
-  const [error, setError] = useState("");
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
 
+  const [
+    error,
+    setError
+  ] = useState("");
 
-  // =====================================================
-  // LOAD FARMS
-  // =====================================================
 
   useEffect(() => {
-    let mounted = true;
-
-
-    const loadFarms = async () => {
-      setLoadingFarms(true);
-      setError("");
-
-
-      try {
-        const response = await api.get("/farms");
-
-        const data = response?.data;
-
-
-        let farmList = [];
-
-
-        if (Array.isArray(data)) {
-          farmList = data;
-        } else if (Array.isArray(data?.farms)) {
-          farmList = data.farms;
-        } else if (Array.isArray(data?.data)) {
-          farmList = data.data;
-        }
-
-
-        if (mounted) {
-          setFarms(farmList);
-        }
-
-      } catch (err) {
-        console.error(
-          "Failed to load farms:",
-          err
-        );
-
-
-        if (mounted) {
-          setError(
-            err?.response?.data?.message ||
-              "Unable to load your farm information."
-          );
-        }
-
-      } finally {
-        if (mounted) {
-          setLoadingFarms(false);
-        }
-      }
-    };
-
-
-    loadFarms();
-
-
-    return () => {
-      mounted = false;
-    };
+    loadWeather();
   }, []);
 
 
-  // =====================================================
-  // SELECT FARM
-  // =====================================================
+  const loadWeather = async () => {
 
-  const farm = useMemo(() => {
-    return farms?.[0] || null;
-  }, [farms]);
+    try {
 
-
-  // =====================================================
-  // FARM COORDINATES
-  // =====================================================
-
-  const latitude = Number(farm?.latitude);
-  const longitude = Number(farm?.longitude);
-
-
-  const hasCoordinates =
-    Number.isFinite(latitude) &&
-    Number.isFinite(longitude);
-
-
-  // =====================================================
-  // LOAD WEATHER
-  // =====================================================
-
-  useEffect(() => {
-    if (!hasCoordinates) {
-      setWeather(null);
-      return;
-    }
-
-
-    let mounted = true;
-
-
-    const loadWeather = async () => {
-      setLoadingWeather(true);
+      setLoading(true);
       setError("");
 
-
-      try {
-        const url =
-          `https://api.open-meteo.com/v1/forecast` +
-          `?latitude=${encodeURIComponent(latitude)}` +
-          `&longitude=${encodeURIComponent(longitude)}` +
-          `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m` +
-          `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum` +
-          `&timezone=auto` +
-          `&forecast_days=7`;
+      const response =
+        await api.get("/farms");
 
 
-        const response = await fetch(url);
+      const farmData =
+        Array.isArray(response.data)
+          ? response.data
+          : response.data?.farms ||
+            response.data?.data ||
+            [];
 
 
-        if (!response.ok) {
-          throw new Error(
-            "Weather service returned an error."
-          );
-        }
+      setFarms(farmData);
 
 
-        const data = await response.json();
+      if (!farmData.length) {
+
+        setWeather(null);
+
+        return;
+      }
 
 
-        if (mounted) {
-          setWeather(data);
-        }
+      const farm =
+        farmData[0];
 
-      } catch (err) {
-        console.error(
-          "Failed to load weather:",
-          err
+
+      const latitude =
+        Number(farm.latitude);
+
+      const longitude =
+        Number(farm.longitude);
+
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude)
+      ) {
+
+        setWeather(null);
+
+        setError(
+          "Your farm does not have valid coordinates. Please update the farm location."
         );
 
-
-        if (mounted) {
-          setWeather(null);
-
-          setError(
-            "Unable to load weather data right now."
-          );
-        }
-
-      } finally {
-        if (mounted) {
-          setLoadingWeather(false);
-        }
+        return;
       }
-    };
 
 
-    loadWeather();
+      const url =
+        `${WEATHER_API}` +
+        `?latitude=${encodeURIComponent(latitude)}` +
+        `&longitude=${encodeURIComponent(longitude)}` +
+        `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m` +
+        `&timezone=auto`;
 
 
-    return () => {
-      mounted = false;
-    };
-  }, [
-    latitude,
-    longitude,
-    hasCoordinates,
-  ]);
+      const weatherResponse =
+        await fetch(url);
 
 
-  // =====================================================
-  // CURRENT WEATHER
-  // =====================================================
-
-  const currentWeather = weather?.current;
-
-  const currentWeatherInfo =
-    getWeatherInfo(
-      currentWeather?.weather_code
-    );
+      if (!weatherResponse.ok) {
+        throw new Error(
+          "Weather request failed."
+        );
+      }
 
 
-  // =====================================================
-  // FORECAST
-  // =====================================================
-
-  const forecastDates =
-    weather?.daily?.time || [];
-
-  const forecastCodes =
-    weather?.daily?.weather_code || [];
-
-  const forecastMax =
-    weather?.daily?.temperature_2m_max || [];
-
-  const forecastMin =
-    weather?.daily?.temperature_2m_min || [];
-
-  const forecastRain =
-    weather?.daily?.precipitation_sum || [];
+      const data =
+        await weatherResponse.json();
 
 
-  // =====================================================
-  // RENDER
-  // =====================================================
+      setWeather({
+
+        farmName:
+          farm.farm_name,
+
+        location:
+          farm.location,
+
+        latitude,
+
+        longitude,
+
+        temperature:
+          data.current?.temperature_2m,
+
+        humidity:
+          data.current?.relative_humidity_2m,
+
+        precipitation:
+          data.current?.precipitation,
+
+        windSpeed:
+          data.current?.wind_speed_10m,
+
+        weatherCode:
+          data.current?.weather_code,
+
+        condition:
+          weatherCodeMap[
+            data.current?.weather_code
+          ] ||
+          "Unknown conditions",
+
+      });
+
+    } catch (err) {
+
+      console.error(
+        "Failed to load weather:",
+        err
+      );
+
+      setError(
+        err.response?.data?.message ||
+        "Unable to load weather information."
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+  };
+
 
   return (
-    <div className="weather-page">
 
-      {/* =================================================
-          PAGE HEADER
-      ================================================= */}
+    <DashboardLayout>
 
-      <div className="page-header">
+      <div className="weather-page">
 
-        <div>
-
-          <div className="page-header-eyebrow">
-            Farm Environment
-          </div>
-
-          <h1 className="page-title">
-            Weather
-          </h1>
-
-          <p className="page-description">
-            Monitor current weather conditions
-            around your farm.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      {/* =================================================
-          LOADING FARMS
-      ================================================= */}
-
-      {loadingFarms && (
-        <div className="weather-state-card">
-
-          <div className="weather-spinner">
-            ⟳
-          </div>
-
-          <h3>
-            Loading farm location
-          </h3>
-
-          <p>
-            Getting your saved farm coordinates...
-          </p>
-
-        </div>
-      )}
-
-
-      {/* =================================================
-          NO FARM
-      ================================================= */}
-
-      {!loadingFarms &&
-        !farm &&
-        !error && (
-          <div className="weather-state-card">
-
-            <div className="weather-state-icon">
-              🌱
-            </div>
-
-            <h3>
-              No farm available
-            </h3>
-
-            <p>
-              Add a farm first so AgriWatch
-              can retrieve weather conditions
-              for your farm location.
-            </p>
-
-          </div>
-        )}
-
-
-      {/* =================================================
-          NO COORDINATES
-      ================================================= */}
-
-      {!loadingFarms &&
-        farm &&
-        !hasCoordinates &&
-        !error && (
-          <div className="weather-state-card">
-
-            <div className="weather-state-icon">
-              📍
-            </div>
-
-            <h3>
-              Farm coordinates unavailable
-            </h3>
-
-            <p>
-              Your farm does not have valid
-              latitude and longitude coordinates.
-              Edit your farm and select its
-              location on the map.
-            </p>
-
-          </div>
-        )}
-
-
-      {/* =================================================
-          ERROR
-      ================================================= */}
-
-      {error && (
-        <div className="weather-error-card">
-
-          <div className="weather-error-icon">
-            ⚠
-          </div>
+        <div className="weather-page-header">
 
           <div>
 
-            <strong>
+            <span className="weather-eyebrow">
+              FARM WEATHER
+            </span>
+
+            <h1>
+              Weather
+            </h1>
+
+            <p>
+              Current weather conditions
+              for your farm.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {loading && (
+
+          <div className="weather-state-card">
+
+            <div className="weather-spinner"></div>
+
+            <h3>
+              Loading weather
+            </h3>
+
+            <p>
+              Retrieving the latest weather
+              conditions for your farm.
+            </p>
+
+          </div>
+
+        )}
+
+
+        {!loading && error && (
+
+          <div className="weather-state-card weather-error">
+
+            <div className="weather-state-icon">
+              !
+            </div>
+
+            <h3>
               Weather unavailable
-            </strong>
+            </h3>
 
             <p>
               {error}
@@ -506,370 +266,235 @@ const Weather = () => {
 
           </div>
 
-        </div>
-      )}
+        )}
 
 
-      {/* =================================================
-          WEATHER CONTENT
-      ================================================= */}
+        {!loading &&
+          !error &&
+          !farms.length && (
 
-      {!loadingFarms &&
-        farm &&
-        hasCoordinates && (
+            <div className="weather-state-card">
 
-          <>
-
-            {/* ===========================================
-                LOCATION CARD
-            =========================================== */}
-
-            <div className="weather-location-card">
-
-              <div className="weather-location-icon">
-                📍
+              <div className="weather-state-icon">
+                +
               </div>
 
+              <h3>
+                No farm available
+              </h3>
 
-              <div className="weather-location-content">
-
-                <div className="weather-location-label">
-                  Monitoring location
-                </div>
-
-                <div className="weather-location-name">
-                  {farm.farm_name ||
-                    "Your Farm"}
-                </div>
-
-                <div className="weather-location-address">
-                  {farm.location ||
-                    "Farm location"}
-                </div>
-
-                <div className="weather-coordinates">
-
-                  {latitude.toFixed(6)}
-                  {" , "}
-                  {longitude.toFixed(6)}
-
-                </div>
-
-              </div>
+              <p>
+                Add a farm with a valid
+                location to view weather
+                information.
+              </p>
 
             </div>
 
+          )}
 
-            {/* ===========================================
-                CURRENT WEATHER
-            =========================================== */}
 
-            <section className="weather-section">
+        {!loading &&
+          !error &&
+          farms.length > 0 &&
+          !weather && (
 
-              <div className="section-heading">
+            <div className="weather-state-card">
 
-                <div>
+              <div className="weather-state-icon">
+                ?
+              </div>
+
+              <h3>
+                No weather data
+              </h3>
+
+              <p>
+                Weather information is
+                currently unavailable.
+              </p>
+
+            </div>
+
+          )}
+
+
+        {!loading &&
+          !error &&
+          weather && (
+
+            <>
+
+              <section className="weather-location-card">
+
+                <div className="weather-location-info">
+
+                  <span className="weather-section-label">
+                    FARM LOCATION
+                  </span>
 
                   <h2>
-                    Current Conditions
+                    {weather.farmName}
                   </h2>
 
                   <p>
-                    Weather conditions at your
-                    farm location.
+                    {weather.location}
                   </p>
 
-                </div>
-
-              </div>
-
-
-              {loadingWeather && (
-                <div className="weather-loading-card">
-
-                  <div className="weather-spinner">
-                    ⟳
-                  </div>
-
-                  <span>
-                    Loading current weather...
+                  <span className="weather-coordinates">
+                    {weather.latitude.toFixed(6)}
+                    {", "}
+                    {weather.longitude.toFixed(6)}
                   </span>
 
                 </div>
-              )}
 
 
-              {!loadingWeather &&
-                weather &&
-                currentWeather && (
+                <div className="weather-current">
 
-                  <div className="current-weather-grid">
-
-                    {/* Temperature */}
-
-                    <div className="current-weather-main">
-
-                      <div className="weather-main-icon">
-                        {currentWeatherInfo.icon}
-                      </div>
-
-
-                      <div>
-
-                        <div className="weather-main-label">
-                          Current temperature
-                        </div>
-
-                        <div className="weather-temperature">
-
-                          {Math.round(
-                            currentWeather.temperature_2m
-                          )}
-
-                          <span>
-                            {weather.current_units
-                              ?.temperature_2m ||
-                              "°C"}
-                          </span>
-
-                        </div>
-
-                        <div className="weather-condition">
-                          {currentWeatherInfo.label}
-                        </div>
-
-                      </div>
-
-                    </div>
-
-
-                    {/* Humidity */}
-
-                    <div className="weather-metric-card">
-
-                      <div className="weather-metric-icon">
-                        💧
-                      </div>
-
-                      <div>
-
-                        <div className="weather-metric-label">
-                          Humidity
-                        </div>
-
-                        <div className="weather-metric-value">
-
-                          {Math.round(
-                            currentWeather.relative_humidity_2m
-                          )}
-
-                          <span>
-                            %
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-
-                    {/* Precipitation */}
-
-                    <div className="weather-metric-card">
-
-                      <div className="weather-metric-icon">
-                        🌧️
-                      </div>
-
-                      <div>
-
-                        <div className="weather-metric-label">
-                          Precipitation
-                        </div>
-
-                        <div className="weather-metric-value">
-
-                          {Number(
-                            currentWeather.precipitation || 0
-                          ).toFixed(1)}
-
-                          <span>
-                            {weather.current_units
-                              ?.precipitation ||
-                              "mm"}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-
-                    {/* Wind */}
-
-                    <div className="weather-metric-card">
-
-                      <div className="weather-metric-icon">
-                        💨
-                      </div>
-
-                      <div>
-
-                        <div className="weather-metric-label">
-                          Wind speed
-                        </div>
-
-                        <div className="weather-metric-value">
-
-                          {Math.round(
-                            currentWeather.wind_speed_10m
-                          )}
-
-                          <span>
-                            {weather.current_units
-                              ?.wind_speed_10m ||
-                              "km/h"}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-                )}
-
-            </section>
-
-
-            {/* ===========================================
-                FORECAST
-            =========================================== */}
-
-            {weather?.daily && (
-              <section className="weather-section">
-
-                <div className="section-heading">
-
-                  <div>
-
-                    <h2>
-                      7-Day Forecast
-                    </h2>
-
-                    <p>
-                      Expected weather conditions
-                      around your farm.
-                    </p>
-
+                  <div className="weather-current-icon">
+                    ☁
                   </div>
 
-                </div>
+                  <div className="weather-current-details">
 
+                    <strong>
+                      {weather.temperature}°C
+                    </strong>
 
-                <div className="forecast-grid">
+                    <span>
+                      {weather.condition}
+                    </span>
 
-                  {forecastDates.map(
-                    (date, index) => {
-
-                      const info =
-                        getWeatherInfo(
-                          forecastCodes[index]
-                        );
-
-
-                      return (
-                        <div
-                          className="forecast-card"
-                          key={date}
-                        >
-
-                          <div className="forecast-date">
-                            {formatDate(date)}
-                          </div>
-
-                          <div className="forecast-icon">
-                            {info.icon}
-                          </div>
-
-                          <div className="forecast-condition">
-                            {info.label}
-                          </div>
-
-
-                          <div className="forecast-temperature">
-
-                            <strong>
-                              {Math.round(
-                                forecastMax[index]
-                              )}°
-                            </strong>
-
-                            <span>
-                              {Math.round(
-                                forecastMin[index]
-                              )}°
-                            </span>
-
-                          </div>
-
-
-                          <div className="forecast-rain">
-
-                            🌧️{" "}
-
-                            {Number(
-                              forecastRain[index] || 0
-                            ).toFixed(1)}
-
-                            {" mm"}
-
-                          </div>
-
-                        </div>
-                      );
-
-                    }
-                  )}
+                  </div>
 
                 </div>
 
               </section>
-            )}
 
 
-            {/* ===========================================
-                DATA INFORMATION
-            =========================================== */}
+              <section className="weather-metrics">
 
-            {weather && (
-              <div className="weather-data-info">
+                <div className="weather-metric-card">
 
-                <div>
-                  Weather data is based on the
-                  coordinates saved for this farm.
+                  <div className="weather-metric-icon">
+                    %
+                  </div>
+
+                  <div>
+
+                    <span>
+                      Humidity
+                    </span>
+
+                    <strong>
+                      {weather.humidity}%
+                    </strong>
+
+                  </div>
+
+                </div>
+
+
+                <div className="weather-metric-card">
+
+                  <div className="weather-metric-icon">
+                    R
+                  </div>
+
+                  <div>
+
+                    <span>
+                      Precipitation
+                    </span>
+
+                    <strong>
+                      {weather.precipitation} mm
+                    </strong>
+
+                  </div>
+
+                </div>
+
+
+                <div className="weather-metric-card">
+
+                  <div className="weather-metric-icon">
+                    W
+                  </div>
+
+                  <div>
+
+                    <span>
+                      Wind Speed
+                    </span>
+
+                    <strong>
+                      {weather.windSpeed} km/h
+                    </strong>
+
+                  </div>
+
+                </div>
+
+
+                <div className="weather-metric-card">
+
+                  <div className="weather-metric-icon">
+                    T
+                  </div>
+
+                  <div>
+
+                    <span>
+                      Temperature
+                    </span>
+
+                    <strong>
+                      {weather.temperature}°C
+                    </strong>
+
+                  </div>
+
+                </div>
+
+              </section>
+
+
+              <section className="weather-information-card">
+
+                <div className="weather-information-icon">
+                  i
                 </div>
 
                 <div>
 
-                  Last updated:{" "}
+                  <h3>
+                    Farm Weather Monitoring
+                  </h3>
 
-                  {formatTime(
-                    currentWeather?.time
-                  )}
+                  <p>
+                    Weather information is
+                    based on the saved
+                    coordinates of your farm.
+                    These conditions can serve
+                    as supporting information
+                    for crop monitoring and
+                    farm management.
+                  </p>
 
                 </div>
 
-              </div>
-            )}
+              </section>
 
-          </>
-        )}
+            </>
 
-    </div>
+          )}
+
+      </div>
+
+    </DashboardLayout>
+
   );
 };
 
