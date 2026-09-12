@@ -60,15 +60,12 @@ def user_can_access_crop(
     user_id = get_current_user_id()
     role = get_current_role()
 
-    # Administrator can access everything
     if role == "admin":
         return True
 
-    # Crop must belong to a farm
     if not crop or not crop.farm:
         return False
 
-    # Farmer can access their own farm
     if crop.farm.owner_id == user_id:
         return True
 
@@ -83,21 +80,21 @@ def determine_crop_status(
     record
 ):
     """
-    Determines the current Crop.status based on
-    the supplied monitoring record.
+    Determines the crop status from the current
+    monitoring record.
 
     Priority:
 
     Critical
+        - Plant condition is Critical
         - Disease detected
         - Crop temperature > 35°C
-        - Plant condition is Critical
 
     Needs Attention
+        - Plant condition is Needs Attention
         - Soil moisture < 30%
         - Pest detected
         - Discoloration detected
-        - Plant condition is Needs Attention
 
     Healthy
         - No critical or warning condition
@@ -213,15 +210,8 @@ def get_alert_conditions(
     record
 ):
     """
-    Returns the alert conditions represented by the
-    current monitoring record.
-
-    Each item contains:
-
-        alert_type
-        severity
-        message
-        active
+    Builds the possible alert conditions for a
+    monitoring record.
     """
 
     return [
@@ -314,8 +304,8 @@ def get_previous_monitoring_record(
     record
 ):
     """
-    Gets the monitoring record immediately preceding
-    the current record for the same crop.
+    Gets the previous monitoring record for
+    the same crop.
     """
 
     return (
@@ -340,32 +330,26 @@ def synchronize_alerts(
     record
 ):
     """
-    Synchronizes active alert state with the newest
-    monitoring record.
+    Synchronizes database alert state with the
+    latest monitoring record.
 
-    Rules:
+    Returns:
 
-    1. Bad condition + no active alert
-       -> create a new alert.
+        newly_created_alerts
+        resolved_alerts
+        notification_alerts
 
-    2. Bad condition + existing active alert
-       -> keep the existing alert.
+    Alert records:
+        - Do not duplicate while a condition remains active.
+        - Resolve when a condition becomes normal.
+        - Remain in history after resolution.
 
-    3. Condition becomes normal
-       -> resolve the active alert.
-
-    4. Historical alerts are never deleted.
-
-    The database's active alert state is treated as the
-    source of truth. This prevents missed alerts when
-    monitoring history already contains abnormal readings.
+    Notification behavior:
+        - Every new abnormal monitoring reading can
+          generate an email notification.
+        - Continuing alerts do not create duplicate
+          Alert records.
     """
-
-    previous_record = (
-        get_previous_monitoring_record(
-            record
-        )
-    )
 
     current_conditions = (
         get_alert_conditions(
@@ -373,70 +357,24 @@ def synchronize_alerts(
         )
     )
 
-    previous_conditions = {}
-
-    if previous_record:
-
-        previous_conditions = {
-
-            condition["alert_type"]:
-                condition["active"]
-
-            for condition in
-            get_alert_conditions(
-                previous_record
-            )
-
-        }
-
     newly_created_alerts = []
     resolved_alerts = []
+    notification_alerts = []
 
     print(
         f"[ALERT SYNC] Monitoring ID={record.id} "
         f"Crop ID={record.crop_id}"
     )
 
-    if previous_record:
-
-        print(
-            f"[ALERT SYNC] Previous monitoring ID="
-            f"{previous_record.id}"
-        )
-
-    else:
-
-        print(
-            "[ALERT SYNC] No previous monitoring record."
-        )
-
     for condition in current_conditions:
 
-        alert_type = (
-            condition["alert_type"]
-        )
-
-        severity = (
-            condition["severity"]
-        )
-
-        message = (
-            condition["message"]
-        )
-
-        is_active = (
-            condition["active"]
-        )
-
-        was_active = (
-            previous_conditions.get(
-                alert_type,
-                False
-            )
-        )
+        alert_type = condition["alert_type"]
+        severity = condition["severity"]
+        message = condition["message"]
+        is_active = condition["active"]
 
         # -------------------------------------------------
-        # FIND CURRENT ACTIVE ALERTS
+        # FIND ACTIVE ALERTS
         # -------------------------------------------------
 
         active_alerts = (
@@ -456,12 +394,11 @@ def synchronize_alerts(
         print(
             f"[ALERT SYNC] {alert_type} | "
             f"current_active={is_active} | "
-            f"previous_active={was_active} | "
             f"existing_active_alerts={len(active_alerts)}"
         )
 
         # =================================================
-        # CONDITION IS CURRENTLY ACTIVE
+        # CONDITION IS ACTIVE
         # =================================================
 
         if is_active:
@@ -472,14 +409,47 @@ def synchronize_alerts(
 
             if active_alerts:
 
+                current_alert = active_alerts[0]
+
                 print(
                     f"[ALERT SYNC] Keeping existing active "
-                    f"alert for {alert_type}."
+                    f"alert ID={current_alert.id} "
+                    f"for {alert_type}."
                 )
 
-                # If old data somehow contains multiple
-                # unresolved alerts of the same type,
-                # keep only the newest one.
+                # -------------------------------------------------
+                # IMPORTANT:
+                # The existing alert is reused for EMAIL.
+                # This means a new monitoring event can still
+                # trigger an email without creating a duplicate
+                # alert record.
+                # -------------------------------------------------
+
+                notification_alert = Alert(
+
+                    crop_id=record.crop_id,
+
+                    monitoring_id=record.id,
+
+                    alert_type=alert_type,
+
+                    severity=severity,
+
+                    message=message,
+
+                    is_read=False,
+
+                    is_resolved=False
+
+                )
+
+                notification_alerts.append(
+                    notification_alert
+                )
+
+                # ---------------------------------------------
+                # RESOLVE DUPLICATE ACTIVE ALERT RECORDS
+                # ---------------------------------------------
 
                 if len(active_alerts) > 1:
 
@@ -527,7 +497,7 @@ def synchronize_alerts(
 
                     is_read=False,
 
-                    is_resolved=False,
+                    is_resolved=False
 
                 )
 
@@ -539,8 +509,13 @@ def synchronize_alerts(
                     new_alert
                 )
 
+                # Use the actual new alert for the email.
+                notification_alerts.append(
+                    new_alert
+                )
+
         # =================================================
-        # CONDITION IS NO LONGER ACTIVE
+        # CONDITION IS NORMAL
         # =================================================
 
         else:
@@ -576,12 +551,15 @@ def synchronize_alerts(
         f"[ALERT SYNC] Created="
         f"{len(newly_created_alerts)} | "
         f"Resolved="
-        f"{len(resolved_alerts)}"
+        f"{len(resolved_alerts)} | "
+        f"Notifications="
+        f"{len(notification_alerts)}"
     )
 
     return (
         newly_created_alerts,
-        resolved_alerts
+        resolved_alerts,
+        notification_alerts
     )
 
 
@@ -596,15 +574,13 @@ def send_consolidated_alert_email(
 ):
 
     critical_alerts = [
-        alert
-        for alert in alerts
-        if alert.severity.lower() == "critical"
-    ]
 
-    warning_alerts = [
         alert
+
         for alert in alerts
-        if alert.severity.lower() == "warning"
+
+        if alert.severity.lower() == "critical"
+
     ]
 
     if critical_alerts:
@@ -947,10 +923,6 @@ def get_monitoring_records():
 
     query = MonitoringRecord.query
 
-    # -----------------------------------------------------
-    # ADMIN
-    # -----------------------------------------------------
-
     if role == "admin":
 
         records = (
@@ -1189,7 +1161,8 @@ def create_monitoring_record():
 
     (
         alerts,
-        resolved_alerts
+        resolved_alerts,
+        notification_alerts
     ) = synchronize_alerts(
         record
     )
@@ -1229,21 +1202,22 @@ def create_monitoring_record():
         f"[MONITORING] alerts_created="
         f"{len(alerts)}, "
         f"alerts_resolved="
-        f"{len(resolved_alerts)}"
+        f"{len(resolved_alerts)}, "
+        f"notifications="
+        f"{len(notification_alerts)}"
     )
 
     # -----------------------------------------------------
-    # SEND EMAIL FOR NEW ALERT EVENTS
+    # SEND EMAIL FOR EVERY ABNORMAL MONITORING EVENT
     # -----------------------------------------------------
 
     email_sent = False
     email_error = None
 
-    if alerts:
+    if notification_alerts:
 
         print(
-            "[EMAIL] New alert event detected. "
-            "Preparing email."
+            "[EMAIL] Abnormal monitoring event detected."
         )
 
         try:
@@ -1285,14 +1259,19 @@ def create_monitoring_record():
             else:
 
                 print(
-                    f"[EMAIL] Sending alert email to "
-                    f"{owner.email}"
+                    f"[EMAIL] Sending consolidated alert "
+                    f"email to {owner.email} "
+                    f"with {len(notification_alerts)} condition(s)."
                 )
 
                 send_consolidated_alert_email(
+
                     recipient=owner.email,
+
                     crop=crop,
-                    alerts=alerts
+
+                    alerts=notification_alerts
+
                 )
 
                 email_sent = True
@@ -1318,8 +1297,8 @@ def create_monitoring_record():
     else:
 
         print(
-            "[EMAIL] No new alert event. "
-            "Email was not sent."
+            "[EMAIL] Monitoring record is normal. "
+            "No email was sent."
         )
 
     # -----------------------------------------------------
@@ -1501,9 +1480,6 @@ def delete_monitoring_record(
     db.session.delete(
         record
     )
-
-    # Flush so the deleted monitoring record is no longer
-    # considered when recalculating status.
 
     db.session.flush()
 
