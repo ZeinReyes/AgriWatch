@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 
@@ -13,10 +17,25 @@ import "./Alerts.css";
 
 const Alerts = () => {
 
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [
+    alerts,
+    setAlerts
+  ] = useState([]);
 
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+
+  // =========================================================
+  // LOAD ALERTS
+  // =========================================================
 
   const loadAlerts = async () => {
 
@@ -25,13 +44,20 @@ const Alerts = () => {
       setLoading(true);
       setError("");
 
-      const data = await getAlerts();
+      const data =
+        await getAlerts();
 
-      setAlerts(data.alerts || []);
+
+      setAlerts(
+        data.alerts || []
+      );
 
     } catch (err) {
 
-      console.error("Failed to load alerts:", err);
+      console.error(
+        "Failed to load alerts:",
+        err
+      );
 
       setError(
         err.response?.data?.message ||
@@ -48,25 +74,121 @@ const Alerts = () => {
 
 
   useEffect(() => {
+
     loadAlerts();
+
   }, []);
 
 
-  const handleMarkAsRead = async (alertId) => {
+  // =========================================================
+  // SORT ALERTS
+  // =========================================================
+
+  const sortAlerts = (
+    alertList
+  ) => {
+
+    return [
+      ...alertList
+    ].sort(
+      (a, b) => {
+
+        const dateA =
+          a.created_at
+            ? new Date(
+                a.created_at
+              ).getTime()
+            : 0;
+
+
+        const dateB =
+          b.created_at
+            ? new Date(
+                b.created_at
+              ).getTime()
+            : 0;
+
+
+        if (dateA !== dateB) {
+
+          return (
+            dateB - dateA
+          );
+
+        }
+
+
+        return (
+          Number(b.id || 0) -
+          Number(a.id || 0)
+        );
+
+      }
+    );
+
+  };
+
+
+  // =========================================================
+  // ACTIVE ALERTS
+  // =========================================================
+
+  const activeAlerts =
+    useMemo(
+      () =>
+        sortAlerts(
+          alerts.filter(
+            (item) =>
+              !item.is_resolved
+          )
+        ),
+      [alerts]
+    );
+
+
+  // =========================================================
+  // ALERT HISTORY
+  // =========================================================
+
+  const alertHistory =
+    useMemo(
+      () =>
+        sortAlerts(
+          alerts.filter(
+            (item) =>
+              item.is_resolved
+          )
+        ),
+      [alerts]
+    );
+
+
+  // =========================================================
+  // MARK AS READ
+  // =========================================================
+
+  const handleMarkAsRead = async (
+    alertId
+  ) => {
 
     try {
 
-      await markAlertAsRead(alertId);
+      await markAlertAsRead(
+        alertId
+      );
 
-      setAlerts((currentAlerts) =>
-        currentAlerts.map((alert) =>
-          alert.id === alertId
-            ? {
-                ...alert,
-                is_read: true,
-              }
-            : alert
-        )
+
+      setAlerts(
+        (currentAlerts) =>
+          currentAlerts.map(
+            (item) =>
+              item.id === alertId
+                ? {
+                    ...item,
+                    is_read: true,
+                  }
+                : item
+          )
       );
 
     } catch (err) {
@@ -76,7 +198,7 @@ const Alerts = () => {
         err
       );
 
-      alert(
+      window.alert(
         err.response?.data?.message ||
         "Unable to mark alert as read."
       );
@@ -86,22 +208,57 @@ const Alerts = () => {
   };
 
 
-  const handleResolve = async (alertId) => {
+  // =========================================================
+  // RESOLVE
+  // =========================================================
+
+  const handleResolve = async (
+    alertId
+  ) => {
 
     try {
 
-      await resolveAlert(alertId);
+      const response =
+        await resolveAlert(
+          alertId
+        );
 
-      setAlerts((currentAlerts) =>
-        currentAlerts.map((alert) =>
-          alert.id === alertId
-            ? {
-                ...alert,
-                is_read: true,
-                is_resolved: true,
+
+      const updatedAlert =
+        response?.alert;
+
+
+      setAlerts(
+        (currentAlerts) =>
+          currentAlerts.map(
+            (item) => {
+
+              if (
+                item.id !==
+                alertId
+              ) {
+
+                return item;
+
               }
-            : alert
-        )
+
+
+              return {
+                ...item,
+
+                is_read:
+                  true,
+
+                is_resolved:
+                  true,
+
+                resolved_at:
+                  updatedAlert?.resolved_at ||
+                  new Date().toISOString(),
+              };
+
+            }
+          )
       );
 
     } catch (err) {
@@ -111,7 +268,7 @@ const Alerts = () => {
         err
       );
 
-      alert(
+      window.alert(
         err.response?.data?.message ||
         "Unable to resolve alert."
       );
@@ -121,13 +278,37 @@ const Alerts = () => {
   };
 
 
-  const formatDate = (dateString) => {
+  // =========================================================
+  // FORMAT DATE
+  // =========================================================
+
+  const formatDate = (
+    dateString
+  ) => {
 
     if (!dateString) {
       return "Unknown";
     }
 
-    return new Date(dateString).toLocaleString(
+
+    const date =
+      new Date(
+        dateString
+      );
+
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+
+      return "Unknown";
+
+    }
+
+
+    return date.toLocaleString(
       "en-PH",
       {
         year: "numeric",
@@ -141,21 +322,29 @@ const Alerts = () => {
   };
 
 
-  const activeCount = alerts.filter(
-    (alert) => !alert.is_resolved
-  ).length;
+  // =========================================================
+  // SUMMARY COUNTS
+  // =========================================================
+
+  const activeCount =
+    activeAlerts.length;
 
 
-  const unreadCount = alerts.filter(
-    (alert) => !alert.is_read
-  ).length;
+  const unreadCount =
+    alerts.filter(
+      (item) =>
+        !item.is_read &&
+        !item.is_resolved
+    ).length;
 
 
-  const criticalCount = alerts.filter(
-    (alert) =>
-      !alert.is_resolved &&
-      alert.severity?.toLowerCase() === "critical"
-  ).length;
+  const criticalCount =
+    activeAlerts.filter(
+      (item) =>
+        item.severity
+          ?.toLowerCase() ===
+        "critical"
+    ).length;
 
 
   return (
@@ -164,40 +353,50 @@ const Alerts = () => {
 
       <div className="alerts-page">
 
-        {/* ========================================
-            PAGE HEADER
-        ======================================== */}
+        {/* ===================================================
+            HEADER
+        =================================================== */}
 
         <div className="alerts-header">
 
           <div className="alerts-header-content">
 
-            <h1>Alerts</h1>
+            <span className="alerts-eyebrow">
+              CROP MONITORING
+            </span>
+
+            <h1>
+              Alerts
+            </h1>
 
             <p>
-              Monitor important conditions affecting
-              your tomato crops.
+              Review current crop conditions
+              that need attention and view
+              previous alert activity.
             </p>
 
           </div>
 
 
           <button
+            type="button"
             className="alerts-refresh-btn"
             onClick={loadAlerts}
             disabled={loading}
           >
 
-            {loading ? "Refreshing..." : "Refresh"}
+            {loading
+              ? "Refreshing..."
+              : "Refresh"}
 
           </button>
 
         </div>
 
 
-        {/* ========================================
+        {/* ===================================================
             SUMMARY
-        ======================================== */}
+        =================================================== */}
 
         <div className="alerts-summary">
 
@@ -209,7 +408,9 @@ const Alerts = () => {
 
             <div>
 
-              <span>Active Alerts</span>
+              <span>
+                Active Alerts
+              </span>
 
               <strong>
                 {activeCount}
@@ -228,7 +429,9 @@ const Alerts = () => {
 
             <div>
 
-              <span>Unread</span>
+              <span>
+                Unread
+              </span>
 
               <strong>
                 {unreadCount}
@@ -247,7 +450,9 @@ const Alerts = () => {
 
             <div>
 
-              <span>Critical</span>
+              <span>
+                Critical
+              </span>
 
               <strong>
                 {criticalCount}
@@ -260,22 +465,28 @@ const Alerts = () => {
         </div>
 
 
-        {/* ========================================
+        {/* ===================================================
             ERROR
-        ======================================== */}
+        =================================================== */}
 
         {error && (
 
           <div className="alerts-error">
+
+            <span>
+              !
+            </span>
+
             {error}
+
           </div>
 
         )}
 
 
-        {/* ========================================
+        {/* ===================================================
             LOADING
-        ======================================== */}
+        =================================================== */}
 
         {loading ? (
 
@@ -291,10 +502,6 @@ const Alerts = () => {
 
         ) : alerts.length === 0 ? (
 
-          /* ========================================
-             EMPTY STATE
-          ======================================== */
-
           <div className="alerts-empty">
 
             <div className="empty-icon">
@@ -306,159 +513,394 @@ const Alerts = () => {
             </h3>
 
             <p>
-              Your crops currently have no
-              recorded alerts.
+              Your crops currently have
+              no recorded alerts.
             </p>
 
           </div>
 
         ) : (
 
-          /* ========================================
-             ALERT LIST
-          ======================================== */
+          <>
 
-          <div className="alerts-list">
+            {/* =================================================
+                ACTIVE ALERTS
+            ================================================= */}
 
-            {alerts.map((alert) => {
+            <section className="alerts-section">
 
-              const severity =
-                alert.severity?.toLowerCase() ||
-                "warning";
+              <div className="alerts-section-header">
 
+                <div>
 
-              return (
+                  <span className="alerts-section-eyebrow">
+                    NEEDS ATTENTION
+                  </span>
 
-                <div
-                  key={alert.id}
-                  className={`alert-card
-                    ${alert.is_resolved ? "resolved" : ""}
-                    ${!alert.is_read ? "unread" : ""}
-                  `}
-                >
+                  <h2>
+                    Active Alerts
+                  </h2>
 
-                  {/* Severity indicator */}
+                  <p>
+                    These are the current
+                    conditions requiring
+                    attention.
+                  </p>
 
-                  <div
-                    className={`alert-severity-indicator ${severity}`}
-                  />
-
-
-                  {/* Main content */}
-
-                  <div className="alert-card-content">
-
-                    <div className="alert-title-row">
-
-                      <h3>
-                        {alert.alert_type}
-                      </h3>
+                </div>
 
 
-                      {!alert.is_read &&
-                        !alert.is_resolved && (
+                <span className="alerts-section-count">
+                  {activeAlerts.length}
+                  {" "}
+                  {activeAlerts.length === 1
+                    ? "active"
+                    : "active"}
+                </span>
 
-                        <span className="unread-badge">
-                          New
-                        </span>
-
-                      )}
-
-
-                      {alert.is_resolved && (
-
-                        <span className="resolved-badge">
-                          Resolved
-                        </span>
-
-                      )}
-
-                    </div>
+              </div>
 
 
-                    <p className="alert-message">
-                      {alert.message}
-                    </p>
+              {activeAlerts.length === 0 ? (
 
+                <div className="alerts-section-empty">
 
-                    <div className="alert-meta">
-
-                      <span>
-                        Crop #{alert.crop_id}
-                      </span>
-
-                      <span>
-                        Monitoring #{alert.monitoring_id}
-                      </span>
-
-                      <span>
-                        {formatDate(
-                          alert.created_at
-                        )}
-                      </span>
-
-                    </div>
-
+                  <div className="section-empty-icon">
+                    ✓
                   </div>
 
+                  <div>
 
-                  {/* Right side */}
+                    <strong>
+                      Everything looks okay
+                    </strong>
 
-                  <div className="alert-card-right">
-
-                    {/* Severity badge */}
-
-                    <span
-                      className={`severity-badge ${severity}`}
-                    >
-                      {alert.severity}
-                    </span>
-
-
-                    {!alert.is_resolved && (
-
-                      <div className="alert-actions">
-
-                        {!alert.is_read && (
-
-                          <button
-                            className="alert-action secondary"
-                            onClick={() =>
-                              handleMarkAsRead(
-                                alert.id
-                              )
-                            }
-                          >
-                            Mark as Read
-                          </button>
-
-                        )}
-
-
-                        <button
-                          className="alert-action primary"
-                          onClick={() =>
-                            handleResolve(
-                              alert.id
-                            )
-                          }
-                        >
-                          Resolve
-                        </button>
-
-                      </div>
-
-                    )}
+                    <p>
+                      There are currently no
+                      unresolved crop alerts.
+                    </p>
 
                   </div>
 
                 </div>
 
-              );
+              ) : (
 
-            })}
+                <div className="alerts-list">
 
-          </div>
+                  {activeAlerts.map(
+                    (item) => {
+
+                      const severity =
+                        item.severity
+                          ?.toLowerCase() ||
+                        "warning";
+
+
+                      return (
+
+                        <div
+                          key={item.id}
+                          className={
+                            `alert-card active-alert ${
+                              !item.is_read
+                                ? "unread"
+                                : ""
+                            }`
+                          }
+                        >
+
+                          {/* Severity */}
+
+                          <div
+                            className={
+                              `alert-severity-indicator ${severity}`
+                            }
+                          />
+
+
+                          {/* Content */}
+
+                          <div className="alert-card-content">
+
+                            <div className="alert-title-row">
+
+                              <h3>
+                                {item.alert_type}
+                              </h3>
+
+
+                              {!item.is_read && (
+
+                                <span className="unread-badge">
+                                  New
+                                </span>
+
+                              )}
+
+                            </div>
+
+
+                            <p className="alert-message">
+                              {item.message}
+                            </p>
+
+
+                            <div className="alert-meta">
+
+                              <span>
+                                Crop #{item.crop_id}
+                              </span>
+
+                              <span>
+                                Monitoring #
+                                {item.monitoring_id}
+                              </span>
+
+                              <span>
+                                {formatDate(
+                                  item.created_at
+                                )}
+                              </span>
+
+                            </div>
+
+                          </div>
+
+
+                          {/* Right */}
+
+                          <div className="alert-card-right">
+
+                            <span
+                              className={
+                                `severity-badge ${severity}`
+                              }
+                            >
+                              {item.severity}
+                            </span>
+
+
+                            <div className="alert-actions">
+
+                              {!item.is_read && (
+
+                                <button
+                                  type="button"
+                                  className="alert-action secondary"
+                                  onClick={() =>
+                                    handleMarkAsRead(
+                                      item.id
+                                    )
+                                  }
+                                >
+                                  Mark as Read
+                                </button>
+
+                              )}
+
+
+                              <button
+                                type="button"
+                                className="alert-action primary"
+                                onClick={() =>
+                                  handleResolve(
+                                    item.id
+                                  )
+                                }
+                              >
+                                Resolve
+                              </button>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      );
+
+                    }
+                  )}
+
+                </div>
+
+              )}
+
+            </section>
+
+
+            {/* =================================================
+                ALERT HISTORY
+            ================================================= */}
+
+            <section className="alerts-section history-section">
+
+              <div className="alerts-section-header">
+
+                <div>
+
+                  <span className="alerts-section-eyebrow">
+                    RECORD
+                  </span>
+
+                  <h2>
+                    Alert History
+                  </h2>
+
+                  <p>
+                    Previous alerts are kept
+                    here for reference and
+                    reporting.
+                  </p>
+
+                </div>
+
+
+                <span className="alerts-section-count history-count">
+                  {alertHistory.length}
+                  {" "}
+                  {alertHistory.length === 1
+                    ? "record"
+                    : "records"}
+                </span>
+
+              </div>
+
+
+              {alertHistory.length === 0 ? (
+
+                <div className="alerts-section-empty">
+
+                  <div className="section-empty-icon">
+                    —
+                  </div>
+
+                  <div>
+
+                    <strong>
+                      No previous alerts
+                    </strong>
+
+                    <p>
+                      Resolved alerts will
+                      appear here.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              ) : (
+
+                <div className="alerts-list history-list">
+
+                  {alertHistory.map(
+                    (item) => {
+
+                      const severity =
+                        item.severity
+                          ?.toLowerCase() ||
+                        "warning";
+
+
+                      return (
+
+                        <div
+                          key={item.id}
+                          className="alert-card resolved"
+                        >
+
+                          <div
+                            className={
+                              `alert-severity-indicator ${severity}`
+                            }
+                          />
+
+
+                          <div className="alert-card-content">
+
+                            <div className="alert-title-row">
+
+                              <h3>
+                                {item.alert_type}
+                              </h3>
+
+
+                              <span className="resolved-badge">
+                                Resolved
+                              </span>
+
+                            </div>
+
+
+                            <p className="alert-message">
+                              {item.message}
+                            </p>
+
+
+                            <div className="alert-meta">
+
+                              <span>
+                                Crop #{item.crop_id}
+                              </span>
+
+                              <span>
+                                Monitoring #
+                                {item.monitoring_id}
+                              </span>
+
+                              <span>
+                                Created:
+                                {" "}
+                                {formatDate(
+                                  item.created_at
+                                )}
+                              </span>
+
+                              {item.resolved_at && (
+
+                                <span>
+                                  Resolved:
+                                  {" "}
+                                  {formatDate(
+                                    item.resolved_at
+                                  )}
+                                </span>
+
+                              )}
+
+                            </div>
+
+                          </div>
+
+
+                          <div className="alert-card-right history-right">
+
+                            <span
+                              className={
+                                `severity-badge ${severity}`
+                              }
+                            >
+                              {item.severity}
+                            </span>
+
+                          </div>
+
+                        </div>
+
+                      );
+
+                    }
+                  )}
+
+                </div>
+
+              )}
+
+            </section>
+
+          </>
 
         )}
 

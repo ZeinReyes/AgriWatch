@@ -6,9 +6,7 @@ from flask_jwt_extended import (
 )
 
 from app.extensions import db
-
 from app.models.user import User
-from app.models.farm import Farm
 from app.models.crop import Crop
 from app.models.monitoring import MonitoringRecord
 from app.models.alert import Alert
@@ -27,7 +25,6 @@ monitoring_bp = Blueprint(
 # =========================================================
 
 SOIL_MOISTURE_THRESHOLD = 30
-
 HIGH_TEMP_THRESHOLD = 35
 
 
@@ -36,12 +33,14 @@ HIGH_TEMP_THRESHOLD = 35
 # =========================================================
 
 def get_current_user_id():
+
     return int(
         get_jwt_identity()
     )
 
 
 def get_current_role():
+
     claims = get_jwt()
 
     return claims.get(
@@ -58,21 +57,23 @@ def user_can_access_crop(
 ):
 
     user_id = get_current_user_id()
-
     role = get_current_role()
 
 
     # Administrator can access everything
+
     if role == "admin":
         return True
 
 
     # Crop must belong to a farm
+
     if not crop or not crop.farm:
         return False
 
 
     # Farmer can access their own farm
+
     if crop.farm.owner_id == user_id:
         return True
 
@@ -89,29 +90,45 @@ def determine_crop_status(
 ):
     """
     Determines the current Crop.status based on
-    the monitoring record.
+    the supplied monitoring record.
 
     Priority:
 
     Critical
         - Disease detected
         - Crop temperature > 35°C
+        - Plant condition is Critical
 
     Needs Attention
         - Soil moisture < 30%
         - Pest detected
         - Discoloration detected
+        - Plant condition is Needs Attention
 
     Healthy
         - No critical or warning condition
     """
 
     # -----------------------------------------------------
+    # HARVESTED SHOULD REMAIN HARVESTED
+    # -----------------------------------------------------
+
+    if (
+        record.crop
+        and record.crop.status == "Harvested"
+    ):
+        return "Harvested"
+
+
+    # -----------------------------------------------------
     # CRITICAL CONDITIONS
     # -----------------------------------------------------
 
-    if record.disease_detected:
+    if record.plant_condition == "Critical":
+        return "Critical"
 
+
+    if record.disease_detected:
         return "Critical"
 
 
@@ -119,7 +136,6 @@ def determine_crop_status(
         record.crop_temperature is not None
         and record.crop_temperature > HIGH_TEMP_THRESHOLD
     ):
-
         return "Critical"
 
 
@@ -127,21 +143,22 @@ def determine_crop_status(
     # WARNING CONDITIONS
     # -----------------------------------------------------
 
+    if record.plant_condition == "Needs Attention":
+        return "Needs Attention"
+
+
     if (
         record.soil_moisture is not None
         and record.soil_moisture < SOIL_MOISTURE_THRESHOLD
     ):
-
         return "Needs Attention"
 
 
     if record.pest_detected:
-
         return "Needs Attention"
 
 
     if record.discoloration_detected:
-
         return "Needs Attention"
 
 
@@ -153,17 +170,13 @@ def determine_crop_status(
 
 
 # =========================================================
-# UPDATE CROP STATUS FROM MONITORING
+# UPDATE CROP STATUS
 # =========================================================
 
 def update_crop_status(
     crop,
     record
 ):
-    """
-    Updates the Crop.status field based on
-    the supplied monitoring record.
-    """
 
     crop.status = determine_crop_status(
         record
@@ -178,11 +191,8 @@ def recalculate_crop_status(
     crop
 ):
     """
-    Recalculates a crop's status using its latest
+    Recalculates the crop status using the latest
     remaining monitoring record.
-
-    This is especially important after deleting
-    a monitoring record.
     """
 
     latest_record = (
@@ -206,129 +216,339 @@ def recalculate_crop_status(
 
     else:
 
-        # No monitoring data remains.
-        # Return the crop to its default healthy state.
-        crop.status = "Healthy"
+        if crop.status != "Harvested":
+            crop.status = "Healthy"
 
 
 # =========================================================
-# GENERATE ALERTS
+# BUILD CURRENT ALERT CONDITIONS
 # =========================================================
 
-def generate_alerts(
+def get_alert_conditions(
     record
 ):
+    """
+    Returns the alert conditions represented by the
+    current monitoring record.
 
-    alerts = []
+    Each item contains:
+        alert_type
+        severity
+        message
+        active
+    """
+
+    return [
+
+        {
+            "alert_type": "Low Soil Moisture",
+            "severity": "Warning",
+            "message": (
+                f"Soil moisture is "
+                f"{record.soil_moisture}%. "
+                f"Immediate monitoring may be needed."
+            ),
+            "active": (
+                record.soil_moisture is not None
+                and record.soil_moisture < SOIL_MOISTURE_THRESHOLD
+            )
+        },
+
+        {
+            "alert_type": "High Crop Temperature",
+            "severity": "Critical",
+            "message": (
+                f"Crop temperature is "
+                f"{record.crop_temperature}°C, "
+                f"which exceeds the "
+                f"{HIGH_TEMP_THRESHOLD}°C threshold."
+            ),
+            "active": (
+                record.crop_temperature is not None
+                and record.crop_temperature > HIGH_TEMP_THRESHOLD
+            )
+        },
+
+        {
+            "alert_type": "Pest Detection",
+            "severity": "Warning",
+            "message": (
+                "Possible pest infestation detected."
+            ),
+            "active": bool(
+                record.pest_detected
+            )
+        },
+
+        {
+            "alert_type": "Disease Detection",
+            "severity": "Critical",
+            "message": (
+                "Possible crop disease detected."
+            ),
+            "active": bool(
+                record.disease_detected
+            )
+        },
+
+        {
+            "alert_type": "Crop Discoloration",
+            "severity": "Warning",
+            "message": (
+                "Possible crop discoloration detected."
+            ),
+            "active": bool(
+                record.discoloration_detected
+            )
+        },
+
+    ]
 
 
-    # -----------------------------------------------------
-    # LOW SOIL MOISTURE
-    # -----------------------------------------------------
+# =========================================================
+# GET PREVIOUS MONITORING RECORD
+# =========================================================
 
-    if (
-        record.soil_moisture is not None
-        and record.soil_moisture < SOIL_MOISTURE_THRESHOLD
-    ):
+def get_previous_monitoring_record(
+    record
+):
+    """
+    Gets the monitoring record immediately preceding
+    the current record for the same crop.
+    """
 
-        alerts.append(
-            Alert(
-                crop_id=record.crop_id,
-                monitoring_id=record.id,
-                alert_type="Low Soil Moisture",
-                severity="Warning",
-                message=(
-                    f"Soil moisture is "
-                    f"{record.soil_moisture}%. "
-                    f"Immediate monitoring may be needed."
-                )
+    return (
+        MonitoringRecord.query
+        .filter(
+            MonitoringRecord.crop_id == record.crop_id,
+            MonitoringRecord.id != record.id
+        )
+        .order_by(
+            MonitoringRecord.recorded_at.desc(),
+            MonitoringRecord.id.desc()
+        )
+        .first()
+    )
+
+
+# =========================================================
+# SYNCHRONIZE ALERT STATE
+# =========================================================
+
+def synchronize_alerts(
+    record
+):
+    """
+    Keeps active alerts synchronized with the latest
+    monitoring record.
+
+    Rules:
+
+    1. If an abnormal condition appears for the first time,
+       create an alert.
+
+    2. If the same abnormal condition continues,
+       keep the existing active alert.
+
+    3. If an abnormal condition returns to normal,
+       automatically resolve its active alert.
+
+    4. Old alerts are never deleted. They remain available
+       as alert history.
+    """
+
+    previous_record = (
+        get_previous_monitoring_record(
+            record
+        )
+    )
+
+
+    current_conditions = (
+        get_alert_conditions(
+            record
+        )
+    )
+
+
+    previous_conditions = {}
+
+
+    if previous_record:
+
+        previous_conditions = {
+            condition["alert_type"]:
+                condition["active"]
+            for condition in
+            get_alert_conditions(
+                previous_record
+            )
+        }
+
+
+    newly_created_alerts = []
+    resolved_alerts = []
+
+
+    for condition in current_conditions:
+
+        alert_type = (
+            condition["alert_type"]
+        )
+
+        severity = (
+            condition["severity"]
+        )
+
+        message = (
+            condition["message"]
+        )
+
+        is_active = (
+            condition["active"]
+        )
+
+        was_active = (
+            previous_conditions.get(
+                alert_type,
+                False
             )
         )
 
 
-    # -----------------------------------------------------
-    # HIGH CROP TEMPERATURE
-    # -----------------------------------------------------
+        # -------------------------------------------------
+        # FIND EXISTING UNRESOLVED ALERTS
+        # -------------------------------------------------
 
-    if (
-        record.crop_temperature is not None
-        and record.crop_temperature > HIGH_TEMP_THRESHOLD
-    ):
-
-        alerts.append(
-            Alert(
-                crop_id=record.crop_id,
-                monitoring_id=record.id,
-                alert_type="High Crop Temperature",
-                severity="Critical",
-                message=(
-                    f"Crop temperature is "
-                    f"{record.crop_temperature}°C, "
-                    f"which exceeds the "
-                    f"{HIGH_TEMP_THRESHOLD}°C threshold."
-                )
+        active_alerts = (
+            Alert.query
+            .filter(
+                Alert.crop_id == record.crop_id,
+                Alert.alert_type == alert_type,
+                Alert.is_resolved == False
             )
+            .order_by(
+                Alert.created_at.desc(),
+                Alert.id.desc()
+            )
+            .all()
         )
 
 
-    # -----------------------------------------------------
-    # PEST DETECTION
-    # -----------------------------------------------------
+        # =================================================
+        # CONDITION IS CURRENTLY ACTIVE
+        # =================================================
 
-    if record.pest_detected:
+        if is_active:
 
-        alerts.append(
-            Alert(
-                crop_id=record.crop_id,
-                monitoring_id=record.id,
-                alert_type="Pest Detection",
-                severity="Warning",
-                message=(
-                    "Possible pest infestation detected."
+            # ---------------------------------------------
+            # CONDITION CONTINUES FROM PREVIOUS READING
+            # ---------------------------------------------
+
+            if was_active:
+
+                # Keep the existing active alert.
+
+                # If there happens to be more than one
+                # unresolved alert because of old data,
+                # keep the newest and resolve duplicates.
+
+                if len(active_alerts) > 1:
+
+                    for duplicate in active_alerts[1:]:
+
+                        duplicate.is_resolved = True
+                        duplicate.is_read = True
+                        duplicate.resolved_at = (
+                            record.recorded_at
+                        )
+
+                        resolved_alerts.append(
+                            duplicate
+                        )
+
+
+            # ---------------------------------------------
+            # NEW CONDITION
+            # ---------------------------------------------
+
+            else:
+
+                # Resolve any stale active alerts that
+                # may already exist from older data.
+
+                for stale_alert in active_alerts:
+
+                    stale_alert.is_resolved = True
+                    stale_alert.is_read = True
+                    stale_alert.resolved_at = (
+                        record.recorded_at
+                    )
+
+                    resolved_alerts.append(
+                        stale_alert
+                    )
+
+
+                # Create the new active alert.
+
+                new_alert = Alert(
+
+                    crop_id=record.crop_id,
+
+                    monitoring_id=record.id,
+
+                    alert_type=alert_type,
+
+                    severity=severity,
+
+                    message=message,
+
+                    is_read=False,
+
+                    is_resolved=False,
+
                 )
-            )
-        )
 
 
-    # -----------------------------------------------------
-    # DISEASE DETECTION
-    # -----------------------------------------------------
-
-    if record.disease_detected:
-
-        alerts.append(
-            Alert(
-                crop_id=record.crop_id,
-                monitoring_id=record.id,
-                alert_type="Disease Detection",
-                severity="Critical",
-                message=(
-                    "Possible crop disease detected."
+                db.session.add(
+                    new_alert
                 )
-            )
-        )
 
 
-    # -----------------------------------------------------
-    # DISCOLORATION DETECTION
-    # -----------------------------------------------------
-
-    if record.discoloration_detected:
-
-        alerts.append(
-            Alert(
-                crop_id=record.crop_id,
-                monitoring_id=record.id,
-                alert_type="Crop Discoloration",
-                severity="Warning",
-                message=(
-                    "Possible crop discoloration detected."
+                newly_created_alerts.append(
+                    new_alert
                 )
-            )
-        )
 
 
-    return alerts
+        # =================================================
+        # CONDITION IS NO LONGER ACTIVE
+        # =================================================
+
+        else:
+
+            # Automatically resolve every active alert
+            # of this condition.
+
+            for active_alert in active_alerts:
+
+                active_alert.is_resolved = True
+
+                active_alert.is_read = True
+
+                active_alert.resolved_at = (
+                    record.recorded_at
+                )
+
+                resolved_alerts.append(
+                    active_alert
+                )
+
+
+    return (
+        newly_created_alerts,
+        resolved_alerts
+    )
 
 
 # =========================================================
@@ -440,6 +660,7 @@ def send_consolidated_alert_email(
 
         alert_rows += f"""
         <tr>
+
             <td style="
                 padding:12px;
                 border-bottom:1px solid #e5e7eb;
@@ -449,10 +670,12 @@ def send_consolidated_alert_email(
                 {alert.alert_type}
             </td>
 
+
             <td style="
                 padding:12px;
                 border-bottom:1px solid #e5e7eb;
             ">
+
                 <span style="
                     display:inline-block;
                     padding:4px 9px;
@@ -472,7 +695,9 @@ def send_consolidated_alert_email(
                 ">
                     {alert.severity}
                 </span>
+
             </td>
+
 
             <td style="
                 padding:12px;
@@ -481,6 +706,7 @@ def send_consolidated_alert_email(
             ">
                 {alert.message}
             </td>
+
         </tr>
         """
 
@@ -518,6 +744,7 @@ def send_consolidated_alert_email(
                 ">
                     AgriWatch
                 </h1>
+
 
                 <p style="
                     margin:6px 0 0;
@@ -569,6 +796,7 @@ def send_consolidated_alert_email(
                         {crop.crop_name}
                     </p>
 
+
                     <p style="
                         margin:0 0 7px;
                         color:#536158;
@@ -577,6 +805,7 @@ def send_consolidated_alert_email(
                         <strong>Farm:</strong>
                         {crop.farm.farm_name}
                     </p>
+
 
                     <p style="
                         margin:0;
@@ -612,12 +841,14 @@ def send_consolidated_alert_email(
                                 Condition
                             </th>
 
+
                             <th style="
                                 padding:12px;
                                 color:#526056;
                             ">
                                 Severity
                             </th>
+
 
                             <th style="
                                 padding:12px;
@@ -629,6 +860,7 @@ def send_consolidated_alert_email(
                         </tr>
 
                     </thead>
+
 
                     <tbody>
 
@@ -711,7 +943,8 @@ def get_monitoring_records():
         records = (
             query
             .order_by(
-                MonitoringRecord.recorded_at.desc()
+                MonitoringRecord.recorded_at.desc(),
+                MonitoringRecord.id.desc()
             )
             .all()
         )
@@ -722,23 +955,28 @@ def get_monitoring_records():
         records = (
             query
             .join(Crop)
-            .join(Farm)
             .filter(
-                Farm.owner_id == user_id
+                Crop.farm.has(
+                    owner_id=user_id
+                )
             )
             .order_by(
-                MonitoringRecord.recorded_at.desc()
+                MonitoringRecord.recorded_at.desc(),
+                MonitoringRecord.id.desc()
             )
             .all()
         )
 
 
     return jsonify({
+
         "status": "success",
+
         "monitoring": [
             record.to_dict()
             for record in records
         ]
+
     }), 200
 
 
@@ -808,24 +1046,29 @@ def create_monitoring_record():
         "soil_moisture"
     )
 
+
     crop_temperature = data.get(
         "crop_temperature"
     )
+
 
     pest_detected = data.get(
         "pest_detected",
         False
     )
 
+
     disease_detected = data.get(
         "disease_detected",
         False
     )
 
+
     discoloration_detected = data.get(
         "discoloration_detected",
         False
     )
+
 
     plant_condition = data.get(
         "plant_condition",
@@ -840,15 +1083,18 @@ def create_monitoring_record():
     try:
 
         if soil_moisture is not None:
+
             soil_moisture = float(
                 soil_moisture
             )
 
 
         if crop_temperature is not None:
+
             crop_temperature = float(
                 crop_temperature
             )
+
 
     except (
         TypeError,
@@ -907,8 +1153,6 @@ def create_monitoring_record():
 
     # -----------------------------------------------------
     # UPDATE CROP STATUS
-    #
-    # THIS IS THE IMPORTANT PART.
     # -----------------------------------------------------
 
     update_crop_status(
@@ -918,23 +1162,19 @@ def create_monitoring_record():
 
 
     # -----------------------------------------------------
-    # GENERATE ALERTS
+    # SYNCHRONIZE ALERTS
     # -----------------------------------------------------
 
-    alerts = generate_alerts(
+    (
+        alerts,
+        resolved_alerts
+    ) = synchronize_alerts(
         record
     )
 
 
-    for alert in alerts:
-
-        db.session.add(
-            alert
-        )
-
-
     # -----------------------------------------------------
-    # SAVE EVERYTHING TO DATABASE
+    # SAVE EVERYTHING
     # -----------------------------------------------------
 
     try:
@@ -959,7 +1199,7 @@ def create_monitoring_record():
 
 
     # -----------------------------------------------------
-    # SEND EMAIL AFTER DATABASE COMMIT
+    # SEND EMAIL ONLY FOR NEW ALERTS
     # -----------------------------------------------------
 
     email_sent = False
@@ -1018,6 +1258,10 @@ def create_monitoring_record():
             alerts
         ),
 
+        "alerts_resolved": len(
+            resolved_alerts
+        ),
+
         "email_sent": email_sent
 
     }), 201
@@ -1066,18 +1310,22 @@ def get_crop_monitoring(
             crop_id=crop_id
         )
         .order_by(
-            MonitoringRecord.recorded_at.desc()
+            MonitoringRecord.recorded_at.desc(),
+            MonitoringRecord.id.desc()
         )
         .all()
     )
 
 
     return jsonify({
+
         "status": "success",
+
         "monitoring": [
             record.to_dict()
             for record in records
         ]
+
     }), 200
 
 
@@ -1114,13 +1362,18 @@ def get_monitoring_record(
 
         return jsonify({
             "status": "error",
-            "message": "You do not have access to this monitoring record."
+            "message": (
+                "You do not have access to this monitoring record."
+            )
         }), 403
 
 
     return jsonify({
+
         "status": "success",
+
         "monitoring": record.to_dict()
+
     }), 200
 
 
@@ -1160,7 +1413,9 @@ def delete_monitoring_record(
 
         return jsonify({
             "status": "error",
-            "message": "You do not have access to this monitoring record."
+            "message": (
+                "You do not have access to this monitoring record."
+            )
         }), 403
 
 
@@ -1173,8 +1428,9 @@ def delete_monitoring_record(
     )
 
 
-    # Flush so the deleted record is no longer considered
-    # when recalculating the crop status.
+    # Flush so the deleted monitoring record is no longer
+    # considered when recalculating status.
+
     db.session.flush()
 
 
