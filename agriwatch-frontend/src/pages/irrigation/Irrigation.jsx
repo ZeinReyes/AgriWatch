@@ -1,142 +1,113 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import api from "../../services/api";
+
+import "./Irrigation.css";
 
 
 const SOIL_MOISTURE_THRESHOLD = 30;
 
 
 const Irrigation = () => {
-  const [crops, setCrops] = useState([]);
-  const [monitoringRecords, setMonitoringRecords] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [
+    crops,
+    setCrops
+  ] = useState([]);
 
+  const [
+    monitoringRecords,
+    setMonitoringRecords
+  ] = useState([]);
 
-  // =====================================================
-  // LOAD DATA
-  // =====================================================
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
 
   useEffect(() => {
-    let mounted = true;
+    loadIrrigationData();
+  }, []);
 
 
-    const loadData = async () => {
+  const loadIrrigationData = async () => {
+
+    try {
+
       setLoading(true);
       setError("");
 
 
-      try {
-        const [
-          cropsResponse,
-          monitoringResponse,
-        ] = await Promise.all([
-          api.get("/crops"),
-          api.get("/monitoring"),
-        ]);
+      const [
+        cropsResponse,
+        monitoringResponse
+      ] = await Promise.all([
+        api.get("/crops"),
+        api.get("/monitoring"),
+      ]);
 
 
-        const cropsData =
-          cropsResponse?.data;
-
-        const monitoringData =
-          monitoringResponse?.data;
-
-
-        let cropList = [];
-        let monitoringList = [];
-
-
-        // -----------------------------------------------
-        // CROPS
-        // -----------------------------------------------
-
-        if (Array.isArray(cropsData)) {
-          cropList = cropsData;
-        } else if (
-          Array.isArray(cropsData?.crops)
-        ) {
-          cropList = cropsData.crops;
-        } else if (
-          Array.isArray(cropsData?.data)
-        ) {
-          cropList = cropsData.data;
-        }
+      const cropData =
+        Array.isArray(
+          cropsResponse.data
+        )
+          ? cropsResponse.data
+          : cropsResponse.data?.crops ||
+            cropsResponse.data?.data ||
+            [];
 
 
-        // -----------------------------------------------
-        // MONITORING
-        // -----------------------------------------------
-
-        if (Array.isArray(monitoringData)) {
-          monitoringList =
-            monitoringData;
-        } else if (
-          Array.isArray(
-            monitoringData?.monitoring
-          )
-        ) {
-          monitoringList =
-            monitoringData.monitoring;
-        } else if (
-          Array.isArray(
-            monitoringData?.records
-          )
-        ) {
-          monitoringList =
-            monitoringData.records;
-        } else if (
-          Array.isArray(
-            monitoringData?.data
-          )
-        ) {
-          monitoringList =
-            monitoringData.data;
-        }
+      const monitoringData =
+        Array.isArray(
+          monitoringResponse.data
+        )
+          ? monitoringResponse.data
+          : monitoringResponse.data?.monitoring ||
+            monitoringResponse.data?.records ||
+            monitoringResponse.data?.data ||
+            [];
 
 
-        if (mounted) {
-          setCrops(cropList);
-          setMonitoringRecords(
-            monitoringList
-          );
-        }
+      setCrops(cropData);
+      setMonitoringRecords(
+        monitoringData
+      );
 
-      } catch (err) {
-        console.error(
-          "Failed to load irrigation data:",
-          err
-        );
+    } catch (err) {
 
+      console.error(
+        "Failed to load irrigation data:",
+        err
+      );
 
-        if (mounted) {
-          setError(
-            err?.response?.data?.message ||
-              "Unable to load irrigation data."
-          );
-        }
+      setError(
+        err.response?.data?.message ||
+        "Unable to load irrigation information."
+      );
 
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
+    } finally {
+
+      setLoading(false);
+
+    }
+  };
 
 
-    loadData();
-
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-
-  // =====================================================
-  // LATEST MONITORING PER CROP
-  // =====================================================
-
+  /*
+   * Get the latest monitoring record
+   * for each crop.
+   */
   const latestMonitoringByCrop =
     useMemo(() => {
 
@@ -146,46 +117,56 @@ const Irrigation = () => {
       monitoringRecords.forEach(
         (record) => {
 
-          const cropId =
-            Number(record.crop_id);
-
-
-          if (!cropId) {
+          if (
+            !record.crop_id
+          ) {
             return;
           }
 
 
           const existing =
-            latest[cropId];
+            latest[record.crop_id];
 
 
           if (!existing) {
-            latest[cropId] = record;
+
+            latest[record.crop_id] =
+              record;
+
             return;
           }
 
 
-          const existingTime =
-            new Date(
-              existing.recorded_at || 0
-            ).getTime();
+          const existingDate =
+            existing.recorded_at
+              ? new Date(
+                  existing.recorded_at
+                ).getTime()
+              : 0;
 
 
-          const currentTime =
-            new Date(
-              record.recorded_at || 0
-            ).getTime();
+          const currentDate =
+            record.recorded_at
+              ? new Date(
+                  record.recorded_at
+                ).getTime()
+              : 0;
 
 
           if (
-            currentTime > existingTime ||
+            currentDate >
+              existingDate ||
             (
-              currentTime === existingTime &&
-              Number(record.id) >
-                Number(existing.id)
+              currentDate ===
+                existingDate &&
+              Number(record.id || 0) >
+                Number(existing.id || 0)
             )
           ) {
-            latest[cropId] = record;
+
+            latest[record.crop_id] =
+              record;
+
           }
 
         }
@@ -195,155 +176,140 @@ const Irrigation = () => {
       return latest;
 
     }, [
-      monitoringRecords,
+      monitoringRecords
     ]);
 
 
-  // =====================================================
-  // CROP IRRIGATION STATUS
-  // =====================================================
+  const cropRecommendations =
+    useMemo(() => {
 
-  const cropStatuses = useMemo(() => {
+      return crops.map(
+        (crop) => {
 
-    return crops.map((crop) => {
-
-      const monitoring =
-        latestMonitoringByCrop[
-          Number(crop.id)
-        ];
+          const monitoring =
+            latestMonitoringByCrop[
+              crop.id
+            ];
 
 
-      const moisture =
-        monitoring?.soil_moisture;
+          const moisture =
+            monitoring?.soil_moisture;
 
 
-      const hasMoisture =
-        moisture !== null &&
-        moisture !== undefined &&
-        Number.isFinite(
-          Number(moisture)
-        );
+          let recommendation =
+            "No recommendation";
 
 
-      let status = "No Data";
-      let recommendation =
-        "No soil moisture reading is available yet.";
+          let status =
+            "no-data";
 
 
-      if (hasMoisture) {
+          if (
+            moisture !== null &&
+            moisture !== undefined &&
+            Number.isFinite(
+              Number(moisture)
+            )
+          ) {
 
-        const moistureValue =
-          Number(moisture);
+            const moistureValue =
+              Number(moisture);
 
 
-        if (
-          moistureValue <
-          SOIL_MOISTURE_THRESHOLD
-        ) {
+            if (
+              moistureValue <
+              SOIL_MOISTURE_THRESHOLD
+            ) {
 
-          status = "Irrigation Recommended";
+              recommendation =
+                "Irrigation recommended";
 
-          recommendation =
-            "Soil moisture is below the AgriWatch low-moisture threshold. Consider checking the crop and irrigation conditions.";
+              status =
+                "irrigate";
 
-        } else {
+            } else {
 
-          status = "Moisture Adequate";
+              recommendation =
+                "Moisture level is adequate";
 
-          recommendation =
-            "Soil moisture is currently above the AgriWatch low-moisture threshold.";
+              status =
+                "adequate";
+
+            }
+
+          }
+
+
+          return {
+            ...crop,
+            monitoring,
+            moisture,
+            recommendation,
+            status,
+          };
 
         }
-
-      }
-
-
-      return {
-        crop,
-        monitoring,
-        moisture: hasMoisture
-          ? Number(moisture)
-          : null,
-        status,
-        recommendation,
-      };
-
-    });
-
-  }, [
-    crops,
-    latestMonitoringByCrop,
-  ]);
-
-
-  // =====================================================
-  // SUMMARY
-  // =====================================================
-
-  const summary = useMemo(() => {
-
-    const withData =
-      cropStatuses.filter(
-        (item) =>
-          item.moisture !== null
       );
 
-
-    const irrigationNeeded =
-      cropStatuses.filter(
-        (item) =>
-          item.status ===
-          "Irrigation Recommended"
-      );
+    }, [
+      crops,
+      latestMonitoringByCrop
+    ]);
 
 
-    const adequate =
-      cropStatuses.filter(
-        (item) =>
-          item.status ===
-          "Moisture Adequate"
-      );
+  const monitoredCrops =
+    cropRecommendations.filter(
+      (crop) =>
+        crop.moisture !== null &&
+        crop.moisture !== undefined &&
+        Number.isFinite(
+          Number(crop.moisture)
+        )
+    );
 
 
-    const averageMoisture =
-      withData.length > 0
-        ? withData.reduce(
-            (total, item) =>
-              total + item.moisture,
-            0
-          ) / withData.length
-        : null;
+  const irrigationNeeded =
+    cropRecommendations.filter(
+      (crop) =>
+        crop.status === "irrigate"
+    );
 
 
-    return {
-      totalCrops: crops.length,
-      withData: withData.length,
-      irrigationNeeded:
-        irrigationNeeded.length,
-      adequate:
-        adequate.length,
-      averageMoisture,
-    };
-
-  }, [
-    cropStatuses,
-    crops.length,
-  ]);
+  const adequateCrops =
+    cropRecommendations.filter(
+      (crop) =>
+        crop.status === "adequate"
+    );
 
 
-  // =====================================================
-  // FORMAT DATE
-  // =====================================================
+  const averageMoisture =
+    monitoredCrops.length > 0
+      ? monitoredCrops.reduce(
+          (
+            total,
+            crop
+          ) =>
+            total +
+            Number(
+              crop.moisture
+            ),
+          0
+        ) /
+        monitoredCrops.length
+      : null;
 
-  const formatDate = (dateString) => {
 
-    if (!dateString) {
-      return "No reading";
+  const formatDate = (
+    value
+  ) => {
+
+    if (!value) {
+      return "—";
     }
 
 
     const date =
-      new Date(dateString);
+      new Date(value);
 
 
     if (
@@ -351,578 +317,585 @@ const Irrigation = () => {
         date.getTime()
       )
     ) {
-      return "No reading";
+      return "—";
     }
 
 
     return date.toLocaleString(
-      "en-US",
+      "en-PH",
       {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
+        dateStyle: "medium",
+        timeStyle: "short",
       }
     );
+
   };
 
-
-  // =====================================================
-  // STATUS CLASS
-  // =====================================================
-
-  const getStatusClass = (status) => {
-
-    if (
-      status ===
-      "Irrigation Recommended"
-    ) {
-      return "irrigation-status-warning";
-    }
-
-
-    if (
-      status ===
-      "Moisture Adequate"
-    ) {
-      return "irrigation-status-good";
-    }
-
-
-    return "irrigation-status-neutral";
-  };
-
-
-  // =====================================================
-  // MOISTURE CLASS
-  // =====================================================
 
   const getMoistureClass = (
     moisture
   ) => {
 
-    if (moisture === null) {
-      return "moisture-neutral";
+    if (
+      moisture === null ||
+      moisture === undefined ||
+      !Number.isFinite(
+        Number(moisture)
+      )
+    ) {
+
+      return "no-data";
+
     }
+
+
+    const value =
+      Number(moisture);
 
 
     if (
-      moisture <
+      value <
       SOIL_MOISTURE_THRESHOLD
     ) {
-      return "moisture-low";
+
+      return "low";
+
     }
 
 
-    return "moisture-good";
+    if (value < 50) {
+
+      return "moderate";
+
+    }
+
+
+    return "good";
+
   };
 
 
-  // =====================================================
-  // RENDER
-  // =====================================================
-
   return (
-    <div className="irrigation-page">
 
-      {/* =================================================
-          PAGE HEADER
-      ================================================= */}
+    <DashboardLayout>
 
-      <div className="page-header">
+      <div className="irrigation-page">
 
-        <div>
+        {/* =====================================
+            PAGE HEADER
+        ====================================== */}
 
-          <div className="page-header-eyebrow">
-            Water Management
-          </div>
-
-          <h1 className="page-title">
-            Irrigation
-          </h1>
-
-          <p className="page-description">
-            Use soil moisture monitoring to
-            identify crops that may need
-            irrigation.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      {/* =================================================
-          ERROR
-      ================================================= */}
-
-      {error && (
-        <div className="irrigation-error-card">
-
-          <div className="irrigation-error-icon">
-            ⚠
-          </div>
+        <div className="irrigation-header">
 
           <div>
 
-            <strong>
-              Unable to load irrigation data
-            </strong>
+            <span className="irrigation-eyebrow">
+              WATER MANAGEMENT
+            </span>
+
+            <h1>
+              Irrigation
+            </h1>
 
             <p>
-              {error}
+              Use soil moisture readings to
+              determine when crops may need
+              irrigation.
             </p>
 
           </div>
 
         </div>
-      )}
 
 
-      {/* =================================================
-          LOADING
-      ================================================= */}
+        {/* =====================================
+            LOADING
+        ====================================== */}
 
-      {loading ? (
-        <div className="irrigation-loading-card">
+        {loading && (
 
-          <div className="irrigation-spinner">
-            ⟳
-          </div>
+          <div className="irrigation-state-card">
 
-          <div>
+            <div className="irrigation-spinner"></div>
 
             <h3>
               Loading irrigation data
             </h3>
 
             <p>
-              Checking the latest crop
-              monitoring records...
+              Retrieving the latest soil
+              moisture readings.
             </p>
 
           </div>
 
-        </div>
-      ) : (
+        )}
 
-        <>
 
-          {/* =============================================
-              SUMMARY CARDS
-          ============================================= */}
+        {/* =====================================
+            ERROR
+        ====================================== */}
 
-          <div className="irrigation-summary-grid">
+        {!loading && error && (
 
-            {/* Total crops */}
+          <div className="irrigation-state-card irrigation-error">
 
-            <div className="irrigation-summary-card">
-
-              <div className="irrigation-summary-icon">
-                🍅
-              </div>
-
-              <div>
-
-                <div className="irrigation-summary-label">
-                  Total Crops
-                </div>
-
-                <div className="irrigation-summary-value">
-                  {summary.totalCrops}
-                </div>
-
-              </div>
-
+            <div className="irrigation-state-icon">
+              !
             </div>
 
+            <h3>
+              Irrigation data unavailable
+            </h3>
 
-            {/* Irrigation recommended */}
+            <p>
+              {error}
+            </p>
 
-            <div className="irrigation-summary-card irrigation-summary-warning">
-
-              <div className="irrigation-summary-icon">
-                💧
-              </div>
-
-              <div>
-
-                <div className="irrigation-summary-label">
-                  Irrigation Recommended
-                </div>
-
-                <div className="irrigation-summary-value">
-                  {summary.irrigationNeeded}
-                </div>
-
-              </div>
-
-            </div>
-
-
-            {/* Adequate */}
-
-            <div className="irrigation-summary-card irrigation-summary-good">
-
-              <div className="irrigation-summary-icon">
-                ✓
-              </div>
-
-              <div>
-
-                <div className="irrigation-summary-label">
-                  Moisture Adequate
-                </div>
-
-                <div className="irrigation-summary-value">
-                  {summary.adequate}
-                </div>
-
-              </div>
-
-            </div>
-
-
-            {/* Average */}
-
-            <div className="irrigation-summary-card">
-
-              <div className="irrigation-summary-icon">
-                📊
-              </div>
-
-              <div>
-
-                <div className="irrigation-summary-label">
-                  Average Moisture
-                </div>
-
-                <div className="irrigation-summary-value">
-
-                  {summary.averageMoisture !== null
-                    ? `${summary.averageMoisture.toFixed(1)}%`
-                    : "—"}
-
-                </div>
-
-              </div>
-
-            </div>
+            <button
+              type="button"
+              className="irrigation-retry-button"
+              onClick={
+                loadIrrigationData
+              }
+            >
+              Try Again
+            </button>
 
           </div>
 
+        )}
 
-          {/* =============================================
-              IRRIGATION GUIDANCE
-          ============================================= */}
 
-          <section className="irrigation-guidance-card">
+        {/* =====================================
+            EMPTY
+        ====================================== */}
 
-            <div className="irrigation-guidance-icon">
-              💧
-            </div>
+        {!loading &&
+          !error &&
+          crops.length === 0 && (
 
-            <div className="irrigation-guidance-content">
+            <div className="irrigation-state-card">
 
-              <h2>
-                AgriWatch Irrigation Guidance
-              </h2>
-
-              <p>
-                The current AgriWatch
-                recommendation threshold is{" "}
-                <strong>
-                  {SOIL_MOISTURE_THRESHOLD}%
-                </strong>{" "}
-                soil moisture.
-              </p>
-
-              <p>
-                When the latest soil moisture
-                reading falls below this
-                threshold, AgriWatch marks the
-                crop for irrigation review.
-              </p>
-
-              <div className="irrigation-guidance-note">
-
-                This page provides a software
-                recommendation only. It does not
-                activate a physical irrigation
-                system.
-
+              <div className="irrigation-state-icon">
+                +
               </div>
 
-            </div>
+              <h3>
+                No crops available
+              </h3>
 
-          </section>
-
-
-          {/* =============================================
-              CROP IRRIGATION STATUS
-          ============================================= */}
-
-          <section className="irrigation-section">
-
-            <div className="section-heading">
-
-              <div>
-
-                <h2>
-                  Crop Irrigation Status
-                </h2>
-
-                <p>
-                  Latest soil moisture reading
-                  for each crop.
-                </p>
-
-              </div>
+              <p>
+                Add a crop and record monitoring
+                data to receive irrigation
+                recommendations.
+              </p>
 
             </div>
 
+          )}
 
-            {cropStatuses.length === 0 ? (
 
-              <div className="irrigation-empty-card">
+        {/* =====================================
+            CONTENT
+        ====================================== */}
 
-                <div className="irrigation-empty-icon">
-                  🍅
+        {!loading &&
+          !error &&
+          crops.length > 0 && (
+
+            <>
+
+              {/* =================================
+                  SUMMARY
+              ================================= */}
+
+              <section className="irrigation-summary">
+
+                <div className="irrigation-summary-card">
+
+                  <div className="irrigation-summary-icon">
+                    %
+                  </div>
+
+                  <div>
+
+                    <span>
+                      Average Moisture
+                    </span>
+
+                    <strong>
+                      {
+                        averageMoisture !== null
+                          ? `${averageMoisture.toFixed(1)}%`
+                          : "—"
+                      }
+                    </strong>
+
+                  </div>
+
                 </div>
 
-                <h3>
-                  No crops available
-                </h3>
 
-                <p>
-                  Add a crop and record
-                  monitoring data to begin
-                  irrigation monitoring.
-                </p>
+                <div className="irrigation-summary-card">
 
-              </div>
+                  <div className="irrigation-summary-icon">
+                    #
+                  </div>
 
-            ) : (
+                  <div>
 
-              <div className="irrigation-crop-grid">
+                    <span>
+                      Monitored Crops
+                    </span>
 
-                {cropStatuses.map(
-                  (item) => {
+                    <strong>
+                      {monitoredCrops.length}
+                    </strong>
 
-                    const crop =
-                      item.crop;
+                  </div>
 
-
-                    return (
-                      <div
-                        className="irrigation-crop-card"
-                        key={crop.id}
-                      >
-
-                        {/* =================================
-                            CARD HEADER
-                        ================================= */}
-
-                        <div className="irrigation-crop-header">
-
-                          <div>
-
-                            <h3>
-                              {crop.crop_name ||
-                                "Unnamed Crop"}
-                            </h3>
-
-                            {crop.variety && (
-                              <p>
-                                {crop.variety}
-                              </p>
-                            )}
-
-                          </div>
+                </div>
 
 
-                          <span
-                            className={`irrigation-status-badge ${getStatusClass(
-                              item.status
-                            )}`}
-                          >
-                            {item.status}
-                          </span>
+                <div className="irrigation-summary-card irrigation-warning">
 
-                        </div>
+                  <div className="irrigation-summary-icon">
+                    !
+                  </div>
 
+                  <div>
 
-                        {/* =================================
-                            MOISTURE
-                        ================================= */}
+                    <span>
+                      Irrigation Needed
+                    </span>
 
-                        <div className="irrigation-moisture-area">
+                    <strong>
+                      {irrigationNeeded.length}
+                    </strong>
 
-                          <div className="irrigation-moisture-header">
+                  </div>
 
-                            <span>
-                              Soil Moisture
-                            </span>
-
-                            <strong>
-
-                              {item.moisture !==
-                              null
-                                ? `${item.moisture.toFixed(
-                                    1
-                                  )}%`
-                                : "—"}
-
-                            </strong>
-
-                          </div>
+                </div>
 
 
-                          <div className="irrigation-moisture-bar">
+                <div className="irrigation-summary-card irrigation-good">
 
-                            <div
-                              className={`irrigation-moisture-fill ${getMoistureClass(
-                                item.moisture
-                              )}`}
-                              style={{
-                                width:
-                                  item.moisture !==
-                                  null
-                                    ? `${Math.min(
-                                        Math.max(
-                                          item.moisture,
-                                          0
-                                        ),
-                                        100
-                                      )}%`
-                                    : "0%",
-                              }}
-                            />
+                  <div className="irrigation-summary-icon">
+                    ✓
+                  </div>
 
-                          </div>
+                  <div>
 
+                    <span>
+                      Moisture Adequate
+                    </span>
 
-                          <div className="irrigation-threshold-label">
+                    <strong>
+                      {adequateCrops.length}
+                    </strong>
 
-                            <span>
-                              0%
-                            </span>
+                  </div>
 
-                            <span>
-                              Threshold:{" "}
-                              {
-                                SOIL_MOISTURE_THRESHOLD
-                              }%
-                            </span>
+                </div>
 
-                            <span>
-                              100%
-                            </span>
-
-                          </div>
-
-                        </div>
+              </section>
 
 
-                        {/* =================================
-                            RECOMMENDATION
-                        ================================= */}
+              {/* =================================
+                  THRESHOLD INFORMATION
+              ================================= */}
 
-                        <div className="irrigation-recommendation">
+              <section className="irrigation-info-card">
 
-                          <div className="irrigation-recommendation-icon">
+                <div className="irrigation-info-icon">
+                  i
+                </div>
 
-                            {item.status ===
-                            "Irrigation Recommended"
-                              ? "💧"
-                              : item.status ===
-                                "Moisture Adequate"
-                              ? "✓"
-                              : "ℹ"}
+                <div>
 
-                          </div>
+                  <h3>
+                    Irrigation Threshold
+                  </h3>
 
-                          <div>
+                  <p>
+                    Crops with soil moisture below
+                    {" "}
+                    <strong>
+                      {SOIL_MOISTURE_THRESHOLD}%
+                    </strong>
+                    {" "}
+                    are marked as needing
+                    irrigation. This is a software
+                    recommendation based on the
+                    monitoring data.
+                  </p>
 
-                            <div className="irrigation-recommendation-title">
+                </div>
 
-                              {item.status ===
-                              "Irrigation Recommended"
-                                ? "Review irrigation"
-                                : item.status ===
-                                  "Moisture Adequate"
-                                ? "No irrigation warning"
-                                : "Monitoring required"}
+              </section>
+
+
+              {/* =================================
+                  CROP MONITORING
+              ================================= */}
+
+              <section className="irrigation-section">
+
+                <div className="irrigation-section-header">
+
+                  <div>
+
+                    <h2>
+                      Crop Irrigation Status
+                    </h2>
+
+                    <p>
+                      Review the latest soil
+                      moisture reading for each crop.
+                    </p>
+
+                  </div>
+
+                </div>
+
+
+                <div className="irrigation-crop-grid">
+
+                  {cropRecommendations.map(
+                    (crop) => {
+
+                      const moisture =
+                        crop.moisture !==
+                          null &&
+                        crop.moisture !==
+                          undefined
+                          ? Number(
+                              crop.moisture
+                            )
+                          : null;
+
+
+                      const progress =
+                        moisture !== null
+                          ? Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                moisture
+                              )
+                            )
+                          : 0;
+
+
+                      const moistureClass =
+                        getMoistureClass(
+                          moisture
+                        );
+
+
+                      return (
+
+                        <div
+                          className={
+                            `irrigation-crop-card ${crop.status}`
+                          }
+                          key={crop.id}
+                        >
+
+                          <div className="irrigation-crop-top">
+
+                            <div>
+
+                              <span className="irrigation-crop-label">
+                                CROP
+                              </span>
+
+                              <h3>
+                                {
+                                  crop.crop_name ||
+                                  "Unnamed Crop"
+                                }
+                              </h3>
+
+                              {crop.variety && (
+                                <p>
+                                  {crop.variety}
+                                </p>
+                              )}
 
                             </div>
 
-                            <p>
-                              {item.recommendation}
-                            </p>
+
+                            <span
+                              className={
+                                `irrigation-status-badge ${crop.status}`
+                              }
+                            >
+                              {crop.status ===
+                                "irrigate"
+                                ? "Irrigation Needed"
+                                : crop.status ===
+                                    "adequate"
+                                  ? "Adequate"
+                                  : "No Data"}
+                            </span>
+
+                          </div>
+
+
+                          <div className="irrigation-moisture">
+
+                            <div className="irrigation-moisture-header">
+
+                              <span>
+                                Soil Moisture
+                              </span>
+
+                              <strong>
+                                {
+                                  moisture !==
+                                  null
+                                    ? `${moisture}%`
+                                    : "—"
+                                }
+                              </strong>
+
+                            </div>
+
+
+                            <div className="irrigation-progress">
+
+                              <div
+                                className={
+                                  `irrigation-progress-fill ${moistureClass}`
+                                }
+                                style={{
+                                  width:
+                                    `${progress}%`,
+                                }}
+                              ></div>
+
+                            </div>
+
+
+                            <div className="irrigation-threshold">
+
+                              <span>
+                                0%
+                              </span>
+
+                              <span>
+                                Threshold:{" "}
+                                {
+                                  SOIL_MOISTURE_THRESHOLD
+                                }%
+                              </span>
+
+                              <span>
+                                100%
+                              </span>
+
+                            </div>
+
+                          </div>
+
+
+                          <div className="irrigation-recommendation">
+
+                            <div className="irrigation-recommendation-icon">
+                              {crop.status ===
+                                "irrigate"
+                                ? "!"
+                                : crop.status ===
+                                    "adequate"
+                                  ? "✓"
+                                  : "—"}
+                            </div>
+
+                            <div>
+
+                              <span>
+                                Recommendation
+                              </span>
+
+                              <strong>
+                                {
+                                  crop.recommendation
+                                }
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+
+                          <div className="irrigation-card-footer">
+
+                            <span>
+                              Latest Reading
+                            </span>
+
+                            <span>
+                              {
+                                formatDate(
+                                  crop.monitoring
+                                    ?.recorded_at
+                                )
+                              }
+                            </span>
 
                           </div>
 
                         </div>
 
+                      );
 
-                        {/* =================================
-                            LAST READING
-                        ================================= */}
+                    }
+                  )}
 
-                        <div className="irrigation-last-reading">
+                </div>
 
-                          <span>
-                            Last monitoring record
-                          </span>
-
-                          <strong>
-                            {formatDate(
-                              item.monitoring
-                                ?.recorded_at
-                            )}
-                          </strong>
-
-                        </div>
-
-                      </div>
-                    );
-
-                  }
-                )}
-
-              </div>
-            )}
-
-          </section>
+              </section>
 
 
-          {/* =============================================
-              IMPORTANT NOTE
-          ============================================= */}
+              {/* =================================
+                  SOFTWARE LIMITATION
+              ================================= */}
 
-          <div className="irrigation-footer-note">
+              <section className="irrigation-notice">
 
-            <strong>
-              Irrigation monitoring note:
-            </strong>
+                <div className="irrigation-notice-icon">
+                  i
+                </div>
 
-            {" "}
+                <div>
 
-            AgriWatch uses the latest available
-            soil-moisture measurement to flag
-            crops for irrigation review. Actual
-            irrigation decisions should also
-            consider crop condition, soil
-            characteristics, weather, and the
-            farm's irrigation practices.
+                  <h3>
+                    Software-Based Recommendation
+                  </h3>
 
-          </div>
+                  <p>
+                    AgriWatch currently provides
+                    irrigation recommendations
+                    from soil moisture monitoring
+                    data. It does not directly
+                    activate or control a physical
+                    irrigation pump.
+                  </p>
 
-        </>
-      )}
+                </div>
 
-    </div>
+              </section>
+
+            </>
+
+          )}
+
+      </div>
+
+    </DashboardLayout>
+
   );
 };
 

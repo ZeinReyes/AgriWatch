@@ -1,0 +1,782 @@
+/* =========================================
+   IRRIGATION PAGE
+========================================= */
+
+.irrigation-page {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.irrigation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 28px;
+}
+
+.irrigation-eyebrow {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #5d8068;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.2px;
+}
+
+.irrigation-header h1 {
+  margin: 0 0 6px;
+
+  color: #173b2a;
+
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.irrigation-header p {
+  margin: 0;
+
+  color: #748078;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================================
+   SUMMARY
+========================================= */
+
+.irrigation-summary {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 16px;
+
+  margin-bottom: 20px;
+}
+
+.irrigation-summary-card {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #e4ebe5;
+  border-radius: 15px;
+
+  box-shadow:
+    0 3px 12px rgba(26, 61, 43, 0.04);
+}
+
+.irrigation-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 46px;
+  height: 46px;
+
+  flex-shrink: 0;
+
+  border-radius: 12px;
+
+  background: #edf5ef;
+
+  color: #3f7653;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.irrigation-summary-card div:last-child {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.irrigation-summary-card span {
+  color: #7a857d;
+
+  font-size: 12px;
+}
+
+.irrigation-summary-card strong {
+  color: #173b2a;
+
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.irrigation-summary-card.irrigation-warning
+.irrigation-summary-icon {
+  background: #faf3e4;
+
+  color: #9a702d;
+}
+
+.irrigation-summary-card.irrigation-warning strong {
+  color: #9a702d;
+}
+
+.irrigation-summary-card.irrigation-good
+.irrigation-summary-icon {
+  background: #edf6ef;
+
+  color: #3b7550;
+}
+
+.irrigation-summary-card.irrigation-good strong {
+  color: #3b7550;
+}
+
+
+/* =========================================
+   INFORMATION CARD
+========================================= */
+
+.irrigation-info-card {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 15px;
+
+  padding: 21px 23px;
+
+  margin-bottom: 26px;
+
+  background: #ffffff;
+
+  border: 1px solid #e4ebe5;
+  border-radius: 15px;
+
+  box-shadow:
+    0 3px 12px rgba(26, 61, 43, 0.04);
+}
+
+.irrigation-info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+
+  flex-shrink: 0;
+
+  border-radius: 10px;
+
+  background: #edf5ef;
+
+  color: #3f7653;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.irrigation-info-card h3 {
+  margin: 0 0 6px;
+
+  color: #173b2a;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.irrigation-info-card p {
+  margin: 0;
+
+  color: #707c74;
+
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.irrigation-info-card strong {
+  color: #356b4b;
+}
+
+
+/* =========================================
+   SECTION
+========================================= */
+
+.irrigation-section {
+  margin-bottom: 25px;
+}
+
+.irrigation-section-header {
+  margin-bottom: 14px;
+}
+
+.irrigation-section-header h2 {
+  margin: 0 0 5px;
+
+  color: #173b2a;
+
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.irrigation-section-header p {
+  margin: 0;
+
+  color: #78847c;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =========================================
+   CROP GRID
+========================================= */
+
+.irrigation-crop-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 18px;
+}
+
+
+/* =========================================
+   CROP CARD
+========================================= */
+
+.irrigation-crop-card {
+  padding: 22px;
+
+  background: #ffffff;
+
+  border: 1px solid #e4ebe5;
+  border-radius: 17px;
+
+  box-shadow:
+    0 3px 12px rgba(26, 61, 43, 0.04);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.irrigation-crop-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 6px 18px rgba(26, 61, 43, 0.07);
+}
+
+.irrigation-crop-card.irrigate {
+  border-color: #eadfca;
+}
+
+.irrigation-crop-card.adequate {
+  border-color: #dfeae2;
+}
+
+
+/* =========================================
+   CROP HEADER
+========================================= */
+
+.irrigation-crop-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-bottom: 22px;
+}
+
+.irrigation-crop-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #829087;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 1px;
+}
+
+.irrigation-crop-top h3 {
+  margin: 0 0 3px;
+
+  color: #173b2a;
+
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.irrigation-crop-top p {
+  margin: 0;
+
+  color: #7a857d;
+
+  font-size: 12px;
+}
+
+.irrigation-status-badge {
+  display: inline-flex;
+
+  flex-shrink: 0;
+
+  padding: 6px 10px;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.irrigation-status-badge.irrigate {
+  background: #faf3e4;
+
+  color: #9a702d;
+}
+
+.irrigation-status-badge.adequate {
+  background: #edf6ef;
+
+  color: #3b7550;
+}
+
+.irrigation-status-badge.no-data {
+  background: #f0f2f1;
+
+  color: #77827a;
+}
+
+
+/* =========================================
+   MOISTURE
+========================================= */
+
+.irrigation-moisture {
+  margin-bottom: 19px;
+}
+
+.irrigation-moisture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 9px;
+}
+
+.irrigation-moisture-header span {
+  color: #66736a;
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.irrigation-moisture-header strong {
+  color: #173b2a;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.irrigation-progress {
+  width: 100%;
+  height: 9px;
+
+  overflow: hidden;
+
+  border-radius: 20px;
+
+  background: #e9eeea;
+}
+
+.irrigation-progress-fill {
+  height: 100%;
+
+  border-radius: 20px;
+
+  transition:
+    width 0.4s ease;
+}
+
+.irrigation-progress-fill.low {
+  background: #c79548;
+}
+
+.irrigation-progress-fill.moderate {
+  background: #72967d;
+}
+
+.irrigation-progress-fill.good {
+  background: #3f7653;
+}
+
+.irrigation-progress-fill.no-data {
+  background: #cdd5cf;
+}
+
+.irrigation-threshold {
+  display: flex;
+  justify-content: space-between;
+
+  margin-top: 6px;
+
+  color: #9aa39d;
+
+  font-size: 9px;
+}
+
+
+/* =========================================
+   RECOMMENDATION
+========================================= */
+
+.irrigation-recommendation {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 13px;
+
+  margin-bottom: 17px;
+
+  border-radius: 11px;
+
+  background: #f7f9f7;
+}
+
+.irrigate
+.irrigation-recommendation {
+  background: #fcf8ef;
+}
+
+.irrigation-recommendation-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  flex-shrink: 0;
+
+  border-radius: 9px;
+
+  background: #edf5ef;
+
+  color: #3f7653;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.irrigation-crop-card.irrigate
+.irrigation-recommendation-icon {
+  background: #faf0dc;
+
+  color: #9a702d;
+}
+
+.irrigation-recommendation div:last-child {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.irrigation-recommendation span {
+  color: #87918a;
+
+  font-size: 10px;
+}
+
+.irrigation-recommendation strong {
+  color: #44534a;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* =========================================
+   CARD FOOTER
+========================================= */
+
+.irrigation-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-top: 13px;
+
+  border-top: 1px solid #edf1ee;
+
+  color: #8a958d;
+
+  font-size: 10px;
+}
+
+.irrigation-card-footer span:last-child {
+  color: #69766e;
+
+  text-align: right;
+}
+
+
+/* =========================================
+   NOTICE
+========================================= */
+
+.irrigation-notice {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 14px;
+
+  padding: 20px 22px;
+
+  margin-bottom: 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #e4ebe5;
+  border-radius: 15px;
+
+  box-shadow:
+    0 3px 12px rgba(26, 61, 43, 0.04);
+}
+
+.irrigation-notice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  border-radius: 9px;
+
+  background: #edf5ef;
+
+  color: #3f7653;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.irrigation-notice h3 {
+  margin: 0 0 5px;
+
+  color: #173b2a;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.irrigation-notice p {
+  margin: 0;
+
+  color: #758179;
+
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+
+/* =========================================
+   LOADING / ERROR / EMPTY
+========================================= */
+
+.irrigation-state-card {
+  min-height: 280px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  text-align: center;
+
+  background: #ffffff;
+
+  border: 1px solid #e4ebe5;
+  border-radius: 18px;
+
+  box-shadow:
+    0 4px 16px rgba(26, 61, 43, 0.05);
+}
+
+.irrigation-state-card h3 {
+  margin: 13px 0 6px;
+
+  color: #173b2a;
+
+  font-size: 18px;
+}
+
+.irrigation-state-card p {
+  max-width: 520px;
+
+  margin: 0;
+
+  color: #758179;
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+.irrigation-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 54px;
+  height: 54px;
+
+  border-radius: 50%;
+
+  background: #edf5ef;
+
+  color: #3f7653;
+
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.irrigation-error {
+  border-color: #eadede;
+}
+
+
+/* =========================================
+   SPINNER
+========================================= */
+
+.irrigation-spinner {
+  width: 30px;
+  height: 30px;
+
+  border: 3px solid #dce7df;
+
+  border-top-color: #3f7653;
+
+  border-radius: 50%;
+
+  animation:
+    irrigation-spin 0.8s linear infinite;
+}
+
+@keyframes irrigation-spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+
+}
+
+
+/* =========================================
+   RETRY BUTTON
+========================================= */
+
+.irrigation-retry-button {
+  margin-top: 18px;
+
+  padding: 9px 17px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #356b4b;
+
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease;
+}
+
+.irrigation-retry-button:hover {
+  background: #28573c;
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+
+  .irrigation-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+
+@media (max-width: 850px) {
+
+  .irrigation-crop-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  .irrigation-header h1 {
+    font-size: 24px;
+  }
+
+  .irrigation-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .irrigation-crop-card {
+    padding: 19px;
+  }
+
+  .irrigation-crop-top {
+    flex-direction: column;
+  }
+
+  .irrigation-status-badge {
+    align-self: flex-start;
+  }
+
+}
