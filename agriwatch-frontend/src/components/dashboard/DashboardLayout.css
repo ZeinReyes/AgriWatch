@@ -1,10 +1,8 @@
 /* =========================================================
-   AGRIWATCH DASHBOARD LAYOUT
+   DASHBOARD LAYOUT
 ========================================================= */
 
 .dashboard-layout {
-  display: flex;
-
   width: 100%;
   min-height: 100vh;
 
@@ -13,53 +11,20 @@
 
 
 /* =========================================================
-   MAIN AREA
+   FULL WIDTH TOPBAR
 ========================================================= */
 
-.dashboard-main {
-  display: flex;
-  flex-direction: column;
-
-  flex: 1;
-
-  width: calc(100% - 260px);
-  min-width: 0;
-  min-height: 100vh;
-
-  margin-left: 260px;
-}
-
-
-/* =========================================================
-   TOPBAR
-========================================================= */
-
-.dashboard-main .topbar {
-  width: 100%;
-
-  flex-shrink: 0;
-
-  position: sticky;
+.dashboard-layout .topbar {
+  position: fixed;
 
   top: 0;
+  left: 0;
+  right: 0;
 
-  z-index: 900;
-}
-
-
-/* =========================================================
-   CONTENT
-========================================================= */
-
-.dashboard-content {
   width: 100%;
-  max-width: none;
+  height: 72px;
 
-  flex: 1;
-
-  padding: 32px;
-
-  min-width: 0;
+  z-index: 1100;
 }
 
 
@@ -70,25 +35,24 @@
 .dashboard-layout .sidebar {
   position: fixed;
 
-  top: 0;
+  top: 72px;
   left: 0;
+  bottom: 0;
 
   width: 260px;
-  height: 100vh;
+  height: calc(100vh - 72px);
 
   display: flex;
   flex-direction: column;
 
   overflow: hidden;
 
-  background: #123524;
-
   z-index: 1000;
 }
 
 
 /* =========================================================
-   SIDEBAR NAV
+   SIDEBAR NAVIGATION
 ========================================================= */
 
 .dashboard-layout .sidebar-nav {
@@ -96,24 +60,20 @@
 
   min-height: 0;
 
-  padding: 12px 14px;
+  padding:
+    12px 14px;
 
-  /*
-   * The sidebar itself no longer scrolls.
-   * The spacing is compact enough for the
-   * complete navigation to fit on desktop.
-   */
   overflow: hidden;
 }
 
 
 /* =========================================================
-   SECTION TITLES
+   SIDEBAR SECTIONS
 ========================================================= */
 
 .dashboard-layout .nav-section-title {
   padding:
-    9px 12px 5px;
+    8px 12px 5px;
 
   font-size: 9px;
 
@@ -124,18 +84,22 @@
 
 
 /* =========================================================
-   NAVIGATION ITEMS
+   NAV ITEMS
 ========================================================= */
 
 .dashboard-layout .nav-item {
-  min-height: 39px;
+  min-height: 38px;
 
-  padding:
-    8px 13px;
+  display: flex;
 
-  margin-bottom: 2px;
+  align-items: center;
 
   gap: 11px;
+
+  padding:
+    7px 13px;
+
+  margin-bottom: 2px;
 
   border-radius: 9px;
 
@@ -150,20 +114,26 @@
 .dashboard-layout .nav-icon {
   width: 21px;
 
-  flex: 0 0 21px;
+  min-width: 21px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
 
   font-size: 15px;
 }
 
 
 /* =========================================================
-   LOGOUT AREA
+   SIDEBAR BOTTOM
 ========================================================= */
 
 .dashboard-layout .sidebar-bottom {
   flex-shrink: 0;
 
-  padding: 14px 16px 18px;
+  padding:
+    14px 16px 18px;
 
   border-top:
     1px solid
@@ -171,26 +141,14 @@
 }
 
 
-/*
- * Override the old sidebar user area
- * in case old CSS is still loaded.
- */
-
-.dashboard-layout .sidebar-user,
-.dashboard-layout .user-info,
-.dashboard-layout .user-avatar {
-  display: none;
-}
-
-
 /* =========================================================
-   LOGOUT BUTTON
+   LOGOUT
 ========================================================= */
 
 .dashboard-layout .logout-button {
   width: 100%;
 
-  min-height: 38px;
+  height: 38px;
 
   display: flex;
 
@@ -198,8 +156,6 @@
   justify-content: center;
 
   gap: 8px;
-
-  padding: 9px 10px;
 
   border:
     1px solid
@@ -237,37 +193,112 @@
 
 
 /* =========================================================
-   MOBILE OVERLAY
+   MAIN CONTENT
 ========================================================= */
 
-.sidebar-overlay {
-  display: none;
+.dashboard-layout .dashboard-content {
+  width: calc(100% - 260px);
 
-  position: fixed;
+  min-height: calc(100vh - 72px);
 
-  inset: 0;
+  margin-left: 260px;
 
-  background:
-    rgba(0, 0, 0, 0.35);
+  padding: 32px;
 
-  z-index: 999;
+  padding-top: 104px;
+
+  box-sizing: border-box;
 }
 
 
 /* =========================================================
-   MOBILE MENU BUTTON
+   TOPBAR LEFT
 ========================================================= */
 
-.mobile-menu-button {
-  display: none;
+.dashboard-layout .topbar-left {
+  display: flex;
 
   align-items: center;
-  justify-content: center;
+
+  gap: 16px;
+}
+
+
+/* =========================================================
+   TOPBAR TITLE
+========================================================= */
+
+.dashboard-layout .topbar-title {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+.dashboard-layout .topbar-title-main {
+  font-weight: 700;
+}
+
+
+.dashboard-layout .topbar-divider {
+  color: #b7c0b9;
+}
+
+
+.dashboard-layout .topbar-title-page {
+  color: #89938c;
+}
+
+
+/* =========================================================
+   TOPBAR USER
+========================================================= */
+
+.dashboard-layout .topbar-user {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+
+.dashboard-layout .topbar-user-info {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+}
+
+
+.dashboard-layout .topbar-user-name {
+  margin-bottom: 3px;
+
+  color: #25352a;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   MOBILE MENU
+========================================================= */
+
+.dashboard-layout .mobile-menu-button {
+  display: none;
 
   width: 32px;
   height: 32px;
 
-  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
 
   padding: 0;
 
@@ -287,61 +318,41 @@
 
 
 /* =========================================================
-   TOPBAR USER
+   SIDEBAR OVERLAY
 ========================================================= */
 
-.dashboard-layout .topbar-user {
-  display: flex;
+.dashboard-layout .sidebar-overlay {
+  display: none;
 
-  align-items: center;
+  position: fixed;
 
-  gap: 9px;
-}
+  inset: 0;
 
+  background:
+    rgba(0, 0, 0, 0.35);
 
-.dashboard-layout .topbar-user-info {
-  display: flex;
-
-  flex-direction: column;
-
-  justify-content: center;
-}
-
-
-.dashboard-layout .topbar-user-name {
-  margin-bottom: 3px;
-
-  white-space: nowrap;
-
-  color: #25352a;
-
-  font-size: 12px;
-
-  font-weight: 600;
+  z-index: 1200;
 }
 
 
 /* =========================================================
-   RESPONSIVE
+   MOBILE
 ========================================================= */
 
 @media (max-width: 900px) {
 
-  .dashboard-main {
-    width: 100%;
-
-    margin-left: 0;
-  }
-
-
   .dashboard-layout .sidebar {
-    width: 260px;
+    top: 0;
+
+    height: 100vh;
 
     transform:
       translateX(-100%);
 
     transition:
       transform 0.25s ease;
+
+    z-index: 1300;
   }
 
 
@@ -352,36 +363,31 @@
   }
 
 
-  .dashboard-layout
-  .sidebar.sidebar-open
-  ~ .sidebar-overlay {
+  .dashboard-layout .sidebar-overlay {
     display: block;
   }
 
 
-  .sidebar-overlay {
-    display: block;
-  }
-
-
-  .mobile-menu-button {
+  .dashboard-layout .mobile-menu-button {
     display: flex;
   }
 
 
-  .topbar {
+  .dashboard-layout .dashboard-content {
+    width: 100%;
+
+    margin-left: 0;
+
     padding:
-      0 20px !important;
+      96px 24px 24px;
   }
 
 
-  .topbar-title {
-    margin-left: 10px;
-  }
+  .dashboard-layout .topbar {
+    height: 64px;
 
-
-  .dashboard-content {
-    padding: 24px;
+    padding:
+      0 20px;
   }
 
 }
@@ -389,45 +395,33 @@
 
 @media (max-width: 600px) {
 
-  .dashboard-content {
-    padding: 20px 16px;
-  }
-
-
-  .topbar {
+  .dashboard-layout .dashboard-content {
     padding:
-      0 16px !important;
+      88px 16px 20px;
   }
 
 
-  .topbar-title {
+  .dashboard-layout .topbar {
+    height: 60px;
+
+    padding:
+      0 16px;
+  }
+
+
+  .dashboard-layout .topbar-title {
     gap: 6px;
 
     font-size: 11px;
   }
 
 
-  .topbar-right {
-    gap: 10px;
+  .dashboard-layout .topbar-right {
+    gap: 9px;
   }
 
 
-  .notification-button {
-    font-size: 15px;
-  }
-
-
-  .topbar-user-name {
-    display: none;
-  }
-
-
-  .topbar-user-info {
-    display: flex;
-  }
-
-
-  .topbar-user .role-badge {
+  .dashboard-layout .topbar-user-name {
     display: none;
   }
 

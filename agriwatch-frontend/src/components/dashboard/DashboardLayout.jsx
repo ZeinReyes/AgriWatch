@@ -21,6 +21,13 @@ const DashboardLayout = ({
   return (
     <div className="dashboard-layout">
 
+      <Topbar
+        onMenuClick={() =>
+          setSidebarOpen(true)
+        }
+      />
+
+
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() =>
@@ -29,22 +36,11 @@ const DashboardLayout = ({
       />
 
 
-      <div className="dashboard-main">
+      <main className="dashboard-content">
 
-        <Topbar
-          onMenuClick={() =>
-            setSidebarOpen(true)
-          }
-        />
+        {children}
 
-
-        <main className="dashboard-content">
-
-          {children}
-
-        </main>
-
-      </div>
+      </main>
 
     </div>
   );

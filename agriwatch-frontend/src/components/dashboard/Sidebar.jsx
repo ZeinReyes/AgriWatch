@@ -22,10 +22,6 @@ const Sidebar = ({
     user?.role;
 
 
-  // =====================================================
-  // NAVIGATION
-  // =====================================================
-
   const navigationSections = [
     {
       title: "Overview",
@@ -171,10 +167,6 @@ const Sidebar = ({
   ];
 
 
-  // =====================================================
-  // ROLE CHECK
-  // =====================================================
-
   const canAccess = (
     link
   ) => {
@@ -185,51 +177,6 @@ const Sidebar = ({
 
   };
 
-
-  // =====================================================
-  // NAVIGATION ITEM
-  // =====================================================
-
-  const renderNavItem = (
-    link
-  ) => {
-
-    if (!canAccess(link)) {
-      return null;
-    }
-
-
-    return (
-      <NavLink
-        key={link.path}
-        to={link.path}
-        onClick={onClose}
-        className={({ isActive }) =>
-          `nav-item ${
-            isActive
-              ? "nav-item-active"
-              : ""
-          }`
-        }
-      >
-
-        <span className="nav-icon">
-          {link.icon}
-        </span>
-
-        <span className="nav-label">
-          {link.label}
-        </span>
-
-      </NavLink>
-    );
-
-  };
-
-
-  // =====================================================
-  // RENDER
-  // =====================================================
 
   return (
     <>
@@ -252,9 +199,7 @@ const Sidebar = ({
         }`}
       >
 
-        {/* ===============================================
-            BRAND
-        =============================================== */}
+        {/* BRAND */}
 
         <div className="sidebar-brand">
 
@@ -278,9 +223,7 @@ const Sidebar = ({
         </div>
 
 
-        {/* ===============================================
-            NAVIGATION
-        =============================================== */}
+        {/* NAVIGATION */}
 
         <nav className="sidebar-nav">
 
@@ -312,7 +255,33 @@ const Sidebar = ({
 
 
                   {visibleLinks.map(
-                    renderNavItem
+                    (link) => (
+
+                      <NavLink
+                        key={link.path}
+                        to={link.path}
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          `nav-item ${
+                            isActive
+                              ? "nav-item-active"
+                              : ""
+                          }`
+                        }
+                      >
+
+                        <span className="nav-icon">
+                          {link.icon}
+                        </span>
+
+
+                        <span className="nav-label">
+                          {link.label}
+                        </span>
+
+                      </NavLink>
+
+                    )
                   )}
 
                 </div>
@@ -324,9 +293,7 @@ const Sidebar = ({
         </nav>
 
 
-        {/* ===============================================
-            LOGOUT
-        =============================================== */}
+        {/* LOGOUT ONLY */}
 
         <div className="sidebar-bottom">
 

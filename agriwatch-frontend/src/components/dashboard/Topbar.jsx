@@ -22,10 +22,6 @@ const Topbar = ({
     useLocation();
 
 
-  // =====================================================
-  // PAGE TITLES
-  // =====================================================
-
   const pageTitles = {
 
     "/dashboard":
@@ -77,10 +73,6 @@ const Topbar = ({
     "Dashboard";
 
 
-  // =====================================================
-  // USER INITIAL
-  // =====================================================
-
   const userInitial =
     user?.full_name
       ?.charAt(0)
@@ -89,49 +81,44 @@ const Topbar = ({
 
 
   return (
-
     <header className="topbar">
 
-      {/* ===============================================
-          MOBILE MENU
-      =============================================== */}
+      {/* LEFT */}
 
-      <button
-        type="button"
-        className="mobile-menu-button"
-        onClick={onMenuClick}
-        aria-label="Open navigation"
-      >
-        ☰
-      </button>
+      <div className="topbar-left">
 
-
-      {/* ===============================================
-          PAGE TITLE
-      =============================================== */}
-
-      <div className="topbar-title">
-
-        <span className="topbar-title-main">
-          AgriWatch
-        </span>
+        <button
+          type="button"
+          className="mobile-menu-button"
+          onClick={onMenuClick}
+          aria-label="Open navigation"
+        >
+          ☰
+        </button>
 
 
-        <span className="topbar-divider">
-          /
-        </span>
+        <div className="topbar-title">
+
+          <span className="topbar-title-main">
+            AgriWatch
+          </span>
 
 
-        <span className="topbar-title-page">
-          {pageTitle}
-        </span>
+          <span className="topbar-divider">
+            /
+          </span>
+
+
+          <span className="topbar-title-page">
+            {pageTitle}
+          </span>
+
+        </div>
 
       </div>
 
 
-      {/* ===============================================
-          RIGHT SIDE
-      =============================================== */}
+      {/* RIGHT */}
 
       <div className="topbar-right">
 
@@ -148,10 +135,6 @@ const Topbar = ({
         </button>
 
 
-        {/* =============================================
-            USER
-        ============================================= */}
-
         <div className="topbar-user">
 
           <div className="topbar-avatar">
@@ -164,8 +147,7 @@ const Topbar = ({
           <div className="topbar-user-info">
 
             <div className="topbar-user-name">
-              {user?.full_name ||
-                "User"}
+              {user?.full_name || "User"}
             </div>
 
 
@@ -180,7 +162,6 @@ const Topbar = ({
       </div>
 
     </header>
-
   );
 };
 
