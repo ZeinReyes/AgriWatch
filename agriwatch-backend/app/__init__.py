@@ -113,6 +113,7 @@ def create_app():
     from app.routes.monitoring import monitoring_bp
     from app.routes.alert import alert_bp
     from app.routes.reports import reports_bp
+    from app.routes.settings import settings_bp
 
 
     app.register_blueprint(
@@ -154,6 +155,11 @@ def create_app():
     app.register_blueprint(
         reports_bp,
         url_prefix="/api/reports"
+    )
+
+    app.register_blueprint(
+        settings_bp,
+        url_prefix="/api/settings"
     )
 
 

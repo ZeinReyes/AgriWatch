@@ -75,6 +75,8 @@ import Reports from "./pages/reports/Reports";
 
 import Dashboard from "./pages/Dashboard";
 
+import Settings from "./pages/settings/Settings";
+
 
 /* =====================================================
    PLACEHOLDER
@@ -348,16 +350,8 @@ const App = () => {
             path="/settings"
             element={
               <ProtectedRoute>
-                <RoleRoute
-                  allowedRoles={[
-                    "admin",
-                    "farmer",
-                  ]}
-                >
-                  <PlaceholderPage
-                    title="Settings"
-                    description="Manage your AgriWatch profile, password, and notification preferences."
-                  />
+                <RoleRoute allowedRoles={["admin", "farmer"]}>
+                  <Settings />
                 </RoleRoute>
               </ProtectedRoute>
             }

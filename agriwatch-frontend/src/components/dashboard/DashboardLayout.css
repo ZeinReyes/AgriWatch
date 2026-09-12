@@ -426,3 +426,432 @@
   }
 
 }
+
+/* =========================================================
+   NOTIFICATION WRAPPER
+========================================================= */
+
+.notification-wrapper {
+  position: relative;
+}
+
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+.notification-button {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease;
+}
+
+.notification-button:hover,
+.notification-button.notification-active {
+  background: #f1f5f2;
+}
+
+
+.notification-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+
+/* =========================================================
+   ALERT DOT
+========================================================= */
+
+.notification-dot {
+  position: absolute;
+
+  top: 5px;
+  right: 5px;
+
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #d45c45;
+
+  border: 2px solid #ffffff;
+}
+
+
+/* =========================================================
+   BACKDROP
+========================================================= */
+
+.notification-backdrop {
+  position: fixed;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  border: none;
+
+  background: transparent;
+
+  cursor: default;
+
+  z-index: 1090;
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.notification-panel {
+  position: absolute;
+
+  top: calc(100% + 10px);
+  right: 0;
+
+  width: 360px;
+
+  overflow: hidden;
+
+  background: #ffffff;
+
+  border:
+    1px solid #e3e9e4;
+
+  border-radius: 14px;
+
+  box-shadow:
+    0 12px 35px
+    rgba(25, 58, 38, 0.12);
+
+  z-index: 1100;
+}
+
+
+/* =========================================================
+   PANEL HEADER
+========================================================= */
+
+.notification-panel-header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  padding: 16px 17px;
+
+  border-bottom:
+    1px solid #edf1ee;
+}
+
+.notification-panel-header > div {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.notification-panel-header strong {
+  color: #24432d;
+
+  font-size: 13px;
+}
+
+.notification-panel-header span {
+  color: #8a958e;
+
+  font-size: 10px;
+}
+
+.notification-view-all {
+  border: none;
+
+  background: transparent;
+
+  color: #35724a;
+
+  font-family: inherit;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.notification-view-all:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   LIST
+========================================================= */
+
+.notification-list {
+  max-height: 390px;
+
+  overflow-y: auto;
+}
+
+
+/* =========================================================
+   ITEM
+========================================================= */
+
+.notification-item {
+  position: relative;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  width: 100%;
+
+  gap: 11px;
+
+  padding: 13px 17px;
+
+  border: none;
+
+  border-bottom:
+    1px solid #edf1ee;
+
+  background: #ffffff;
+
+  font-family: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item:hover {
+  background: #f8faf8;
+}
+
+.notification-item.unread {
+  background: #fbfdfb;
+}
+
+
+/* =========================================================
+   ICON
+========================================================= */
+
+.notification-item-icon {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 31px;
+  height: 31px;
+
+  flex: 0 0 31px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+}
+
+.notification-item-icon.warning {
+  background: #faf3e4;
+
+  color: #a1742d;
+}
+
+.notification-item-icon.critical {
+  background: #faeded;
+
+  color: #ac4d4d;
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.notification-item-content {
+  display: flex;
+
+  flex-direction: column;
+
+  min-width: 0;
+
+  flex: 1;
+
+  gap: 3px;
+}
+
+.notification-item-content strong {
+  color: #344b3b;
+
+  font-size: 11px;
+
+  font-weight: 700;
+}
+
+.notification-item-content span {
+  overflow: hidden;
+
+  color: #7b8780;
+
+  font-size: 10px;
+
+  line-height: 1.45;
+
+  display: -webkit-box;
+
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.notification-item-content small {
+  color: #a0a9a3;
+
+  font-size: 9px;
+}
+
+
+/* =========================================================
+   UNREAD DOT
+========================================================= */
+
+.notification-unread-dot {
+  width: 6px;
+  height: 6px;
+
+  margin-top: 6px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #3d7c50;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.notification-empty {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  text-align: center;
+
+  padding: 35px 24px;
+}
+
+.notification-empty-icon {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+
+  margin-bottom: 10px;
+
+  border-radius: 50%;
+
+  background: #edf5ef;
+
+  font-size: 17px;
+}
+
+.notification-empty strong {
+  color: #3a5141;
+
+  font-size: 12px;
+}
+
+.notification-empty span {
+  max-width: 250px;
+
+  margin-top: 5px;
+
+  color: #8a958e;
+
+  font-size: 10px;
+
+  line-height: 1.5;
+}
+
+.notification-settings-link {
+  margin-top: 13px;
+
+  border: none;
+
+  background: transparent;
+
+  color: #38744d;
+
+  font-family: inherit;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.notification-settings-link:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .notification-panel {
+    position: fixed;
+
+    top: 68px;
+    right: 12px;
+    left: 12px;
+
+    width: auto;
+
+    max-width: none;
+  }
+
+}
