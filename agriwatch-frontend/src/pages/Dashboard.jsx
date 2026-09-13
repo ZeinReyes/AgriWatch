@@ -1,111 +1,46 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
-import {
-  Link,
-} from "react-router-dom";
-
-import {
-  useAuth,
-} from "../context/AuthContext";
-
+import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
-
 import RoleBadge from "../components/dashboard/RoleBadge";
-
 import api from "../services/api";
 
+import "./Dashboard.css";
 
 // =========================================================
 // DASHBOARD
 // =========================================================
 
 const Dashboard = () => {
-
-  const {
-    user,
-  } = useAuth();
-
+  const { user } = useAuth();
 
   const role = user?.role;
 
-
   const firstName =
-    user?.full_name
-      ?.split(" ")[0] ||
-    "there";
+    user?.full_name?.split(" ")[0] || "there";
 
+  const [farms, setFarms] = useState([]);
+  const [crops, setCrops] = useState([]);
+  const [monitoringRecords, setMonitoringRecords] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [users, setUsers] = useState([]);
 
-  const [
-    farms,
-    setFarms
-  ] = useState([]);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
 
-
-  const [
-    crops,
-    setCrops
-  ] = useState([]);
-
-
-  const [
-    monitoringRecords,
-    setMonitoringRecords
-  ] = useState([]);
-
-
-  const [
-    alerts,
-    setAlerts
-  ] = useState([]);
-
-
-  const [
-    users,
-    setUsers
-  ] = useState([]);
-
-
-  const [
-    weather,
-    setWeather
-  ] = useState(null);
-
-
-  const [
-    weatherLoading,
-    setWeatherLoading
-  ] = useState(true);
-
-
-  const [
-    loading,
-    setLoading
-  ] = useState(true);
-
-
-  const [
-    error,
-    setError
-  ] = useState("");
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // =====================================================
   // LOAD DASHBOARD DATA
   // =====================================================
 
   useEffect(() => {
-
     const loadDashboard = async () => {
-
       try {
-
         setLoading(true);
         setError("");
-
 
         const requests = [
           api.get("/farms"),
@@ -114,453 +49,290 @@ const Dashboard = () => {
           api.get("/alerts"),
         ];
 
-
         if (role === "admin") {
-
-          requests.push(
-            api.get("/admin/users")
-          );
-
+          requests.push(api.get("/admin/users"));
         }
 
-
-        const responses =
-          await Promise.all(requests);
-
+        const responses = await Promise.all(requests);
 
         setFarms(
-          extractArray(
-            responses[0].data,
-            [
-              "farms",
-              "data",
-              "results"
-            ]
-          )
+          extractArray(responses[0].data, [
+            "farms",
+            "data",
+            "results",
+          ])
         );
-
 
         setCrops(
-          extractArray(
-            responses[1].data,
-            [
-              "crops",
-              "data",
-              "results"
-            ]
-          )
+          extractArray(responses[1].data, [
+            "crops",
+            "data",
+            "results",
+          ])
         );
-
 
         setMonitoringRecords(
-          extractArray(
-            responses[2].data,
-            [
-              "monitoring",
-              "monitoring_records",
-              "records",
-              "data",
-              "results"
-            ]
-          )
+          extractArray(responses[2].data, [
+            "monitoring",
+            "monitoring_records",
+            "records",
+            "data",
+            "results",
+          ])
         );
-
 
         setAlerts(
-          extractArray(
-            responses[3].data,
-            [
-              "alerts",
-              "data",
-              "results"
-            ]
-          )
+          extractArray(responses[3].data, [
+            "alerts",
+            "data",
+            "results",
+          ])
         );
-
 
         if (role === "admin") {
-
           setUsers(
-            extractArray(
-              responses[4].data,
-              [
-                "users",
-                "data",
-                "results"
-              ]
-            )
+            extractArray(responses[4].data, [
+              "users",
+              "data",
+              "results",
+            ])
           );
-
         }
-
       } catch (err) {
-
-        console.error(
-          "Dashboard loading error:",
-          err
-        );
-
+        console.error("Dashboard loading error:", err);
         setError(
           "Some dashboard information could not be loaded."
         );
-
       } finally {
-
         setLoading(false);
-
       }
-
     };
-
 
     if (role) {
       loadDashboard();
     }
-
   }, [role]);
-
 
   // =====================================================
   // WEATHER
   // =====================================================
 
   useEffect(() => {
-
     const loadWeather = async () => {
-
       try {
-
         setWeatherLoading(true);
         setWeather(null);
 
-
-        /*
-         * Use the farm's SAVED coordinates directly.
-         *
-         * Example:
-         *
-         * latitude:  14.992554
-         * longitude: 120.846741
-         *
-         * This prevents the weather API from trying to
-         * guess the farm location from the location text.
-         */
-
         const farm = farms?.[0];
 
-
         if (!farm) {
-
-          console.log(
-            "Weather: No farm found."
-          );
-
           return;
-
         }
 
-
-        const latitude =
-          Number(farm.latitude);
-
-
-        const longitude =
-          Number(farm.longitude);
-
-
-        /*
-         * Check whether valid coordinates exist.
-         */
+        const latitude = Number(farm.latitude);
+        const longitude = Number(farm.longitude);
 
         if (
           !Number.isFinite(latitude) ||
           !Number.isFinite(longitude)
         ) {
-
-          console.log(
-            "Weather: Farm does not have valid coordinates."
-          );
-
           return;
-
         }
 
-
-        /*
-         * Get weather directly from the farm coordinates.
-         */
-
-        const farmWeather =
-          await getWeather(
-            latitude,
-            longitude
-          );
-
+        const farmWeather = await getWeather(
+          latitude,
+          longitude
+        );
 
         setWeather({
           ...farmWeather,
-
-          location:
-            farm.location ||
-            "Farm area",
+          location: farm.location || "Farm area",
         });
-
       } catch (err) {
-
-        console.error(
-          "Weather loading error:",
-          err
-        );
-
+        console.error("Weather loading error:", err);
         setWeather(null);
-
       } finally {
-
         setWeatherLoading(false);
-
       }
-
     };
-
-
-    /*
-     * Only attempt to load weather after farms
-     * have finished loading.
-     */
 
     if (!loading) {
       loadWeather();
     }
-
   }, [farms, loading]);
 
-
   // =====================================================
-  // LATEST MONITORING
-  // =====================================================
-
-  const latestMonitoring =
-    useMemo(() => {
-
-      if (
-        !monitoringRecords.length
-      ) {
-        return null;
-      }
-
-
-      return [
-        ...monitoringRecords
-      ].sort(
-        (a, b) =>
-          new Date(
-            b.recorded_at
-          ) -
-          new Date(
-            a.recorded_at
-          )
-      )[0];
-
-    }, [monitoringRecords]);
-
-
-  // =====================================================
-  // ACTIVE ALERTS
+  // DERIVED DATA
   // =====================================================
 
-  const activeAlerts =
-    useMemo(() => {
+  const latestMonitoring = useMemo(() => {
+    if (!monitoringRecords.length) {
+      return null;
+    }
 
-      return alerts.filter(
+    return [...monitoringRecords].sort(
+      (a, b) =>
+        new Date(b.recorded_at) -
+        new Date(a.recorded_at)
+    )[0];
+  }, [monitoringRecords]);
+
+  const activeAlerts = useMemo(
+    () =>
+      alerts.filter(
+        (alert) => !alert.is_resolved
+      ),
+    [alerts]
+  );
+
+  const unreadAlerts = useMemo(
+    () =>
+      activeAlerts.filter(
+        (alert) => !alert.is_read
+      ),
+    [activeAlerts]
+  );
+
+  const criticalAlerts = useMemo(
+    () =>
+      activeAlerts.filter(
         (alert) =>
-          !alert.is_resolved
-      );
-
-    }, [alerts]);
-
-
-  const unreadAlerts =
-    useMemo(() => {
-
-      return alerts.filter(
-        (alert) =>
-          !alert.is_read &&
-          !alert.is_resolved
-      );
-
-    }, [alerts]);
-
-
-  const criticalAlerts =
-    useMemo(() => {
-
-      return activeAlerts.filter(
-        (alert) =>
-          String(
-            alert.severity
-          ).toLowerCase() ===
+          String(alert.severity).toLowerCase() ===
           "critical"
-      );
+      ),
+    [activeAlerts]
+  );
 
-    }, [activeAlerts]);
+  const healthyCrops = crops.filter(
+    (crop) =>
+      String(crop.status).toLowerCase() ===
+      "healthy"
+  ).length;
 
+  const attentionCrops = crops.filter(
+    (crop) =>
+      String(crop.status).toLowerCase() ===
+      "needs attention"
+  ).length;
 
-  // =====================================================
-  // CROP HEALTH
-  // =====================================================
+  const criticalCrops = crops.filter(
+    (crop) =>
+      String(crop.status).toLowerCase() ===
+      "critical"
+  ).length;
 
-  const healthyCrops =
-    crops.filter(
-      (crop) =>
-        String(
-          crop.status
-        ).toLowerCase() ===
-        "healthy"
-    ).length;
+  const harvestedCrops = crops.filter(
+    (crop) =>
+      String(crop.status).toLowerCase() ===
+      "harvested"
+  ).length;
 
+  const healthPercentage = crops.length
+    ? Math.round(
+        (healthyCrops / crops.length) * 100
+      )
+    : 0;
 
-  const attentionCrops =
-    crops.filter(
-      (crop) =>
-        String(
-          crop.status
-        ).toLowerCase() ===
-        "needs attention"
-    ).length;
-
-
-  const criticalCrops =
-    crops.filter(
-      (crop) =>
-        String(
-          crop.status
-        ).toLowerCase() ===
-        "critical"
-    ).length;
-
-
-  const healthPercentage =
-    crops.length
-      ? Math.round(
-          (
-            healthyCrops /
-            crops.length
-          ) * 100
-        )
-      : 0;
-
-
-  // =====================================================
-  // DETECTIONS
-  // =====================================================
-
-  const pestDetections =
-    monitoringRecords.filter(
-      (record) =>
-        record.pest_detected
-    ).length;
-
+  const pestDetections = monitoringRecords.filter(
+    (record) => Boolean(record.pest_detected)
+  ).length;
 
   const diseaseDetections =
     monitoringRecords.filter(
-      (record) =>
-        record.disease_detected
+      (record) => Boolean(record.disease_detected)
     ).length;
-
 
   const discolorationDetections =
     monitoringRecords.filter(
       (record) =>
-        record.discoloration_detected
+        Boolean(record.discoloration_detected)
     ).length;
 
-
-  // =====================================================
-  // MONITORING TREND
-  // =====================================================
-
-  const chartData =
-    useMemo(() => {
-
-      return [
-        ...monitoringRecords
-      ]
-        .sort(
-          (a, b) =>
-            new Date(
-              a.recorded_at
-            ) -
-            new Date(
-              b.recorded_at
-            )
-        )
-        .slice(-7);
-
-    }, [monitoringRecords]);
-
-
-  const maxChartValue =
-    Math.max(
-      100,
-      ...chartData.map(
-        (item) =>
-          Number(
-            item.soil_moisture
-          ) || 0
-      ),
-      ...chartData.map(
-        (item) =>
-          Number(
-            item.crop_temperature
-          ) || 0
-      )
+  const chartData = useMemo(() => {
+    const sorted = [...monitoringRecords].sort(
+      (a, b) =>
+        new Date(a.recorded_at) -
+        new Date(b.recorded_at)
     );
 
+    return sorted.slice(-7).map((record) => ({
+      ...record,
+      shortDate: formatShortDate(
+        record.recorded_at
+      ),
+      temperature:
+        Number(record.crop_temperature) || 0,
+      moisture:
+        Number(record.soil_moisture) || 0,
+      humidity:
+        record.humidity != null
+          ? Number(record.humidity)
+          : null,
+    }));
+  }, [monitoringRecords]);
 
-  // =====================================================
-  // RECENT ALERTS
-  // =====================================================
+  const hasHistoricalHumidity = chartData.some(
+    (item) => item.humidity != null
+  );
 
-  const recentAlerts =
-    [...alerts]
+  const recentAlerts = useMemo(
+    () =>
+      [...alerts]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at) -
+            new Date(a.created_at)
+        )
+        .slice(0, 4),
+    [alerts]
+  );
+
+  const recentDetection = useMemo(() => {
+    return [...monitoringRecords]
       .sort(
         (a, b) =>
-          new Date(
-            b.created_at
-          ) -
-          new Date(
-            a.created_at
-          )
+          new Date(b.recorded_at) -
+          new Date(a.recorded_at)
       )
-      .slice(0, 4);
-
-
-  // =====================================================
-  // FARM STATUS
-  // =====================================================
+      .find(
+        (record) =>
+          record.pest_detected ||
+          record.disease_detected ||
+          record.discoloration_detected ||
+          String(
+            record.plant_condition || ""
+          ).toLowerCase() !== "healthy"
+      );
+  }, [monitoringRecords]);
 
   const farmStatus =
-    criticalAlerts.length > 0
+    criticalAlerts.length > 0 ||
+    criticalCrops > 0
       ? {
           label: "Critical",
           className: "status-critical",
           description:
             "Immediate attention required",
         }
-      : activeAlerts.length > 0
-        ? {
-            label: "Needs Attention",
-            className: "status-warning",
-            description:
-              "Some conditions need review",
-          }
-        : {
-            label: "Good",
-            className: "status-good",
-            description:
-              "All monitored conditions normal",
-          };
+      : activeAlerts.length > 0 ||
+        attentionCrops > 0
+      ? {
+          label: "Needs Attention",
+          className: "status-warning",
+          description:
+            "Some conditions need review",
+        }
+      : {
+          label: "Good",
+          className: "status-good",
+          description:
+            "All monitored conditions normal",
+        };
 
+  const lastUpdated =
+    latestMonitoring?.recorded_at ||
+    farms?.[0]?.updated_at ||
+    null;
 
   // =====================================================
   // RENDER
@@ -568,64 +340,44 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-
       <section className="dashboard-page">
-
-
         {/* =================================================
             HEADER
         ================================================= */}
 
         <div className="dashboard-header">
-
           <div>
-
             <span className="dashboard-eyebrow">
               {role === "admin"
                 ? "SYSTEM OVERVIEW"
                 : "CROP MONITORING"}
             </span>
 
-
-            <h1>
-              Good day, {firstName}.
-            </h1>
-
+            <h1>Good day, {firstName}.</h1>
 
             <p>
               {role === "admin"
                 ? "Here's an overview of your AgriWatch system."
                 : role === "viewer"
-                  ? "Here's the latest crop monitoring information."
-                  : "Here's the latest information about your crops."}
+                ? "Here's the latest crop monitoring information."
+                : "Here's the latest information about your crops."}
             </p>
-
           </div>
 
-
-          <RoleBadge
-            role={role}
-          />
-
+          <RoleBadge role={role} />
         </div>
 
-
         {error && (
-
           <div className="dashboard-error">
             {error}
           </div>
-
         )}
-
 
         {/* =================================================
             SUMMARY CARDS
         ================================================= */}
 
-        <section className="dashboard-stat-grid">
-
-
+        <section className="dashboard-stat-grid dashboard-stat-grid-five">
           <DashboardStat
             icon="🌱"
             label="Farm Status"
@@ -634,31 +386,14 @@ const Dashboard = () => {
             className={farmStatus.className}
           />
 
-
-          <DashboardStat
-            icon="💧"
-            label="Soil Moisture"
-            value={
-              latestMonitoring?.soil_moisture != null
-                ? `${latestMonitoring.soil_moisture}%`
-                : "—"
-            }
-            description={
-              latestMonitoring
-                ? getMoistureStatus(
-                    latestMonitoring.soil_moisture
-                  )
-                : "No monitoring data"
-            }
-          />
-
-
           <DashboardStat
             icon="🌡️"
-            label="Crop Temperature"
+            label="Temperature"
             value={
               latestMonitoring?.crop_temperature != null
-                ? `${latestMonitoring.crop_temperature}°C`
+                ? `${formatNumber(
+                    latestMonitoring.crop_temperature
+                  )}°C`
                 : "—"
             }
             description={
@@ -670,438 +405,321 @@ const Dashboard = () => {
             }
           />
 
+          <DashboardStat
+            icon="💧"
+            label="Humidity"
+            value={
+              weather
+                ? `${Math.round(weather.humidity)}%`
+                : "—"
+            }
+            description="Current farm humidity"
+          />
 
           <DashboardStat
-            icon="🔔"
-            label="Active Alerts"
-            value={activeAlerts.length}
-            description={
-              criticalAlerts.length
-                ? `${criticalAlerts.length} critical`
-                : `${unreadAlerts.length} unread`
+            icon="💦"
+            label="Soil Moisture"
+            value={
+              latestMonitoring?.soil_moisture != null
+                ? `${formatNumber(
+                    latestMonitoring.soil_moisture
+                  )}%`
+                : "—"
             }
-            className={
-              criticalAlerts.length
-                ? "stat-danger"
-                : activeAlerts.length
-                  ? "stat-warning"
-                  : ""
+            description={
+              latestMonitoring
+                ? getMoistureStatus(
+                    latestMonitoring.soil_moisture
+                  )
+                : "No monitoring data"
             }
           />
 
+          <DashboardStat
+            icon="◷"
+            label="Last Updated"
+            value={
+              lastUpdated
+                ? formatTime(lastUpdated)
+                : "—"
+            }
+            description={
+              lastUpdated
+                ? formatDate(lastUpdated)
+                : "No recent reading"
+            }
+          />
         </section>
-
 
         {/* =================================================
             MAIN ROW
         ================================================= */}
 
         <section className="dashboard-two-column">
+          {/* FIELD OVERVIEW */}
 
-
-          {/* ===============================================
-              MONITORING OVERVIEW
-          =============================================== */}
-
-          <div className="dashboard-panel monitoring-overview">
-
+          <div className="dashboard-panel field-overview-panel">
             <PanelHeader
-              title="Monitoring Overview"
-              subtitle="Recent soil moisture and crop temperature readings"
-              link="/monitoring"
-              linkText="View monitoring"
-            />
-
-
-            {loading ? (
-
-              <DashboardLoading />
-
-            ) : chartData.length === 0 ? (
-
-              <EmptyState
-                icon="📊"
-                title="No monitoring data yet"
-                text="Add a monitoring record to start seeing crop trends."
-                link="/monitoring"
-                linkText="Add monitoring"
-              />
-
-            ) : (
-
-              <div className="monitoring-chart">
-
-                <div className="chart-legend">
-
-                  <span>
-                    <i className="legend-dot soil-dot" />
-                    Soil Moisture
-                  </span>
-
-                  <span>
-                    <i className="legend-dot temp-dot" />
-                    Temperature
-                  </span>
-
-                </div>
-
-
-                <div className="chart-area">
-
-                  <div className="chart-y-axis">
-
-                    <span>
-                      {maxChartValue}
-                    </span>
-
-                    <span>
-                      {Math.round(
-                        maxChartValue * 0.75
-                      )}
-                    </span>
-
-                    <span>
-                      {Math.round(
-                        maxChartValue * 0.5
-                      )}
-                    </span>
-
-                    <span>
-                      {Math.round(
-                        maxChartValue * 0.25
-                      )}
-                    </span>
-
-                    <span>
-                      0
-                    </span>
-
-                  </div>
-
-
-                  <div className="chart-bars">
-
-                    {chartData.map(
-                      (
-                        record,
-                        index
-                      ) => {
-
-                        const moisture =
-                          Number(
-                            record.soil_moisture
-                          ) || 0;
-
-
-                        const temperature =
-                          Number(
-                            record.crop_temperature
-                          ) || 0;
-
-
-                        return (
-
-                          <div
-                            className="chart-column"
-                            key={
-                              record.id ||
-                              index
-                            }
-                          >
-
-                            <div className="chart-bars-area">
-
-                              <div
-                                className="chart-bar soil-bar"
-                                style={{
-                                  height: `${Math.min(
-                                    100,
-                                    (
-                                      moisture /
-                                      maxChartValue
-                                    ) *
-                                      100
-                                  )}%`,
-                                }}
-                                title={`Soil moisture: ${moisture}%`}
-                              />
-
-
-                              <div
-                                className="chart-bar temp-bar"
-                                style={{
-                                  height: `${Math.min(
-                                    100,
-                                    (
-                                      temperature /
-                                      maxChartValue
-                                    ) *
-                                      100
-                                  )}%`,
-                                }}
-                                title={`Temperature: ${temperature}°C`}
-                              />
-
-                            </div>
-
-
-                            <span className="chart-label">
-                              {formatShortDate(
-                                record.recorded_at
-                              )}
-                            </span>
-
-                          </div>
-
-                        );
-
-                      }
-                    )}
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            )}
-
-          </div>
-
-
-          {/* ===============================================
-              RECENT ALERTS
-          =============================================== */}
-
-          <div className="dashboard-panel recent-alerts-panel">
-
-            <PanelHeader
-              title="Recent Alerts"
-              subtitle="Latest monitoring notifications"
-              link="/alerts"
-              linkText="View all"
-            />
-
-
-            {loading ? (
-
-              <DashboardLoading />
-
-            ) : recentAlerts.length === 0 ? (
-
-              <EmptyState
-                icon="✓"
-                title="No active alerts"
-                text="Your crops currently have no recorded alerts."
-                link="/alerts"
-                linkText="View alerts"
-              />
-
-            ) : (
-
-              <div className="dashboard-alert-list">
-
-                {recentAlerts.map(
-                  (alert) => (
-
-                    <div
-                      className="dashboard-alert-item"
-                      key={alert.id}
-                    >
-
-                      <div
-                        className={`alert-severity-dot ${
-                          getSeverityClass(
-                            alert.severity
-                          )
-                        }`}
-                      />
-
-
-                      <div className="dashboard-alert-icon">
-                        {getAlertIcon(
-                          alert.alert_type
-                        )}
-                      </div>
-
-
-                      <div className="dashboard-alert-content">
-
-                        <strong>
-                          {alert.alert_type}
-                        </strong>
-
-
-                        <span>
-                          {alert.message}
-                        </span>
-
-
-                        <small>
-                          {formatRelativeTime(
-                            alert.created_at
-                          )}
-                        </small>
-
-                      </div>
-
-
-                      <span
-                        className={`alert-severity-badge ${
-                          getSeverityClass(
-                            alert.severity
-                          )
-                        }`}
-                      >
-                        {alert.severity}
-                      </span>
-
-                    </div>
-
-                  )
-                )}
-
-              </div>
-
-            )}
-
-          </div>
-
-        </section>
-
-
-        {/* =================================================
-            SECOND ROW
-        ================================================= */}
-
-        <section className="dashboard-three-column">
-
-
-          {/* ===============================================
-              CROP HEALTH
-          =============================================== */}
-
-          <div className="dashboard-panel crop-health-panel">
-
-            <PanelHeader
-              title="Crop Health"
-              subtitle="Current crop status"
+              title="Field Overview"
+              subtitle="Current status of your monitored crops"
               link="/crops"
               linkText="View crops"
             />
 
+            <div className="field-overview-content">
+              {crops.length === 0 ? (
+                <EmptyState
+                  icon="▦"
+                  title="No crops yet"
+                  text="Add a tomato crop to start monitoring field status."
+                  link="/crops"
+                  linkText="Manage crops"
+                />
+              ) : (
+                <>
+                  <div className="field-map-grid">
+                    {getFieldBlocks(crops).map(
+                      (field, index) => (
+                        <div
+                          className={`field-block ${
+                            getStatusClass(field.status)
+                          }`}
+                          key={
+                            field.id ||
+                            `${field.name}-${index}`
+                          }
+                        >
+                          <span>
+                            {field.name}
+                          </span>
+                          <small>
+                            {field.status}
+                          </small>
+                          {field.variety && (
+                            <em>{field.variety}</em>
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <div className="field-legend">
+                    <FieldLegend
+                      status="Good"
+                      className="status-good"
+                    />
+                    <FieldLegend
+                      status="Watch"
+                      className="status-warning"
+                    />
+                    <FieldLegend
+                      status="Alert"
+                      className="status-critical"
+                    />
+                    <FieldLegend
+                      status="Offline"
+                      className="status-offline"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* RECENT ALERTS */}
+
+          <div className="dashboard-panel recent-alerts-panel">
+            <PanelHeader
+              title="Recent Alerts"
+              subtitle="Latest warnings and monitoring events"
+              link="/alerts"
+              linkText="View all"
+            />
+
+            {loading ? (
+              <DashboardLoading />
+            ) : recentAlerts.length === 0 ? (
+              <EmptyState
+                icon="✓"
+                title="No alerts"
+                text="Your crops currently have no recorded alerts."
+                link="/alerts"
+                linkText="View alerts"
+              />
+            ) : (
+              <div className="dashboard-alert-list">
+                {recentAlerts.map((alert) => (
+                  <div
+                    className="dashboard-alert-item"
+                    key={alert.id}
+                  >
+                    <div
+                      className={`alert-severity-dot ${getSeverityClass(
+                        alert.severity
+                      )}`}
+                    />
+
+                    <div className="dashboard-alert-icon">
+                      {getAlertIcon(
+                        alert.alert_type
+                      )}
+                    </div>
+
+                    <div className="dashboard-alert-content">
+                      <strong>
+                        {alert.alert_type}
+                      </strong>
+
+                      <span>
+                        {alert.message}
+                      </span>
+
+                      <small>
+                        {formatRelativeTime(
+                          alert.created_at
+                        )}
+                      </small>
+                    </div>
+
+                    <span
+                      className={`alert-severity-badge ${getSeverityClass(
+                        alert.severity
+                      )}`}
+                    >
+                      {alert.severity}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* =================================================
+            ENVIRONMENTAL TRENDS / CROP HEALTH / WEATHER
+        ================================================= */}
+
+        <section className="dashboard-three-column dashboard-middle-grid">
+          <div className="dashboard-panel environmental-panel">
+            <PanelHeader
+              title="Environmental Trends"
+              subtitle="Recent readings from crop monitoring"
+              link="/monitoring"
+              linkText="View monitoring"
+            />
+
+            {loading ? (
+              <DashboardLoading />
+            ) : chartData.length === 0 ? (
+              <EmptyState
+                icon="⌁"
+                title="No trend data yet"
+                text="Add monitoring records to start seeing environmental trends."
+                link="/monitoring"
+                linkText="Add monitoring"
+              />
+            ) : (
+              <EnvironmentalTrendChart
+                data={chartData}
+                showHumidity={hasHistoricalHumidity}
+              />
+            )}
+          </div>
+
+          <div className="dashboard-panel crop-health-panel">
+            <PanelHeader
+              title="Crop Health"
+              subtitle="Overall health of monitored crops"
+              link="/crops"
+              linkText="View crops"
+            />
 
             <div className="health-content">
-
               <div
                 className="health-ring"
                 style={{
-                  "--health": `${healthPercentage * 3.6}deg`,
+                  "--health-angle": `${healthPercentage * 3.6}deg`,
                 }}
               >
-
                 <div className="health-ring-inner">
-
-                  <strong>
-                    {healthPercentage}%
-                  </strong>
-
-                  <span>
-                    Healthy
-                  </span>
-
+                  <strong>{healthPercentage}%</strong>
+                  <span>Healthy</span>
                 </div>
-
               </div>
 
-
               <div className="health-breakdown">
-
                 <HealthRow
                   label="Healthy"
                   value={healthyCrops}
                   className="health-good"
                 />
-
                 <HealthRow
-                  label="Needs Attention"
+                  label="Moderate"
                   value={attentionCrops}
                   className="health-warning"
                 />
-
                 <HealthRow
-                  label="Critical"
+                  label="Poor"
                   value={criticalCrops}
                   className="health-critical"
                 />
-
               </div>
-
             </div>
 
+            <div className="health-footer">
+              <span>
+                {crops.length} total crop
+                {crops.length !== 1 ? "s" : ""}
+              </span>
+
+              {harvestedCrops > 0 && (
+                <span>
+                  {harvestedCrops} harvested
+                </span>
+              )}
+            </div>
           </div>
 
-
-          {/* ===============================================
-              WEATHER
-          =============================================== */}
-
           <div className="dashboard-panel weather-panel">
-
             <PanelHeader
-              title="Weather"
+              title="Weather Forecast"
               subtitle={
                 weather?.location ||
                 farms?.[0]?.location ||
                 "Farm area"
               }
-              link="#"
-              linkText="Current"
               hideLink
             />
 
-
             {weatherLoading ? (
-
               <div className="weather-loading">
                 Loading weather...
               </div>
-
             ) : weather ? (
-
               <>
-
                 <div className="weather-main">
-
                   <div className="weather-icon">
                     {getWeatherIcon(
                       weather.weatherCode
                     )}
                   </div>
 
-
                   <div>
-
                     <div className="weather-temperature">
                       {Math.round(
                         weather.temperature
                       )}°C
                     </div>
 
-
                     <div className="weather-description">
                       {getWeatherDescription(
                         weather.weatherCode
                       )}
                     </div>
-
                   </div>
-
                 </div>
 
-
                 <div className="weather-details">
-
                   <WeatherDetail
                     icon="💧"
                     label="Humidity"
@@ -1109,7 +727,6 @@ const Dashboard = () => {
                       weather.humidity
                     )}%`}
                   />
-
 
                   <WeatherDetail
                     icon="💨"
@@ -1119,19 +736,14 @@ const Dashboard = () => {
                     )} km/h`}
                   />
 
-
                   <WeatherDetail
                     icon="🌧️"
                     label="Rain"
                     value={`${weather.rain} mm`}
                   />
-
                 </div>
-
               </>
-
             ) : (
-
               <EmptyState
                 icon="☁️"
                 title="Weather unavailable"
@@ -1141,227 +753,493 @@ const Dashboard = () => {
                     : "Add a farm with coordinates to display weather."
                 }
               />
-
             )}
-
           </div>
+        </section>
 
+        {/* =================================================
+            CROP MONITORING / PEST & DISEASE / ALERT SUMMARY
+        ================================================= */}
 
-          {/* ===============================================
-              DETECTION SUMMARY
-          =============================================== */}
-
-          <div className="dashboard-panel detection-panel">
-
+        <section className="dashboard-three-column dashboard-lower-grid">
+          <div className="dashboard-panel crop-monitoring-panel">
             <PanelHeader
-              title="Detection Summary"
-              subtitle="Recorded crop detections"
+              title="Crop Monitoring"
+              subtitle="Current status by monitored crop"
               link="/monitoring"
               linkText="View details"
             />
 
-
-            <div className="detection-list">
-
-              <DetectionRow
-                icon="🐛"
-                label="Pest Detection"
-                value={pestDetections}
-                className="detection-warning"
+            {crops.length === 0 ? (
+              <EmptyState
+                icon="🍅"
+                title="No monitored crops"
+                text="Add a crop and record monitoring data to populate this section."
+                link="/crops"
+                linkText="Manage crops"
               />
+            ) : (
+              <div className="crop-monitoring-list">
+                {crops.slice(0, 5).map((crop) => (
+                  <div
+                    className="crop-monitoring-row"
+                    key={crop.id}
+                  >
+                    <div className="crop-monitoring-thumb">
+                      🍅
+                    </div>
 
+                    <div className="crop-monitoring-info">
+                      <strong>
+                        {crop.crop_name ||
+                          "Tomato Crop"}
+                      </strong>
 
-              <DetectionRow
-                icon="🦠"
-                label="Disease Detection"
-                value={diseaseDetections}
-                className="detection-critical"
-              />
+                      <span>
+                        {crop.variety ||
+                          "Tomato"}
+                      </span>
+                    </div>
 
+                    <span
+                      className={`status-pill ${getStatusClass(
+                        crop.status
+                      )}`}
+                    >
+                      {crop.status ||
+                        "Unknown"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              <DetectionRow
-                icon="🍃"
-                label="Discoloration"
-                value={discolorationDetections}
-                className="detection-info"
-              />
-
-            </div>
-
+            {crops.length > 5 && (
+              <Link
+                className="panel-bottom-link"
+                to="/crops"
+              >
+                View all {crops.length} crops
+              </Link>
+            )}
           </div>
 
-        </section>
+          <div className="dashboard-panel detection-panel">
+            <PanelHeader
+              title="Pest & Disease Detection"
+              subtitle="Latest condition findings"
+              link="/monitoring"
+              linkText="View details"
+            />
 
+            {recentDetection ? (
+              <div className="detection-feature">
+                <div className="detection-feature-visual">
+                  <div className="detection-leaf">
+                    🍃
+                  </div>
+
+                  <span
+                    className={`detection-status-chip ${
+                      recentDetection.disease_detected
+                        ? "critical"
+                        : recentDetection.pest_detected ||
+                          recentDetection.discoloration_detected
+                        ? "warning"
+                        : "good"
+                    }`}
+                  >
+                    {getDetectionLabel(
+                      recentDetection
+                    )}
+                  </span>
+                </div>
+
+                <div className="detection-feature-copy">
+                  <strong>
+                    {getDetectionTitle(
+                      recentDetection
+                    )}
+                  </strong>
+
+                  <span>
+                    Recorded{" "}
+                    {formatRelativeTime(
+                      recentDetection.recorded_at
+                    )}
+                  </span>
+
+                  <div className="detection-count-grid">
+                    <DetectionMini
+                      label="Pest"
+                      value={pestDetections}
+                      className="detection-warning"
+                    />
+
+                    <DetectionMini
+                      label="Disease"
+                      value={diseaseDetections}
+                      className="detection-critical"
+                    />
+
+                    <DetectionMini
+                      label="Discoloration"
+                      value={
+                        discolorationDetections
+                      }
+                      className="detection-info"
+                    />
+                  </div>
+
+                  <p>
+                    {getDetectionRecommendation(
+                      recentDetection
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon="✓"
+                title="No detections recorded"
+                text="Detection results will appear here when monitoring data is available."
+                link="/monitoring"
+                linkText="Add monitoring"
+              />
+            )}
+          </div>
+
+          <div className="dashboard-panel alert-summary-panel">
+            <PanelHeader
+              title="Alerts"
+              subtitle="Current notification overview"
+              link="/alerts"
+              linkText="View all alerts"
+            />
+
+            <div className="alert-summary-tabs">
+              <span className="active">
+                All
+              </span>
+              <span>
+                Unread {unreadAlerts.length}
+              </span>
+              <span>
+                Critical {criticalAlerts.length}
+              </span>
+            </div>
+
+            <div className="alert-summary-list">
+              {recentAlerts.slice(0, 4).map(
+                (alert) => (
+                  <div
+                    className="alert-summary-row"
+                    key={alert.id}
+                  >
+                    <div
+                      className={`alert-summary-icon ${getSeverityClass(
+                        alert.severity
+                      )}`}
+                    >
+                      {getAlertIcon(
+                        alert.alert_type
+                      )}
+                    </div>
+
+                    <div>
+                      <strong>
+                        {alert.alert_type}
+                      </strong>
+                      <span>
+                        {alert.message}
+                      </span>
+                    </div>
+
+                    <small>
+                      {formatTime(
+                        alert.created_at
+                      )}
+                    </small>
+                  </div>
+                )
+              )}
+
+              {recentAlerts.length === 0 && (
+                <div className="alert-summary-empty">
+                  No recent alerts.
+                </div>
+              )}
+            </div>
+
+            <Link
+              className="panel-bottom-link centered"
+              to="/alerts"
+            >
+              View all alerts
+            </Link>
+          </div>
+        </section>
 
         {/* =================================================
             QUICK ACTIONS
         ================================================= */}
 
         <section className="dashboard-panel quick-actions-panel">
-
           <div className="panel-header">
-
             <div>
-
-              <h2>
-                Quick Actions
-              </h2>
-
+              <h2>Quick Actions</h2>
               <p>
                 Common AgriWatch functions
               </p>
-
             </div>
-
           </div>
 
-
           <div className="quick-actions">
-
             {role !== "viewer" && (
-
               <Link
                 to="/monitoring"
                 className="quick-action"
               >
-
-                <span>
-                  💧
-                </span>
-
+                <span>💧</span>
                 <div>
-
                   <strong>
                     Add Monitoring
                   </strong>
-
                   <small>
                     Record crop conditions
                   </small>
-
                 </div>
-
               </Link>
-
             )}
-
 
             <Link
               to="/alerts"
               className="quick-action"
             >
-
-              <span>
-                🔔
-              </span>
-
+              <span>🔔</span>
               <div>
-
-                <strong>
-                  View Alerts
-                </strong>
-
+                <strong>View Alerts</strong>
                 <small>
                   Review crop warnings
                 </small>
-
               </div>
-
             </Link>
-
 
             <Link
               to="/crops"
               className="quick-action"
             >
-
-              <span>
-                🍅
-              </span>
-
+              <span>🍅</span>
               <div>
-
-                <strong>
-                  My Crops
-                </strong>
-
+                <strong>My Crops</strong>
                 <small>
                   Manage tomato crops
                 </small>
-
               </div>
-
             </Link>
-
 
             <Link
               to="/analytics"
               className="quick-action"
             >
-
-              <span>
-                📊
-              </span>
-
+              <span>📊</span>
               <div>
-
-                <strong>
-                  Analytics
-                </strong>
-
+                <strong>Analytics</strong>
                 <small>
                   Review monitoring trends
                 </small>
-
               </div>
-
             </Link>
-
           </div>
-
         </section>
-
 
         {/* =================================================
             ADMIN INFORMATION
         ================================================= */}
 
         {role === "admin" && (
-
           <section className="admin-dashboard-note">
-
             <div className="admin-dashboard-icon">
               🛡️
             </div>
 
-
             <div>
-
               <strong>
                 Administrator access
               </strong>
 
-
               <p>
                 {users.length} registered user
-                {users.length !== 1 ? "s" : ""} in the
-                AgriWatch system. You can manage
-                accounts and system settings from
-                the administration menu.
+                {users.length !== 1 ? "s" : ""} in
+                the AgriWatch system. You can manage
+                accounts and system settings from the
+                administration menu.
               </p>
-
             </div>
-
           </section>
-
         )}
-
       </section>
-
     </DashboardLayout>
   );
 };
 
+// =========================================================
+// CHART
+// =========================================================
+
+const EnvironmentalTrendChart = ({
+  data,
+  showHumidity,
+}) => {
+  const chartWidth = 760;
+  const chartHeight = 250;
+  const left = 44;
+  const right = 14;
+  const top = 18;
+  const bottom = 38;
+
+  const plotWidth =
+    chartWidth - left - right;
+
+  const plotHeight =
+    chartHeight - top - bottom;
+
+  const xFor = (index) =>
+    data.length === 1
+      ? left + plotWidth / 2
+      : left +
+        (index / (data.length - 1)) *
+          plotWidth;
+
+  const yFor = (value) => {
+    const numeric = Number(value) || 0;
+    return (
+      top +
+      plotHeight -
+      (Math.max(0, Math.min(100, numeric)) /
+        100) *
+        plotHeight
+    );
+  };
+
+  const buildPoints = (key) =>
+    data
+      .filter((item) => item[key] != null)
+      .map((item) => {
+        const index = data.indexOf(item);
+
+        return `${xFor(index)},${yFor(
+          key === "temperature"
+            ? Math.min(
+                100,
+                Number(item[key]) || 0
+              )
+            : Number(item[key]) || 0
+        )}`;
+      })
+      .join(" ");
+
+  return (
+    <div className="trend-chart">
+      <div className="chart-legend">
+        <span>
+          <i className="legend-dot temp-dot" />
+          Temperature
+        </span>
+
+        <span>
+          <i className="legend-dot humidity-dot" />
+          Humidity
+        </span>
+
+        <span>
+          <i className="legend-dot soil-dot" />
+          Soil Moisture
+        </span>
+      </div>
+
+      <div className="svg-chart-wrap">
+        <svg
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          role="img"
+          aria-label="Environmental trends chart"
+          preserveAspectRatio="none"
+        >
+          {[0, 25, 50, 75, 100].map(
+            (tick) => {
+              const y = yFor(tick);
+
+              return (
+                <g key={tick}>
+                  <line
+                    x1={left}
+                    x2={chartWidth - right}
+                    y1={y}
+                    y2={y}
+                    className="chart-grid-line"
+                  />
+                  <text
+                    x={left - 10}
+                    y={y + 4}
+                    className="chart-axis-label"
+                    textAnchor="end"
+                  >
+                    {tick}
+                  </text>
+                </g>
+              );
+            }
+          )}
+
+          <polyline
+            points={buildPoints(
+              "temperature"
+            )}
+            className="trend-line trend-temperature"
+            fill="none"
+          />
+
+          {showHumidity && (
+            <polyline
+              points={buildPoints("humidity")}
+              className="trend-line trend-humidity"
+              fill="none"
+            />
+          )}
+
+          <polyline
+            points={buildPoints("moisture")}
+            className="trend-line trend-soil"
+            fill="none"
+          />
+
+          {data.map(
+            (item, index) => (
+              <text
+                key={`label-${item.id || index}`}
+                x={xFor(index)}
+                y={chartHeight - 10}
+                className="chart-x-label"
+                textAnchor="middle"
+              >
+                {item.shortDate}
+              </text>
+            )
+          )}
+        </svg>
+      </div>
+
+      {!showHumidity && (
+        <p className="chart-note">
+          Humidity trend becomes available when
+          historical humidity readings are included
+          in monitoring records. Current humidity is
+          shown in the summary and weather cards.
+        </p>
+      )}
+    </div>
+  );
+};
 
 // =========================================================
 // COMPONENTS
@@ -1373,42 +1251,21 @@ const DashboardStat = ({
   value,
   description,
   className = "",
-}) => {
-
-  return (
-
-    <div
-      className={`dashboard-stat-card ${className}`}
-    >
-
-      <div className="dashboard-stat-icon">
-        {icon}
-      </div>
-
-
-      <div className="dashboard-stat-info">
-
-        <span>
-          {label}
-        </span>
-
-
-        <strong>
-          {value}
-        </strong>
-
-
-        <small>
-          {description}
-        </small>
-
-      </div>
-
+}) => (
+  <div
+    className={`dashboard-stat-card ${className}`}
+  >
+    <div className="dashboard-stat-icon">
+      {icon}
     </div>
 
-  );
-};
-
+    <div className="dashboard-stat-info">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{description}</small>
+    </div>
+  </div>
+);
 
 const PanelHeader = ({
   title,
@@ -1416,171 +1273,88 @@ const PanelHeader = ({
   link,
   linkText,
   hideLink = false,
-}) => {
-
-  return (
-
-    <div className="panel-header">
-
-      <div>
-
-        <h2>
-          {title}
-        </h2>
-
-
-        <p>
-          {subtitle}
-        </p>
-
-      </div>
-
-
-      {!hideLink && link && (
-
-        <Link
-          to={link}
-          className="panel-action"
-        >
-          {linkText}
-        </Link>
-
-      )}
-
+}) => (
+  <div className="panel-header">
+    <div>
+      <h2>{title}</h2>
+      <p>{subtitle}</p>
     </div>
 
-  );
-
-};
-
+    {!hideLink && link && (
+      <Link
+        to={link}
+        className="panel-action"
+      >
+        {linkText}
+      </Link>
+    )}
+  </div>
+);
 
 const HealthRow = ({
   label,
   value,
   className,
-}) => {
-
-  return (
-
-    <div className="health-row">
-
-      <div>
-
-        <i
-          className={`health-dot ${className}`}
-        />
-
-        <span>
-          {label}
-        </span>
-
-      </div>
-
-
-      <strong>
-        {value}
-      </strong>
-
+}) => (
+  <div className="health-row">
+    <div>
+      <i className={`health-dot ${className}`} />
+      <span>{label}</span>
     </div>
 
-  );
+    <strong>{value}</strong>
+  </div>
+);
 
-};
+const FieldLegend = ({
+  status,
+  className,
+}) => (
+  <span>
+    <i
+      className={`field-legend-dot ${className}`}
+    />
+    {status}
+  </span>
+);
 
-
-const DetectionRow = ({
-  icon,
+const DetectionMini = ({
   label,
   value,
   className,
-}) => {
-
-  return (
-
-    <div className="detection-row">
-
-      <div
-        className={`detection-icon ${className}`}
-      >
-        {icon}
-      </div>
-
-
-      <div>
-
-        <strong>
-          {label}
-        </strong>
-
-        <span>
-          Recorded detections
-        </span>
-
-      </div>
-
-
-      <b>
-        {value}
-      </b>
-
-    </div>
-
-  );
-
-};
-
+}) => (
+  <div className="detection-mini">
+    <i
+      className={`detection-mini-dot ${className}`}
+    />
+    <span>{label}</span>
+    <strong>{value}</strong>
+  </div>
+);
 
 const WeatherDetail = ({
   icon,
   label,
   value,
-}) => {
+}) => (
+  <div className="weather-detail">
+    <span>{icon}</span>
 
-  return (
-
-    <div className="weather-detail">
-
-      <span>
-        {icon}
-      </span>
-
-      <div>
-
-        <small>
-          {label}
-        </small>
-
-        <strong>
-          {value}
-        </strong>
-
-      </div>
-
+    <div>
+      <small>{label}</small>
+      <strong>{value}</strong>
     </div>
+  </div>
+);
 
-  );
-
-};
-
-
-const DashboardLoading = () => {
-
-  return (
-
-    <div className="dashboard-loading">
-
-      <div className="loading-spinner" />
-
-      <span>
-        Loading monitoring data...
-      </span>
-
-    </div>
-
-  );
-
-};
-
+const DashboardLoading = () => (
+  <div className="dashboard-loading">
+    <div className="loading-spinner" />
+    <span>
+      Loading monitoring data...
+    </span>
+  </div>
+);
 
 const EmptyState = ({
   icon,
@@ -1588,161 +1362,212 @@ const EmptyState = ({
   text,
   link,
   linkText,
-}) => {
+}) => (
+  <div className="dashboard-empty">
+    <div className="empty-icon">{icon}</div>
+    <strong>{title}</strong>
+    <span>{text}</span>
 
-  return (
-
-    <div className="dashboard-empty">
-
-      <div className="empty-icon">
-        {icon}
-      </div>
-
-
-      <strong>
-        {title}
-      </strong>
-
-
-      <span>
-        {text}
-      </span>
-
-
-      {link && (
-
-        <Link
-          to={link}
-          className="empty-action"
-        >
-          {linkText}
-        </Link>
-
-      )}
-
-    </div>
-
-  );
-
-};
-
+    {link && (
+      <Link
+        to={link}
+        className="empty-action"
+      >
+        {linkText}
+      </Link>
+    )}
+  </div>
+);
 
 // =========================================================
 // HELPERS
 // =========================================================
 
-function extractArray(
-  response,
-  keys
-) {
-
+function extractArray(response, keys) {
   if (Array.isArray(response)) {
     return response;
   }
-
 
   if (!response) {
     return [];
   }
 
-
   for (const key of keys) {
-
-    if (
-      Array.isArray(
-        response[key]
-      )
-    ) {
+    if (Array.isArray(response[key])) {
       return response[key];
     }
-
   }
-
 
   return [];
 }
 
+function formatNumber(value) {
+  const number = Number(value);
 
-function getMoistureStatus(
-  value
-) {
+  if (!Number.isFinite(number)) {
+    return "—";
+  }
 
-  const moisture =
-    Number(value);
+  return Number.isInteger(number)
+    ? String(number)
+    : number.toFixed(1);
+}
 
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatTime(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleTimeString("en-PH", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatShortDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatRelativeTime(value) {
+  if (!value) {
+    return "Unknown time";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown time";
+  }
+
+  const now = new Date();
+
+  const difference = Math.max(
+    0,
+    now.getTime() - date.getTime()
+  );
+
+  const minutes = Math.floor(
+    difference / (1000 * 60)
+  );
+
+  if (minutes < 1) {
+    return "Just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} minute${
+      minutes === 1 ? "" : "s"
+    } ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours} hour${
+      hours === 1 ? "" : "s"
+    } ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+
+  return `${days} day${
+    days === 1 ? "" : "s"
+  } ago`;
+}
+
+function getMoistureStatus(value) {
+  const moisture = Number(value);
+
+  if (!Number.isFinite(moisture)) {
+    return "No reading";
+  }
 
   if (moisture < 30) {
     return "Low moisture";
   }
 
-
   if (moisture < 45) {
     return "Monitor moisture";
   }
 
-
   return "Good moisture level";
-
 }
 
+function getTemperatureStatus(value) {
+  const temperature = Number(value);
 
-function getTemperatureStatus(
-  value
-) {
-
-  const temperature =
-    Number(value);
-
+  if (!Number.isFinite(temperature)) {
+    return "No reading";
+  }
 
   if (temperature > 35) {
     return "Critical temperature";
   }
 
-
   if (temperature >= 30) {
     return "Elevated temperature";
   }
 
-
   return "Normal temperature";
-
 }
 
-
-function getSeverityClass(
-  severity
-) {
-
-  const value =
-    String(
-      severity || ""
-    ).toLowerCase();
-
+function getSeverityClass(severity) {
+  const value = String(
+    severity || ""
+  ).toLowerCase();
 
   if (value === "critical") {
     return "severity-critical";
   }
 
-
   if (value === "warning") {
     return "severity-warning";
   }
 
-
   return "severity-info";
-
 }
 
-
-function getAlertIcon(
-  type
-) {
-
-  const value =
-    String(
-      type || ""
-    ).toLowerCase();
-
+function getAlertIcon(type) {
+  const value = String(
+    type || ""
+  ).toLowerCase();
 
   if (
     value.includes("soil") ||
@@ -1751,353 +1576,262 @@ function getAlertIcon(
     return "💧";
   }
 
-
-  if (
-    value.includes("temperature")
-  ) {
+  if (value.includes("temperature")) {
     return "🌡️";
   }
 
-
-  if (
-    value.includes("pest")
-  ) {
+  if (value.includes("pest")) {
     return "🐛";
   }
 
-
-  if (
-    value.includes("disease")
-  ) {
+  if (value.includes("disease")) {
     return "🦠";
   }
 
-
-  if (
-    value.includes("discolor")
-  ) {
+  if (value.includes("discolor")) {
     return "🍃";
   }
 
-
   return "⚠️";
-
 }
 
+function getStatusClass(status) {
+  const value = String(
+    status || ""
+  ).toLowerCase();
 
-function formatShortDate(
-  value
-) {
-
-  if (!value) {
-    return "";
+  if (value === "healthy" || value === "good") {
+    return "status-good";
   }
 
+  if (
+    value === "needs attention" ||
+    value === "watch"
+  ) {
+    return "status-warning";
+  }
 
-  const date =
-    new Date(value);
+  if (value === "critical" || value === "alert") {
+    return "status-critical";
+  }
 
+  if (value === "offline") {
+    return "status-offline";
+  }
 
-  return date.toLocaleDateString(
-    "en-PH",
-    {
-      month: "short",
-      day: "numeric",
+  if (value === "harvested") {
+    return "status-harvested";
+  }
+
+  return "status-warning";
+}
+
+function getFieldBlocks(crops) {
+  return crops.slice(0, 9).map(
+    (crop, index) => {
+      const letter = String.fromCharCode(
+        65 + index
+      );
+
+      return {
+        id: crop.id,
+        name:
+          crop.crop_name ||
+          `Block ${letter}`,
+        variety: crop.variety,
+        status:
+          String(
+            crop.status || "Healthy"
+          ).toLowerCase() ===
+          "needs attention"
+            ? "Watch"
+            : String(
+                crop.status || "Healthy"
+              ).toLowerCase() ===
+              "critical"
+            ? "Alert"
+            : String(
+                crop.status || "Healthy"
+              ).toLowerCase() ===
+              "harvested"
+            ? "Harvested"
+            : "Good",
+      };
     }
   );
-
 }
 
-
-function formatRelativeTime(
-  value
-) {
-
-  if (!value) {
-    return "Unknown time";
+function getDetectionLabel(record) {
+  if (record.disease_detected) {
+    return "Alert";
   }
 
-
-  const date =
-    new Date(value);
-
-
-  const now =
-    new Date();
-
-
-  const difference =
-    now.getTime() -
-    date.getTime();
-
-
-  const minutes =
-    Math.floor(
-      difference /
-      (1000 * 60)
-    );
-
-
-  if (minutes < 1) {
-    return "Just now";
+  if (
+    record.pest_detected ||
+    record.discoloration_detected
+  ) {
+    return "Watch";
   }
 
-
-  if (minutes < 60) {
-    return `${minutes} minute${
-      minutes === 1 ? "" : "s"
-    } ago`;
-  }
-
-
-  const hours =
-    Math.floor(
-      minutes / 60
-    );
-
-
-  if (hours < 24) {
-    return `${hours} hour${
-      hours === 1 ? "" : "s"
-    } ago`;
-  }
-
-
-  const days =
-    Math.floor(
-      hours / 24
-    );
-
-
-  return `${days} day${
-    days === 1 ? "" : "s"
-  } ago`;
-
+  return "Good";
 }
 
+function getDetectionTitle(record) {
+  if (record.disease_detected) {
+    return "Possible crop disease detected";
+  }
+
+  if (record.pest_detected) {
+    return "Possible pest infestation detected";
+  }
+
+  if (record.discoloration_detected) {
+    return "Possible crop discoloration detected";
+  }
+
+  if (
+    String(
+      record.plant_condition || ""
+    ).toLowerCase() !== "healthy"
+  ) {
+    return `Plant condition: ${record.plant_condition}`;
+  }
+
+  return "No abnormal detection";
+}
+
+function getDetectionRecommendation(record) {
+  if (record.disease_detected) {
+    return "Review the affected crop and open the monitoring record for further assessment.";
+  }
+
+  if (record.pest_detected) {
+    return "Inspect the plant for visible pests and monitor the affected area closely.";
+  }
+
+  if (record.discoloration_detected) {
+    return "Inspect leaves and fruit for visible discoloration and record the next monitoring result.";
+  }
+
+  return "Continue regular monitoring and compare the latest readings with previous records.";
+}
 
 // =========================================================
 // WEATHER API
 // =========================================================
 
-/*
- * Get weather directly from latitude and longitude.
- *
- * IMPORTANT:
- * We no longer geocode the farm's text location.
- *
- * This means:
- *
- * Farm coordinates
- *      ↓
- * Open-Meteo
- *      ↓
- * Exact weather location
- */
-
-async function getWeather(
-  latitude,
-  longitude
-) {
-
+async function getWeather(latitude, longitude) {
   if (
     latitude === null ||
     longitude === null ||
     latitude === undefined ||
     longitude === undefined
   ) {
-
     throw new Error(
       "Farm coordinates are required."
     );
-
   }
 
-
-  const response =
-    await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(
-        latitude
-      )}&longitude=${encodeURIComponent(
-        longitude
-      )}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`
-    );
-
+  const response = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(
+      latitude
+    )}&longitude=${encodeURIComponent(
+      longitude
+    )}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=auto`
+  );
 
   if (!response.ok) {
-
     throw new Error(
       "Unable to retrieve weather."
     );
-
   }
 
-
-  const data =
-    await response.json();
-
+  const data = await response.json();
 
   return {
-
     temperature:
-      data.current?.temperature_2m ??
-      0,
-
+      data.current?.temperature_2m ?? 0,
     humidity:
-      data.current?.relative_humidity_2m ??
-      0,
-
+      data.current?.relative_humidity_2m ?? 0,
     rain:
-      data.current?.precipitation ??
-      0,
-
+      data.current?.precipitation ?? 0,
     weatherCode:
-      data.current?.weather_code ??
-      0,
-
+      data.current?.weather_code ?? 0,
     windSpeed:
-      data.current?.wind_speed_10m ??
-      0,
-
+      data.current?.wind_speed_10m ?? 0,
   };
-
 }
 
-
-// =========================================================
-// WEATHER ICON
-// =========================================================
-
-function getWeatherIcon(
-  code
-) {
-
+function getWeatherIcon(code) {
   if (code === 0) {
     return "☀️";
   }
 
-
-  if (
-    code === 1 ||
-    code === 2
-  ) {
+  if (code === 1 || code === 2) {
     return "⛅";
   }
-
 
   if (code === 3) {
     return "☁️";
   }
 
-
-  if (
-    code >= 45 &&
-    code <= 48
-  ) {
+  if (code >= 45 && code <= 48) {
     return "🌫️";
   }
 
-
-  if (
-    code >= 51 &&
-    code <= 67
-  ) {
+  if (code >= 51 && code <= 67) {
     return "🌧️";
   }
 
-
-  if (
-    code >= 71 &&
-    code <= 77
-  ) {
+  if (code >= 71 && code <= 77) {
     return "🌨️";
   }
 
-
-  if (
-    code >= 80 &&
-    code <= 82
-  ) {
+  if (code >= 80 && code <= 82) {
     return "🌦️";
   }
-
 
   if (code >= 95) {
     return "⛈️";
   }
 
-
   return "🌤️";
-
 }
 
-
-// =========================================================
-// WEATHER DESCRIPTION
-// =========================================================
-
-function getWeatherDescription(
-  code
-) {
-
+function getWeatherDescription(code) {
   if (code === 0) {
     return "Clear sky";
   }
 
-
-  if (
-    code === 1 ||
-    code === 2
-  ) {
+  if (code === 1 || code === 2) {
     return "Partly cloudy";
   }
-
 
   if (code === 3) {
     return "Overcast";
   }
 
-
-  if (
-    code >= 45 &&
-    code <= 48
-  ) {
+  if (code >= 45 && code <= 48) {
     return "Foggy";
   }
 
-
-  if (
-    code >= 51 &&
-    code <= 67
-  ) {
+  if (code >= 51 && code <= 67) {
     return "Rain";
   }
 
-
-  if (
-    code >= 71 &&
-    code <= 77
-  ) {
+  if (code >= 71 && code <= 77) {
     return "Snow";
   }
 
-
-  if (
-    code >= 80 &&
-    code <= 82
-  ) {
+  if (code >= 80 && code <= 82) {
     return "Rain showers";
   }
-
 
   if (code >= 95) {
     return "Thunderstorm";
   }
 
-
   return "Variable conditions";
-
 }
-
 
 export default Dashboard;
