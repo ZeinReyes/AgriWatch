@@ -227,11 +227,32 @@ const Dashboard = () => {
       "harvested"
   ).length;
 
-  const healthPercentage = crops.length
-    ? Math.round(
+  const healthPercentages = useMemo(() => {
+    if (!crops.length) {
+      return {
+        healthy: 0,
+        moderate: 0,
+        poor: 0,
+      };
+    }
+
+    return {
+      healthy: Math.round(
         (healthyCrops / crops.length) * 100
-      )
-    : 0;
+      ),
+      moderate: Math.round(
+        (attentionCrops / crops.length) * 100
+      ),
+      poor: Math.round(
+        (criticalCrops / crops.length) * 100
+      ),
+    };
+  }, [
+    crops.length,
+    healthyCrops,
+    attentionCrops,
+    criticalCrops,
+  ]);
 
   const pestDetections = monitoringRecords.filter(
     (record) => Boolean(record.pest_detected)
@@ -638,11 +659,13 @@ const Dashboard = () => {
               <div
                 className="health-ring"
                 style={{
-                  "--health-angle": `${healthPercentage * 3.6}deg`,
+                  "--healthy-angle": `${healthPercentages.healthy * 3.6}deg`,
+                  "--moderate-angle": `${healthPercentages.moderate * 3.6}deg`,
+                  "--poor-angle": `${healthPercentages.poor * 3.6}deg`,
                 }}
               >
                 <div className="health-ring-inner">
-                  <strong>{healthPercentage}%</strong>
+                  <strong>{healthPercentages.healthy}%</strong>
                   <span>Healthy</span>
                 </div>
               </div>
@@ -650,17 +673,20 @@ const Dashboard = () => {
               <div className="health-breakdown">
                 <HealthRow
                   label="Healthy"
-                  value={healthyCrops}
+                  value={`${healthPercentages.healthy}%`}
+                  count={healthyCrops}
                   className="health-good"
                 />
                 <HealthRow
                   label="Moderate"
-                  value={attentionCrops}
+                  value={`${healthPercentages.moderate}%`}
+                  count={attentionCrops}
                   className="health-warning"
                 />
                 <HealthRow
                   label="Poor"
-                  value={criticalCrops}
+                  value={`${healthPercentages.poor}%`}
+                  count={criticalCrops}
                   className="health-critical"
                 />
               </div>
@@ -1087,75 +1113,66 @@ const Dashboard = () => {
 // CHART
 // =========================================================
 
-const EnvironmentalTrendChart = ({
-  data,
-  showHumidity,
-}) => {
-  const chartWidth = 760;
-  const chartHeight = 250;
-  const left = 44;
-  const right = 14;
+const EnvironmentalTrendChart = ({ data, showHumidity }) => {
+  const chartWidth = 820;
+  const chartHeight = 255;
+  const left = 42;
+  const right = 22;
   const top = 18;
   const bottom = 38;
 
-  const plotWidth =
-    chartWidth - left - right;
-
-  const plotHeight =
-    chartHeight - top - bottom;
+  const plotWidth = chartWidth - left - right;
+  const plotHeight = chartHeight - top - bottom;
 
   const xFor = (index) =>
     data.length === 1
       ? left + plotWidth / 2
       : left +
-        (index / (data.length - 1)) *
-          plotWidth;
+        (index / (data.length - 1)) * plotWidth;
 
-  const yFor = (value) => {
-    const numeric = Number(value) || 0;
-    return (
-      top +
-      plotHeight -
-      (Math.max(0, Math.min(100, numeric)) /
-        100) *
-        plotHeight
-    );
-  };
+  const clamp = (value) =>
+    Math.max(0, Math.min(100, Number(value) || 0));
+
+  const yFor = (value) =>
+    top +
+    plotHeight -
+    (clamp(value) / 100) * plotHeight;
 
   const buildPoints = (key) =>
     data
       .filter((item) => item[key] != null)
       .map((item) => {
         const index = data.indexOf(item);
-
-        return `${xFor(index)},${yFor(
-          key === "temperature"
-            ? Math.min(
-                100,
-                Number(item[key]) || 0
-              )
-            : Number(item[key]) || 0
-        )}`;
+        return `${xFor(index)},${yFor(item[key])}`;
       })
       .join(" ");
 
+  const temperaturePoints = buildPoints("temperature");
+  const humidityPoints = showHumidity
+    ? buildPoints("humidity")
+    : "";
+  const soilPoints = buildPoints("moisture");
+
   return (
     <div className="trend-chart">
-      <div className="chart-legend">
-        <span>
-          <i className="legend-dot temp-dot" />
-          Temperature
-        </span>
-
-        <span>
-          <i className="legend-dot humidity-dot" />
-          Humidity
-        </span>
-
-        <span>
-          <i className="legend-dot soil-dot" />
-          Soil Moisture
-        </span>
+      <div className="chart-heading-row">
+        <div className="chart-legend">
+          <span>
+            <i className="legend-dot temp-dot" />
+            Temperature (°C)
+          </span>
+          {showHumidity && (
+            <span>
+              <i className="legend-dot humidity-dot" />
+              Humidity (%)
+            </span>
+          )}
+          <span>
+            <i className="legend-dot soil-dot" />
+            Soil Moisture (%)
+          </span>
+        </div>
+        <span className="chart-period">Last 7 readings</span>
       </div>
 
       <div className="svg-chart-wrap">
@@ -1165,76 +1182,98 @@ const EnvironmentalTrendChart = ({
           aria-label="Environmental trends chart"
           preserveAspectRatio="none"
         >
-          {[0, 25, 50, 75, 100].map(
-            (tick) => {
-              const y = yFor(tick);
+          {[0, 25, 50, 75, 100].map((tick) => {
+            const y = yFor(tick);
 
-              return (
-                <g key={tick}>
-                  <line
-                    x1={left}
-                    x2={chartWidth - right}
-                    y1={y}
-                    y2={y}
-                    className="chart-grid-line"
-                  />
-                  <text
-                    x={left - 10}
-                    y={y + 4}
-                    className="chart-axis-label"
-                    textAnchor="end"
-                  >
-                    {tick}
-                  </text>
-                </g>
-              );
-            }
-          )}
+            return (
+              <g key={tick}>
+                <line
+                  x1={left}
+                  x2={chartWidth - right}
+                  y1={y}
+                  y2={y}
+                  className="chart-grid-line"
+                />
+                <text
+                  x={left - 10}
+                  y={y + 4}
+                  className="chart-axis-label"
+                  textAnchor="end"
+                >
+                  {tick}
+                </text>
+              </g>
+            );
+          })}
 
           <polyline
-            points={buildPoints(
-              "temperature"
-            )}
+            points={temperaturePoints}
             className="trend-line trend-temperature"
             fill="none"
           />
 
           {showHumidity && (
             <polyline
-              points={buildPoints("humidity")}
+              points={humidityPoints}
               className="trend-line trend-humidity"
               fill="none"
             />
           )}
 
           <polyline
-            points={buildPoints("moisture")}
+            points={soilPoints}
             className="trend-line trend-soil"
             fill="none"
           />
 
-          {data.map(
-            (item, index) => (
+          {data.map((item, index) => (
+            <g key={`point-${item.id || index}`}>
+              {item.temperature != null && (
+                <circle
+                  cx={xFor(index)}
+                  cy={yFor(item.temperature)}
+                  r="3.2"
+                  className="trend-point temperature-point"
+                />
+              )}
+
+              {showHumidity && item.humidity != null && (
+                <circle
+                  cx={xFor(index)}
+                  cy={yFor(item.humidity)}
+                  r="3.2"
+                  className="trend-point humidity-point"
+                />
+              )}
+
+              {item.moisture != null && (
+                <circle
+                  cx={xFor(index)}
+                  cy={yFor(item.moisture)}
+                  r="3.2"
+                  className="trend-point soil-point"
+                />
+              )}
+
               <text
-                key={`label-${item.id || index}`}
                 x={xFor(index)}
-                y={chartHeight - 10}
+                y={chartHeight - 11}
                 className="chart-x-label"
                 textAnchor="middle"
               >
                 {item.shortDate}
               </text>
-            )
-          )}
+            </g>
+          ))}
         </svg>
       </div>
 
       {!showHumidity && (
         <p className="chart-note">
-          Humidity trend becomes available when
-          historical humidity readings are included
-          in monitoring records. Current humidity is
-          shown in the summary and weather cards.
+          Temperature and soil moisture are shown from monitoring
+          records. Humidity is displayed in the summary and weather
+          cards because historical humidity is not currently stored
+          in monitoring records.
         </p>
       )}
     </div>
@@ -1294,6 +1333,7 @@ const PanelHeader = ({
 const HealthRow = ({
   label,
   value,
+  count,
   className,
 }) => (
   <div className="health-row">
@@ -1302,7 +1342,10 @@ const HealthRow = ({
       <span>{label}</span>
     </div>
 
-    <strong>{value}</strong>
+    <div className="health-row-values">
+      <strong>{value}</strong>
+      <small>{count}</small>
+    </div>
   </div>
 );
 
