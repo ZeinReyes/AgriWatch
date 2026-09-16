@@ -46,6 +46,8 @@ import MyCrops from "./pages/crops/MyCrops";
 
 import Monitoring from "./pages/monitoring/Monitoring";
 import Alerts from "./pages/alerts/Alerts";
+import SensorData from "./pages/monitoring/SensorData";
+import PestDisease from "./pages/monitoring/PestDisease";
 
 
 /* =====================================================
@@ -202,51 +204,20 @@ const App = () => {
           />
 
 
-          {/* =================================================
-              SENSOR DATA
-              ADMIN + FARMER
-          ================================================= */}
-
           <Route
             path="/sensor-data"
             element={
               <ProtectedRoute>
-                <RoleRoute
-                  allowedRoles={[
-                    "admin",
-                    "farmer",
-                  ]}
-                >
-                  <PlaceholderPage
-                    title="Sensor Data"
-                    description="View soil moisture, crop temperature, and other monitoring measurements."
-                  />
-                </RoleRoute>
+                <SensorData />
               </ProtectedRoute>
             }
           />
-
-
-          {/* =================================================
-              PEST & DISEASE
-              ADMIN + FARMER
-          ================================================= */}
 
           <Route
             path="/pest-disease"
             element={
               <ProtectedRoute>
-                <RoleRoute
-                  allowedRoles={[
-                    "admin",
-                    "farmer",
-                  ]}
-                >
-                  <PlaceholderPage
-                    title="Pest & Disease"
-                    description="View pest, disease, and crop discoloration detection results."
-                  />
-                </RoleRoute>
+                <PestDisease />
               </ProtectedRoute>
             }
           />
