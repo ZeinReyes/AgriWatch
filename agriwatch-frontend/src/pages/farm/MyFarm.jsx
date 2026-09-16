@@ -26,15 +26,12 @@ import L from "leaflet";
 import {
   CheckCircle2,
   CircleAlert,
-  Compass,
   Edit3,
-  Farm,
   Info,
   Leaf,
   Loader2,
   MapPin,
   MapPinned,
-  Maximize2,
   Navigation,
   Plus,
   Ruler,
@@ -296,6 +293,7 @@ const MyFarm = () => {
     setSuccess("");
     setError("");
     setLocationError("");
+
     setEditingFarm(null);
 
     setFormData({
@@ -365,7 +363,6 @@ const MyFarm = () => {
         Number(latitude),
         Number(longitude),
       ]);
-
     } else {
       setMapPosition(
         DEFAULT_LOCATION
@@ -650,14 +647,12 @@ const MyFarm = () => {
           ) {
             message =
               "Location permission was denied. Please allow location access in your browser.";
-
           } else if (
             error.code ===
             error.POSITION_UNAVAILABLE
           ) {
             message =
               "Your current location is unavailable.";
-
           } else if (
             error.code ===
             error.TIMEOUT
@@ -738,7 +733,6 @@ const MyFarm = () => {
 
       let response;
 
-
       // ---------------------------------------------
       // CREATE
       // ---------------------------------------------
@@ -753,14 +747,10 @@ const MyFarm = () => {
           "Farm created successfully."
         );
 
-      }
-
-
       // ---------------------------------------------
       // UPDATE
       // ---------------------------------------------
-
-      else {
+      } else {
         response =
           await updateFarm(
             editingFarm.id,
@@ -771,7 +761,6 @@ const MyFarm = () => {
           "Farm updated successfully."
         );
       }
-
 
       // ---------------------------------------------
       // UPDATE LOCAL STATE
@@ -787,7 +776,6 @@ const MyFarm = () => {
             ...previous,
           ]
         );
-
       } else {
         setFarms(
           (previous) =>
@@ -1237,20 +1225,17 @@ const MyFarm = () => {
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
-
                     <MapCenter
                       position={
                         mapPosition
                       }
                     />
 
-
                     <MapClickHandler
                       onLocationSelect={
                         handleLocationSelect
                       }
                     />
-
 
                     {formData.latitude !== ""
                       &&
@@ -1583,11 +1568,13 @@ const MyFarm = () => {
           <div className="farm-loading">
 
             <div className="loading-spinner">
+
               <Loader2
                 size={24}
                 strokeWidth={2}
                 aria-hidden="true"
               />
+
             </div>
 
             <p>
