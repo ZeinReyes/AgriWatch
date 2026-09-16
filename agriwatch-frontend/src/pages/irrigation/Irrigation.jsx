@@ -4,6 +4,16 @@ import {
   useState,
 } from "react";
 
+import {
+  AlertTriangle,
+  Sprout,
+  Droplets,
+  Leaf,
+  CheckCircle2,
+  Info,
+  MinusCircle,
+} from "lucide-react";
+
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import api from "../../services/api";
 
@@ -441,7 +451,7 @@ const Irrigation = () => {
           <div className="irrigation-state-card irrigation-error">
 
             <div className="irrigation-state-icon">
-              !
+              <AlertTriangle size={22} strokeWidth={1.85} />
             </div>
 
             <h3>
@@ -478,7 +488,7 @@ const Irrigation = () => {
             <div className="irrigation-state-card">
 
               <div className="irrigation-state-icon">
-                +
+                <Sprout size={22} strokeWidth={1.85} />
               </div>
 
               <h3>
@@ -515,7 +525,7 @@ const Irrigation = () => {
                 <div className="irrigation-summary-card">
 
                   <div className="irrigation-summary-icon">
-                    %
+                    <Droplets size={18} strokeWidth={1.85} />
                   </div>
 
                   <div>
@@ -540,7 +550,7 @@ const Irrigation = () => {
                 <div className="irrigation-summary-card">
 
                   <div className="irrigation-summary-icon">
-                    #
+                    <Leaf size={18} strokeWidth={1.85} />
                   </div>
 
                   <div>
@@ -561,7 +571,7 @@ const Irrigation = () => {
                 <div className="irrigation-summary-card irrigation-warning">
 
                   <div className="irrigation-summary-icon">
-                    !
+                    <AlertTriangle size={18} strokeWidth={1.85} />
                   </div>
 
                   <div>
@@ -582,7 +592,7 @@ const Irrigation = () => {
                 <div className="irrigation-summary-card irrigation-good">
 
                   <div className="irrigation-summary-icon">
-                    ✓
+                    <CheckCircle2 size={18} strokeWidth={1.85} />
                   </div>
 
                   <div>
@@ -609,7 +619,7 @@ const Irrigation = () => {
               <section className="irrigation-info-card">
 
                 <div className="irrigation-info-icon">
-                  i
+                  <Info size={16} strokeWidth={1.85} />
                 </div>
 
                 <div>
@@ -806,11 +816,26 @@ const Irrigation = () => {
                             <div className="irrigation-recommendation-icon">
                               {crop.status ===
                                 "irrigate"
-                                ? "!"
+                                ? (
+                                  <AlertTriangle
+                                    size={14}
+                                    strokeWidth={2}
+                                  />
+                                )
                                 : crop.status ===
                                     "adequate"
-                                  ? "✓"
-                                  : "—"}
+                                  ? (
+                                    <CheckCircle2
+                                      size={14}
+                                      strokeWidth={2}
+                                    />
+                                  )
+                                  : (
+                                    <MinusCircle
+                                      size={14}
+                                      strokeWidth={2}
+                                    />
+                                  )}
                             </div>
 
                             <div>
@@ -866,7 +891,7 @@ const Irrigation = () => {
               <section className="irrigation-notice">
 
                 <div className="irrigation-notice-icon">
-                  i
+                  <Info size={15} strokeWidth={1.85} />
                 </div>
 
                 <div>

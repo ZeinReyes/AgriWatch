@@ -100,9 +100,6 @@
   background: #edf5ef;
 
   color: #3f7653;
-
-  font-size: 15px;
-  font-weight: 700;
 }
 
 .irrigation-summary-card div:last-child {
@@ -186,9 +183,6 @@
   background: #edf5ef;
 
   color: #3f7653;
-
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .irrigation-info-card h3 {
@@ -488,9 +482,6 @@
   background: #edf5ef;
 
   color: #3f7653;
-
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .irrigation-crop-card.irrigate
@@ -584,9 +575,6 @@
   background: #edf5ef;
 
   color: #3f7653;
-
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .irrigation-notice h3 {
@@ -667,9 +655,6 @@
   background: #edf5ef;
 
   color: #3f7653;
-
-  font-size: 22px;
-  font-weight: 700;
 }
 
 .irrigation-error {
