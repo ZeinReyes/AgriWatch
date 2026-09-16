@@ -839,48 +839,45 @@
    WEATHER
 ========================================================= */
 
-.weather-panel {
-  display: flex;
-  flex-direction: column;
-}
-
-.weather-loading {
-  display: grid;
-  place-items: center;
-  flex: 1;
-  min-height: 0;
-  color: #8a968d;
-  font-size: 12px;
-}
-
 .weather-main {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 17px 18px 14px;
+  justify-content: center;
+  gap: 22px;
+  flex: 1;
+  padding: 20px 18px;
+  text-align: left;
 }
 
 .weather-icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 17px;
+  width: 86px;
+  height: 86px;
+  border-radius: 22px;
   background: #edf4f7;
   color: #3a7ca5;
 }
 
+.weather-icon svg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.6;
+}
+
 .weather-temperature {
-  color: #2b3f31;
-  font-size: 30px;
+  color: #263e2f;
+  font-size: 42px;
   font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.03em;
 }
 
 .weather-description {
-  margin-top: 6px;
+  margin-top: 8px;
   color: #768279;
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .weather-details {
