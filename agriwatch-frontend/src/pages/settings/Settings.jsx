@@ -9,12 +9,6 @@ import api from "../../services/api";
 import "./Settings.css";
 
 
-const DEFAULT_NOTIFICATIONS = {
-  inAppAlerts: true,
-  criticalOnly: false,
-};
-
-
 const Settings = () => {
 
   const [
@@ -739,121 +733,6 @@ const Settings = () => {
           </form>
 
         </section>
-
-
-        {/* =========================================
-            NOTIFICATIONS
-        ========================================== */}
-
-        <section className="settings-section">
-
-          <div className="settings-section-header">
-
-            <div>
-
-              <h2>
-                Notifications
-              </h2>
-
-              <p>
-                Choose how alerts are shown
-                inside AgriWatch.
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div className="settings-preferences">
-
-            <div className="settings-preference">
-
-              <div>
-
-                <strong>
-                  In-app alert notifications
-                </strong>
-
-                <span>
-                  Show monitoring alerts in
-                  the notification bell.
-                </span>
-
-              </div>
-
-
-              <button
-                type="button"
-                className={
-                  `settings-switch ${
-                    notifications.inAppAlerts
-                      ? "active"
-                      : ""
-                  }`
-                }
-                onClick={() =>
-                  updateNotification(
-                    "inAppAlerts"
-                  )
-                }
-                aria-pressed={
-                  notifications.inAppAlerts
-                }
-              >
-
-                <span></span>
-
-              </button>
-
-            </div>
-
-
-            <div className="settings-preference">
-
-              <div>
-
-                <strong>
-                  Critical alerts only
-                </strong>
-
-                <span>
-                  Only show critical alerts
-                  in the notification panel.
-                </span>
-
-              </div>
-
-
-              <button
-                type="button"
-                className={
-                  `settings-switch ${
-                    notifications.criticalOnly
-                      ? "active"
-                      : ""
-                  }`
-                }
-                onClick={() =>
-                  updateNotification(
-                    "criticalOnly"
-                  )
-                }
-                aria-pressed={
-                  notifications.criticalOnly
-                }
-              >
-
-                <span></span>
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </section>
-
 
         {/* =========================================
             ACCOUNT INFORMATION
