@@ -3,6 +3,22 @@ import {
   useState,
 } from "react";
 
+import {
+  Activity,
+  AlertTriangle,
+  Cloud,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
+  Droplets,
+  Info,
+  MapPin,
+  RefreshCw,
+  Thermometer,
+  Wind,
+} from "lucide-react";
+
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import api from "../../services/api";
 
@@ -14,27 +30,110 @@ const WEATHER_API =
 
 
 const weatherCodeMap = {
-  0: "Clear sky",
-  1: "Mainly clear",
-  2: "Partly cloudy",
-  3: "Overcast",
-  45: "Fog",
-  48: "Depositing rime fog",
-  51: "Light drizzle",
-  53: "Moderate drizzle",
-  55: "Dense drizzle",
-  61: "Slight rain",
-  63: "Moderate rain",
-  65: "Heavy rain",
-  71: "Slight snow",
-  73: "Moderate snow",
-  75: "Heavy snow",
-  80: "Slight rain showers",
-  81: "Moderate rain showers",
-  82: "Violent rain showers",
-  95: "Thunderstorm",
-  96: "Thunderstorm with slight hail",
-  99: "Thunderstorm with heavy hail",
+  0: {
+    label: "Clear sky",
+    icon: CloudSun,
+  },
+
+  1: {
+    label: "Mainly clear",
+    icon: CloudSun,
+  },
+
+  2: {
+    label: "Partly cloudy",
+    icon: CloudSun,
+  },
+
+  3: {
+    label: "Overcast",
+    icon: Cloud,
+  },
+
+  45: {
+    label: "Fog",
+    icon: CloudFog,
+  },
+
+  48: {
+    label: "Depositing rime fog",
+    icon: CloudFog,
+  },
+
+  51: {
+    label: "Light drizzle",
+    icon: CloudRain,
+  },
+
+  53: {
+    label: "Moderate drizzle",
+    icon: CloudRain,
+  },
+
+  55: {
+    label: "Dense drizzle",
+    icon: CloudRain,
+  },
+
+  61: {
+    label: "Slight rain",
+    icon: CloudRain,
+  },
+
+  63: {
+    label: "Moderate rain",
+    icon: CloudRain,
+  },
+
+  65: {
+    label: "Heavy rain",
+    icon: CloudRain,
+  },
+
+  71: {
+    label: "Slight snow",
+    icon: Cloud,
+  },
+
+  73: {
+    label: "Moderate snow",
+    icon: Cloud,
+  },
+
+  75: {
+    label: "Heavy snow",
+    icon: Cloud,
+  },
+
+  80: {
+    label: "Slight rain showers",
+    icon: CloudRain,
+  },
+
+  81: {
+    label: "Moderate rain showers",
+    icon: CloudRain,
+  },
+
+  82: {
+    label: "Violent rain showers",
+    icon: CloudRain,
+  },
+
+  95: {
+    label: "Thunderstorm",
+    icon: CloudLightning,
+  },
+
+  96: {
+    label: "Thunderstorm with slight hail",
+    icon: CloudLightning,
+  },
+
+  99: {
+    label: "Thunderstorm with heavy hail",
+    icon: CloudLightning,
+  },
 };
 
 
@@ -78,14 +177,18 @@ const Weather = () => {
 
 
       const farmData =
-        Array.isArray(response.data)
+        Array.isArray(
+          response.data
+        )
           ? response.data
           : response.data?.farms ||
             response.data?.data ||
             [];
 
 
-      setFarms(farmData);
+      setFarms(
+        farmData
+      );
 
 
       if (!farmData.length) {
@@ -101,10 +204,14 @@ const Weather = () => {
 
 
       const latitude =
-        Number(farm.latitude);
+        Number(
+          farm.latitude
+        );
 
       const longitude =
-        Number(farm.longitude);
+        Number(
+          farm.longitude
+        );
 
 
       if (
@@ -131,18 +238,39 @@ const Weather = () => {
 
 
       const weatherResponse =
-        await fetch(url);
+        await fetch(
+          url
+        );
 
 
       if (!weatherResponse.ok) {
+
         throw new Error(
           "Weather request failed."
         );
+
       }
 
 
       const data =
         await weatherResponse.json();
+
+
+      const currentWeather =
+        data.current || {};
+
+
+      const weatherCode =
+        currentWeather.weather_code;
+
+
+      const weatherInfo =
+        weatherCodeMap[
+          weatherCode
+        ] || {
+          label: "Unknown conditions",
+          icon: Cloud,
+        };
 
 
       setWeather({
@@ -158,25 +286,24 @@ const Weather = () => {
         longitude,
 
         temperature:
-          data.current?.temperature_2m,
+          currentWeather.temperature_2m,
 
         humidity:
-          data.current?.relative_humidity_2m,
+          currentWeather.relative_humidity_2m,
 
         precipitation:
-          data.current?.precipitation,
+          currentWeather.precipitation,
 
         windSpeed:
-          data.current?.wind_speed_10m,
+          currentWeather.wind_speed_10m,
 
-        weatherCode:
-          data.current?.weather_code,
+        weatherCode,
 
         condition:
-          weatherCodeMap[
-            data.current?.weather_code
-          ] ||
-          "Unknown conditions",
+          weatherInfo.label,
+
+        weatherIcon:
+          weatherInfo.icon,
 
       });
 
@@ -189,6 +316,7 @@ const Weather = () => {
 
       setError(
         err.response?.data?.message ||
+        err.message ||
         "Unable to load weather information."
       );
 
@@ -197,7 +325,13 @@ const Weather = () => {
       setLoading(false);
 
     }
+
   };
+
+
+  const WeatherIcon =
+    weather?.weatherIcon ||
+    Cloud;
 
 
   return (
@@ -206,33 +340,67 @@ const Weather = () => {
 
       <div className="weather-page">
 
+        {/* =========================================
+            HEADER
+        ========================================== */}
+
         <div className="weather-page-header">
 
-          <div>
+          <div className="weather-header-content">
 
-            <span className="weather-eyebrow">
-              FARM WEATHER
-            </span>
+            <div className="weather-title-icon">
 
-            <h1>
-              Weather
-            </h1>
+              <CloudSun
+                size={20}
+                strokeWidth={2}
+              />
 
-            <p>
-              Current weather conditions
-              for your farm.
-            </p>
+            </div>
+
+
+            <div>
+
+              <span className="weather-eyebrow">
+                ENVIRONMENTAL CONDITIONS
+              </span>
+
+              <h1>
+                Weather
+              </h1>
+
+              <p>
+                Monitor current weather conditions
+                at your registered farm location.
+              </p>
+
+            </div>
 
           </div>
 
         </div>
 
 
+        {/* =========================================
+            LOADING
+        ========================================== */}
+
         {loading && (
 
           <div className="weather-state-card">
 
-            <div className="weather-spinner"></div>
+            <div className="weather-spinner">
+            </div>
+
+
+            <div className="weather-state-icon">
+
+              <Cloud
+                size={22}
+                strokeWidth={2}
+              />
+
+            </div>
+
 
             <h3>
               Loading weather
@@ -248,13 +416,23 @@ const Weather = () => {
         )}
 
 
+        {/* =========================================
+            ERROR
+        ========================================== */}
+
         {!loading && error && (
 
           <div className="weather-state-card weather-error">
 
-            <div className="weather-state-icon">
-              !
+            <div className="weather-state-icon weather-state-icon-error">
+
+              <AlertTriangle
+                size={22}
+                strokeWidth={2}
+              />
+
             </div>
+
 
             <h3>
               Weather unavailable
@@ -264,10 +442,30 @@ const Weather = () => {
               {error}
             </p>
 
+
+            <button
+              type="button"
+              className="weather-retry-button"
+              onClick={loadWeather}
+            >
+
+              <RefreshCw
+                size={15}
+                strokeWidth={2}
+              />
+
+              Try Again
+
+            </button>
+
           </div>
 
         )}
 
+
+        {/* =========================================
+            NO FARM
+        ========================================== */}
 
         {!loading &&
           !error &&
@@ -276,8 +474,14 @@ const Weather = () => {
             <div className="weather-state-card">
 
               <div className="weather-state-icon">
-                +
+
+                <MapPin
+                  size={21}
+                  strokeWidth={2}
+                />
+
               </div>
+
 
               <h3>
                 No farm available
@@ -294,6 +498,10 @@ const Weather = () => {
           )}
 
 
+        {/* =========================================
+            NO WEATHER DATA
+        ========================================== */}
+
         {!loading &&
           !error &&
           farms.length > 0 &&
@@ -302,8 +510,14 @@ const Weather = () => {
             <div className="weather-state-card">
 
               <div className="weather-state-icon">
-                ?
+
+                <Cloud
+                  size={21}
+                  strokeWidth={2}
+                />
+
               </div>
+
 
               <h3>
                 No weather data
@@ -314,10 +528,29 @@ const Weather = () => {
                 currently unavailable.
               </p>
 
+              <button
+                type="button"
+                className="weather-retry-button"
+                onClick={loadWeather}
+              >
+
+                <RefreshCw
+                  size={15}
+                  strokeWidth={2}
+                />
+
+                Refresh
+
+              </button>
+
             </div>
 
           )}
 
+
+        {/* =========================================
+            WEATHER CONTENT
+        ========================================== */}
 
         {!loading &&
           !error &&
@@ -325,27 +558,62 @@ const Weather = () => {
 
             <>
 
+              {/* =========================================
+                  FARM LOCATION + CURRENT WEATHER
+              ========================================== */}
+
               <section className="weather-location-card">
 
                 <div className="weather-location-info">
 
-                  <span className="weather-section-label">
-                    FARM LOCATION
-                  </span>
+                  <div className="weather-section-heading">
+
+                    <div className="weather-section-icon">
+
+                      <MapPin
+                        size={16}
+                        strokeWidth={2}
+                      />
+
+                    </div>
+
+                    <span className="weather-section-label">
+                      FARM LOCATION
+                    </span>
+
+                  </div>
+
 
                   <h2>
                     {weather.farmName}
                   </h2>
 
+
                   <p>
                     {weather.location}
                   </p>
 
-                  <span className="weather-coordinates">
-                    {weather.latitude.toFixed(6)}
-                    {", "}
-                    {weather.longitude.toFixed(6)}
-                  </span>
+
+                  <div className="weather-coordinates">
+
+                    <span>
+                      Latitude
+                    </span>
+
+                    <strong>
+                      {weather.latitude.toFixed(6)}
+                    </strong>
+
+
+                    <span>
+                      Longitude
+                    </span>
+
+                    <strong>
+                      {weather.longitude.toFixed(6)}
+                    </strong>
+
+                  </div>
 
                 </div>
 
@@ -353,16 +621,28 @@ const Weather = () => {
                 <div className="weather-current">
 
                   <div className="weather-current-icon">
-                    ☁
+
+                    <WeatherIcon
+                      size={34}
+                      strokeWidth={1.8}
+                    />
+
                   </div>
 
+
                   <div className="weather-current-details">
+
+                    <span className="weather-current-label">
+                      CURRENT CONDITIONS
+                    </span>
+
 
                     <strong>
                       {weather.temperature}°C
                     </strong>
 
-                    <span>
+
+                    <span className="weather-current-condition">
                       {weather.condition}
                     </span>
 
@@ -373,13 +653,23 @@ const Weather = () => {
               </section>
 
 
+              {/* =========================================
+                  WEATHER METRICS
+              ========================================== */}
+
               <section className="weather-metrics">
 
                 <div className="weather-metric-card">
 
                   <div className="weather-metric-icon">
-                    %
+
+                    <Droplets
+                      size={18}
+                      strokeWidth={2}
+                    />
+
                   </div>
+
 
                   <div>
 
@@ -399,8 +689,14 @@ const Weather = () => {
                 <div className="weather-metric-card">
 
                   <div className="weather-metric-icon">
-                    R
+
+                    <CloudRain
+                      size={18}
+                      strokeWidth={2}
+                    />
+
                   </div>
+
 
                   <div>
 
@@ -420,8 +716,14 @@ const Weather = () => {
                 <div className="weather-metric-card">
 
                   <div className="weather-metric-icon">
-                    W
+
+                    <Wind
+                      size={18}
+                      strokeWidth={2}
+                    />
+
                   </div>
+
 
                   <div>
 
@@ -441,8 +743,14 @@ const Weather = () => {
                 <div className="weather-metric-card">
 
                   <div className="weather-metric-icon">
-                    T
+
+                    <Thermometer
+                      size={18}
+                      strokeWidth={2}
+                    />
+
                   </div>
+
 
                   <div>
 
@@ -461,31 +769,63 @@ const Weather = () => {
               </section>
 
 
+              {/* =========================================
+                  INFORMATION
+              ========================================== */}
+
               <section className="weather-information-card">
 
                 <div className="weather-information-icon">
-                  i
+
+                  <Info
+                    size={18}
+                    strokeWidth={2}
+                  />
+
                 </div>
 
+
                 <div>
+
+                  <span className="weather-information-label">
+                    INFORMATION
+                  </span>
 
                   <h3>
                     Farm Weather Monitoring
                   </h3>
 
                   <p>
-                    Weather information is
-                    based on the saved
-                    coordinates of your farm.
-                    These conditions can serve
-                    as supporting information
-                    for crop monitoring and
-                    farm management.
+                    Weather information is based
+                    on the saved coordinates of your
+                    farm. These conditions provide
+                    supporting environmental context
+                    for crop monitoring and farm
+                    management decisions.
                   </p>
 
                 </div>
 
               </section>
+
+
+              {/* =========================================
+                  DATA SOURCE
+              ========================================== */}
+
+              <div className="weather-data-source">
+
+                <Activity
+                  size={13}
+                  strokeWidth={2}
+                />
+
+                <span>
+                  Current weather data retrieved
+                  from the configured farm location.
+                </span>
+
+              </div>
 
             </>
 
