@@ -12,12 +12,12 @@ import {
   Activity,
   CheckCircle2,
   CircleAlert,
+  Clock3,
   Droplets,
   RefreshCw,
   Search,
+  Sprout,
   Thermometer,
-  Waves,
-  Clock3,
 } from "lucide-react";
 
 import "./SensorData.css";
@@ -27,23 +27,40 @@ import "./SensorData.css";
 // HELPERS
 // =========================================================
 
-const extractMonitoring = (data) => {
+const extractArray = (
+  data,
+  keys = []
+) => {
   if (Array.isArray(data)) {
     return data;
   }
 
-  return (
-    data?.monitoring ||
-    data?.monitoring_records ||
-    data?.records ||
-    data?.data ||
-    data?.results ||
-    []
-  );
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) {
+      return data[key];
+    }
+  }
+
+  return [];
 };
 
 
-const formatNumber = (value, decimals = 1) => {
+const normalizeId = (value) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  return String(value);
+};
+
+
+const formatNumber = (
+  value,
+  decimals = 1
+) => {
   if (
     value === null ||
     value === undefined ||
@@ -62,14 +79,21 @@ const formatNumber = (value, decimals = 1) => {
 };
 
 
-const formatDateTime = (value) => {
+const formatDateTime = (
+  value
+) => {
   if (!value) {
     return "—";
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "—";
   }
 
@@ -86,51 +110,82 @@ const formatDateTime = (value) => {
 };
 
 
-const getMoistureStatus = (value) => {
-  const number = Number(value);
+const getMoistureStatus = (
+  value
+) => {
+  const number =
+    Number(value);
 
   if (!Number.isFinite(number)) {
     return {
       label: "No reading",
-      className: "sensor-status neutral",
+      className:
+        "sensor-status neutral",
     };
   }
 
   if (number < 30) {
     return {
       label: "Low",
-      className: "sensor-status warning",
+      className:
+        "sensor-status warning",
     };
   }
 
   return {
     label: "Normal",
-    className: "sensor-status good",
+    className:
+      "sensor-status good",
   };
 };
 
 
-const getTemperatureStatus = (value) => {
-  const number = Number(value);
+const getTemperatureStatus = (
+  value
+) => {
+  const number =
+    Number(value);
 
   if (!Number.isFinite(number)) {
     return {
       label: "No reading",
-      className: "sensor-status neutral",
+      className:
+        "sensor-status neutral",
     };
   }
 
   if (number > 35) {
     return {
       label: "High",
-      className: "sensor-status critical",
+      className:
+        "sensor-status critical",
     };
   }
 
   return {
     label: "Normal",
-    className: "sensor-status good",
+    className:
+      "sensor-status good",
   };
+};
+
+
+const getPlantConditionClass = (
+  condition
+) => {
+  const normalized =
+    String(
+      condition || ""
+    ).toLowerCase();
+
+  if (
+    normalized ===
+    "healthy"
+  ) {
+    return "healthy";
+  }
+
+  return "attention";
 };
 
 
@@ -140,6 +195,12 @@ const getTemperatureStatus = (value) => {
 
 const SensorData = () => {
   const [monitoringRecords, setMonitoringRecords] =
+    useState([]);
+
+  const [crops, setCrops] =
+    useState([]);
+
+  const [farms, setFarms] =
     useState([]);
 
   const [loading, setLoading] =
@@ -157,11 +218,12 @@ const SensorData = () => {
   const [cropFilter, setCropFilter] =
     useState("All");
 
+
   // =======================================================
   // LOAD DATA
   // =======================================================
 
-  const loadMonitoring = async (
+  const loadData = async (
     isRefresh = false
   ) => {
     try {
@@ -173,15 +235,151 @@ const SensorData = () => {
 
       setError("");
 
-      const response =
-        await api.get(
-          "/monitoring"
+      const [
+        monitoringResponse,
+        cropsResponse,
+        farmsResponse,
+      ] = await Promise.all([
+        api.get("/monitoring"),
+        api.get("/crops"),
+        api.get("/farms"),
+      ]);
+
+
+      const monitoring =
+        extractArray(
+          monitoringResponse.data,
+          [
+            "monitoring",
+            "monitoring_records",
+            "records",
+            "data",
+            "results",
+          ]
         );
 
+
+      const cropData =
+        extractArray(
+          cropsResponse.data,
+          [
+            "crops",
+            "data",
+            "results",
+          ]
+        );
+
+
+      const farmData =
+        extractArray(
+          farmsResponse.data,
+          [
+            "farms",
+            "data",
+            "results",
+          ]
+        );
+
+
+      setCrops(
+        cropData
+      );
+
+      setFarms(
+        farmData
+      );
+
+
+      // ---------------------------------------------------
+      // BUILD LOOKUP MAPS
+      // ---------------------------------------------------
+
+      const cropMap =
+        new Map(
+          cropData.map(
+            (crop) => [
+              normalizeId(
+                crop.id
+              ),
+              crop,
+            ]
+          )
+        );
+
+
+      const farmMap =
+        new Map(
+          farmData.map(
+            (farm) => [
+              normalizeId(
+                farm.id
+              ),
+              farm,
+            ]
+          )
+        );
+
+
+      // ---------------------------------------------------
+      // ENRICH MONITORING RECORDS
+      // ---------------------------------------------------
+
+      const enrichedMonitoring =
+        monitoring.map(
+          (record) => {
+
+            const crop =
+              cropMap.get(
+                normalizeId(
+                  record.crop_id
+                )
+              );
+
+
+            const farmId =
+              crop?.farm_id ??
+              record.farm_id ??
+              "";
+
+
+            const farm =
+              farmMap.get(
+                normalizeId(
+                  farmId
+                )
+              );
+
+
+            return {
+              ...record,
+
+              crop_name:
+                record.crop_name ||
+                record.crop?.crop_name ||
+                crop?.crop_name ||
+                "Unknown crop",
+
+              variety:
+                record.variety ||
+                record.crop?.variety ||
+                crop?.variety ||
+                "",
+
+              farm_name:
+                record.farm_name ||
+                record.farm?.farm_name ||
+                farm?.farm_name ||
+                "Unknown farm",
+
+              farm_id:
+                farmId,
+            };
+          }
+        );
+
+
       setMonitoringRecords(
-        extractMonitoring(
-          response.data
-        )
+        enrichedMonitoring
       );
 
     } catch (err) {
@@ -203,7 +401,7 @@ const SensorData = () => {
 
 
   useEffect(() => {
-    loadMonitoring();
+    loadData();
   }, []);
 
 
@@ -211,74 +409,114 @@ const SensorData = () => {
   // SORTED DATA
   // =======================================================
 
-  const sortedRecords = useMemo(() => {
-    return [...monitoringRecords].sort(
-      (a, b) =>
-        new Date(
-          b.recorded_at
-        ) -
-        new Date(
-          a.recorded_at
-        )
-    );
-  }, [monitoringRecords]);
+  const sortedRecords =
+    useMemo(() => {
+      return [
+        ...monitoringRecords,
+      ].sort(
+        (a, b) => {
+
+          const dateA =
+            new Date(
+              a.recorded_at
+            ).getTime() || 0;
+
+          const dateB =
+            new Date(
+              b.recorded_at
+            ).getTime() || 0;
+
+          return (
+            dateB - dateA
+          );
+        }
+      );
+    }, [
+      monitoringRecords,
+    ]);
 
 
   // =======================================================
-  // CROPS
+  // CROP FILTER OPTIONS
   // =======================================================
 
-  const cropOptions = useMemo(() => {
-    const names =
-      monitoringRecords
-        .map(
-          (record) =>
-            record.crop_name
-        )
-        .filter(Boolean);
+  const cropOptions =
+    useMemo(() => {
 
-    return [
-      ...new Set(names),
-    ];
-  }, [monitoringRecords]);
+      const names =
+        monitoringRecords
+          .map(
+            (record) =>
+              record.crop_name
+          )
+          .filter(Boolean);
+
+      return [
+        ...new Set(names),
+      ];
+
+    }, [
+      monitoringRecords,
+    ]);
 
 
   // =======================================================
-  // FILTERED DATA
+  // FILTERED RECORDS
   // =======================================================
 
-  const filteredRecords = useMemo(() => {
-    const searchValue =
-      search
-        .trim()
-        .toLowerCase();
+  const filteredRecords =
+    useMemo(() => {
 
-    return sortedRecords.filter(
-      (record) => {
-        const matchesSearch =
-          !searchValue ||
-          record.crop_name
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          record.farm_name
-            ?.toLowerCase()
-            .includes(searchValue);
+      const searchValue =
+        search
+          .trim()
+          .toLowerCase();
 
-        const matchesCrop =
-          cropFilter === "All" ||
-          record.crop_name === cropFilter;
 
-        return (
-          matchesSearch &&
-          matchesCrop
-        );
-      }
-    );
-  }, [
-    sortedRecords,
-    search,
-    cropFilter,
-  ]);
+      return sortedRecords.filter(
+        (record) => {
+
+          const cropName =
+            String(
+              record.crop_name ||
+              ""
+            ).toLowerCase();
+
+          const farmName =
+            String(
+              record.farm_name ||
+              ""
+            ).toLowerCase();
+
+          const matchesSearch =
+            !searchValue ||
+            cropName.includes(
+              searchValue
+            ) ||
+            farmName.includes(
+              searchValue
+            );
+
+
+          const matchesCrop =
+            cropFilter ===
+              "All" ||
+            record.crop_name ===
+              cropFilter;
+
+
+          return (
+            matchesSearch &&
+            matchesCrop
+          );
+        }
+      );
+
+    }, [
+      sortedRecords,
+      search,
+      cropFilter,
+    ]);
 
 
   // =======================================================
@@ -286,58 +524,73 @@ const SensorData = () => {
   // =======================================================
 
   const latestRecord =
-    sortedRecords[0] || null;
+    sortedRecords[0] ||
+    null;
 
 
   // =======================================================
-  // SUMMARY VALUES
+  // AVERAGES
   // =======================================================
 
-  const averageMoisture =
-    monitoringRecords.length
-      ? monitoringRecords.reduce(
-          (sum, record) =>
-            sum +
-            (Number(
-              record.soil_moisture
-            ) || 0),
-          0
-        ) /
-        monitoringRecords.filter(
-          (record) =>
-            record.soil_moisture !==
-              null &&
-            record.soil_moisture !==
-              undefined
-        ).length || 0
-      : 0;
+  const temperatureRecords =
+    monitoringRecords.filter(
+      (record) =>
+        Number.isFinite(
+          Number(
+            record.crop_temperature
+          )
+        )
+    );
+
+
+  const moistureRecords =
+    monitoringRecords.filter(
+      (record) =>
+        Number.isFinite(
+          Number(
+            record.soil_moisture
+          )
+        )
+    );
 
 
   const averageTemperature =
-    monitoringRecords.filter(
-      (record) =>
-        record.crop_temperature !==
-          null &&
-        record.crop_temperature !==
-          undefined
-    ).length
-      ? monitoringRecords.reduce(
-          (sum, record) =>
-            sum +
-            (Number(
+    temperatureRecords.length > 0
+      ? temperatureRecords.reduce(
+          (
+            total,
+            record
+          ) =>
+            total +
+            Number(
               record.crop_temperature
-            ) || 0),
+            ),
           0
         ) /
-        monitoringRecords.filter(
-          (record) =>
-            record.crop_temperature !==
-              null &&
-            record.crop_temperature !==
-              undefined
-        ).length
-      : 0;
+        temperatureRecords.length
+      : null;
 
+
+  const averageMoisture =
+    moistureRecords.length > 0
+      ? moistureRecords.reduce(
+          (
+            total,
+            record
+          ) =>
+            total +
+            Number(
+              record.soil_moisture
+            ),
+          0
+        ) /
+        moistureRecords.length
+      : null;
+
+
+  // =======================================================
+  // CONDITION COUNTS
+  // =======================================================
 
   const lowMoistureReadings =
     monitoringRecords.filter(
@@ -356,6 +609,10 @@ const SensorData = () => {
         ) > 35
     ).length;
 
+
+  // =======================================================
+  // RENDER
+  // =======================================================
 
   return (
     <DashboardLayout>
@@ -386,11 +643,12 @@ const SensorData = () => {
 
           </div>
 
+
           <button
             type="button"
             className="sensor-refresh-button"
             onClick={() =>
-              loadMonitoring(true)
+              loadData(true)
             }
             disabled={
               loading ||
@@ -474,15 +732,13 @@ const SensorData = () => {
                   : "—"}
               </strong>
 
-              {latestRecord && (
-                <small>
-                  {
-                    getTemperatureStatus(
+              <small>
+                {latestRecord
+                  ? getTemperatureStatus(
                       latestRecord.crop_temperature
                     ).label
-                  }
-                </small>
-              )}
+                  : "No reading"}
+              </small>
 
             </div>
 
@@ -515,15 +771,13 @@ const SensorData = () => {
                   : "—"}
               </strong>
 
-              {latestRecord && (
-                <small>
-                  {
-                    getMoistureStatus(
+              <small>
+                {latestRecord
+                  ? getMoistureStatus(
                       latestRecord.soil_moisture
                     ).label
-                  }
-                </small>
-              )}
+                  : "No reading"}
+              </small>
 
             </div>
 
@@ -549,7 +803,9 @@ const SensorData = () => {
               </span>
 
               <strong>
-                {monitoringRecords.length}
+                {
+                  monitoringRecords.length
+                }
               </strong>
 
               <small>
@@ -587,7 +843,7 @@ const SensorData = () => {
               </strong>
 
               <small>
-                Low moisture / high temperature
+                Temperature and moisture thresholds
               </small>
 
             </div>
@@ -631,6 +887,7 @@ const SensorData = () => {
 
               </div>
 
+
               <span className="sensor-record-time">
 
                 <Clock3
@@ -639,9 +896,11 @@ const SensorData = () => {
                   aria-hidden="true"
                 />
 
-                {formatDateTime(
-                  latestRecord.recorded_at
-                )}
+                {
+                  formatDateTime(
+                    latestRecord.recorded_at
+                  )
+                }
 
               </span>
 
@@ -669,9 +928,11 @@ const SensorData = () => {
                   </span>
 
                   <strong>
-                    {formatNumber(
-                      latestRecord.crop_temperature
-                    )}°C
+                    {
+                      formatNumber(
+                        latestRecord.crop_temperature
+                      )
+                    }°C
                   </strong>
 
                   <span
@@ -712,9 +973,11 @@ const SensorData = () => {
                   </span>
 
                   <strong>
-                    {formatNumber(
-                      latestRecord.soil_moisture
-                    )}%
+                    {
+                      formatNumber(
+                        latestRecord.soil_moisture
+                      )
+                    }%
                   </strong>
 
                   <span
@@ -740,7 +1003,7 @@ const SensorData = () => {
 
                 <div className="sensor-reading-icon">
 
-                  <Waves
+                  <Sprout
                     size={21}
                     strokeWidth={2}
                     aria-hidden="true"
@@ -761,24 +1024,36 @@ const SensorData = () => {
                     }
                   </strong>
 
-                  <span className="sensor-status good">
+                  <span
+                    className={`sensor-status ${
+                      getPlantConditionClass(
+                        latestRecord.plant_condition
+                      ) ===
+                      "healthy"
+                        ? "good"
+                        : "warning"
+                    }`}
+                  >
 
-                    {String(
-                      latestRecord.plant_condition ||
-                      ""
-                    ).toLowerCase() ===
+                    {getPlantConditionClass(
+                      latestRecord.plant_condition
+                    ) ===
                     "healthy" ? (
+
                       <CheckCircle2
                         size={14}
                         strokeWidth={2}
                         aria-hidden="true"
                       />
+
                     ) : (
+
                       <CircleAlert
                         size={14}
                         strokeWidth={2}
                         aria-hidden="true"
                       />
+
                     )}
 
                     {
@@ -801,8 +1076,10 @@ const SensorData = () => {
                 Crop:
                 <strong>
                   {" "}
-                  {latestRecord.crop_name ||
-                    "Unknown crop"}
+                  {
+                    latestRecord.crop_name ||
+                    "Unknown crop"
+                  }
                 </strong>
               </span>
 
@@ -810,8 +1087,10 @@ const SensorData = () => {
                 Farm:
                 <strong>
                   {" "}
-                  {latestRecord.farm_name ||
-                    "Unknown farm"}
+                  {
+                    latestRecord.farm_name ||
+                    "Unknown farm"
+                  }
                 </strong>
               </span>
 
@@ -831,7 +1110,7 @@ const SensorData = () => {
 
 
         {/* =================================================
-            FILTERS
+            FILTER BAR
         ================================================= */}
 
         <div className="sensor-toolbar">
@@ -860,7 +1139,9 @@ const SensorData = () => {
 
 
           <select
-            value={cropFilter}
+            value={
+              cropFilter
+            }
             onChange={(event) =>
               setCropFilter(
                 event.target.value
@@ -917,13 +1198,17 @@ const SensorData = () => {
 
               <p>
                 {filteredRecords.length}{" "}
-                {filteredRecords.length === 1
-                  ? "record"
-                  : "records"}{" "}
+                {
+                  filteredRecords.length ===
+                  1
+                    ? "record"
+                    : "records"
+                }{" "}
                 displayed
               </p>
 
             </div>
+
 
             <div className="sensor-average-group">
 
@@ -931,9 +1216,14 @@ const SensorData = () => {
                 Avg. temperature
                 <strong>
                   {" "}
-                  {formatNumber(
-                    averageTemperature
-                  )}°C
+                  {
+                    averageTemperature ===
+                    null
+                      ? "—"
+                      : `${formatNumber(
+                          averageTemperature
+                        )}°C`
+                  }
                 </strong>
               </span>
 
@@ -941,9 +1231,14 @@ const SensorData = () => {
                 Avg. soil moisture
                 <strong>
                   {" "}
-                  {formatNumber(
-                    averageMoisture
-                  )}%
+                  {
+                    averageMoisture ===
+                    null
+                      ? "—"
+                      : `${formatNumber(
+                          averageMoisture
+                        )}%`
+                  }
                 </strong>
               </span>
 
@@ -956,11 +1251,7 @@ const SensorData = () => {
 
             <div className="sensor-state">
 
-              <Loader2
-                size={26}
-                className="sensor-spin"
-                aria-hidden="true"
-              />
+              <LoaderSpinner />
 
               <p>
                 Loading sensor data...
@@ -983,15 +1274,21 @@ const SensorData = () => {
               </div>
 
               <h3>
-                {monitoringRecords.length === 0
-                  ? "No sensor data yet"
-                  : "No matching records"}
+                {
+                  monitoringRecords.length ===
+                  0
+                    ? "No sensor data yet"
+                    : "No matching records"
+                }
               </h3>
 
               <p>
-                {monitoringRecords.length === 0
-                  ? "Monitoring records will appear here when crop observations are recorded."
-                  : "Try changing your search or crop filter."}
+                {
+                  monitoringRecords.length ===
+                  0
+                    ? "Monitoring records will appear here when crop observations are recorded."
+                    : "Try changing your search or crop filter."
+                }
               </p>
 
             </div>
@@ -1008,6 +1305,10 @@ const SensorData = () => {
 
                     <th>
                       Crop
+                    </th>
+
+                    <th>
+                      Farm
                     </th>
 
                     <th>
@@ -1054,6 +1355,11 @@ const SensorData = () => {
                           record.soil_moisture
                         );
 
+                      const plantCondition =
+                        record.plant_condition ||
+                        "Not recorded";
+
+
                       return (
 
                         <tr
@@ -1068,7 +1374,7 @@ const SensorData = () => {
 
                               <div className="sensor-crop-icon">
 
-                                <Activity
+                                <Sprout
                                   size={17}
                                   strokeWidth={2}
                                   aria-hidden="true"
@@ -1087,8 +1393,8 @@ const SensorData = () => {
 
                                 <span>
                                   {
-                                    record.farm_name ||
-                                    "Unknown farm"
+                                    record.variety ||
+                                    "Tomato crop"
                                   }
                                 </span>
 
@@ -1101,12 +1407,28 @@ const SensorData = () => {
 
                           <td>
 
+                            <span className="sensor-farm-name">
+
+                              {
+                                record.farm_name ||
+                                "Unknown farm"
+                              }
+
+                            </span>
+
+                          </td>
+
+
+                          <td>
+
                             <div className="sensor-table-reading">
 
                               <strong>
-                                {formatNumber(
-                                  record.crop_temperature
-                                )}°C
+                                {
+                                  formatNumber(
+                                    record.crop_temperature
+                                  )
+                                }°C
                               </strong>
 
                               <span
@@ -1129,9 +1451,11 @@ const SensorData = () => {
                             <div className="sensor-table-reading">
 
                               <strong>
-                                {formatNumber(
-                                  record.soil_moisture
-                                )}%
+                                {
+                                  formatNumber(
+                                    record.soil_moisture
+                                  )
+                                }%
                               </strong>
 
                               <span
@@ -1153,18 +1477,13 @@ const SensorData = () => {
 
                             <span
                               className={`sensor-condition ${
-                                String(
-                                  record.plant_condition ||
-                                  ""
-                                ).toLowerCase() ===
-                                "healthy"
-                                  ? "healthy"
-                                  : "attention"
+                                getPlantConditionClass(
+                                  plantCondition
+                                )
                               }`}
                             >
                               {
-                                record.plant_condition ||
-                                "Not recorded"
+                                plantCondition
                               }
                             </span>
 
@@ -1212,13 +1531,11 @@ const SensorData = () => {
                           <td>
 
                             <span className="sensor-date">
-
                               {
                                 formatDateTime(
                                   record.recorded_at
                                 )
                               }
-
                             </span>
 
                           </td>
@@ -1244,5 +1561,21 @@ const SensorData = () => {
     </DashboardLayout>
   );
 };
+
+
+// =========================================================
+// LOADING SPINNER
+// =========================================================
+
+const LoaderSpinner = () => {
+  return (
+    <RefreshCw
+      size={26}
+      className="sensor-spin"
+      aria-hidden="true"
+    />
+  );
+};
+
 
 export default SensorData;

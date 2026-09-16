@@ -24,34 +24,53 @@ import {
 import "./PestDisease.css";
 
 
-// =========================================================
-// HELPERS
-// =========================================================
-
-const extractMonitoring = (data) => {
+const extractArray = (
+  data,
+  keys = []
+) => {
   if (Array.isArray(data)) {
     return data;
   }
 
-  return (
-    data?.monitoring ||
-    data?.monitoring_records ||
-    data?.records ||
-    data?.data ||
-    data?.results ||
-    []
-  );
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) {
+      return data[key];
+    }
+  }
+
+  return [];
 };
 
 
-const formatDateTime = (value) => {
+const normalizeId = (
+  value
+) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  return String(value);
+};
+
+
+const formatDateTime = (
+  value
+) => {
   if (!value) {
     return "—";
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "—";
   }
 
@@ -68,24 +87,25 @@ const formatDateTime = (value) => {
 };
 
 
-const isTrue = (value) => {
+const isTrue = (
+  value
+) => {
   return (
     value === true ||
     value === 1 ||
     value === "1" ||
-    String(value).toLowerCase() ===
+    String(value)
+      .toLowerCase() ===
       "true"
   );
 };
 
 
-// =========================================================
-// PEST & DISEASE
-// =========================================================
-
 const PestDisease = () => {
-  const [monitoringRecords, setMonitoringRecords] =
-    useState([]);
+  const [
+    monitoringRecords,
+    setMonitoringRecords,
+  ] = useState([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -104,10 +124,10 @@ const PestDisease = () => {
 
 
   // =======================================================
-  // LOAD MONITORING
+  // LOAD DATA
   // =======================================================
 
-  const loadMonitoring = async (
+  const loadData = async (
     isRefresh = false
   ) => {
     try {
@@ -119,15 +139,134 @@ const PestDisease = () => {
 
       setError("");
 
-      const response =
-        await api.get(
-          "/monitoring"
+      const [
+        monitoringResponse,
+        cropsResponse,
+        farmsResponse,
+      ] = await Promise.all([
+        api.get("/monitoring"),
+        api.get("/crops"),
+        api.get("/farms"),
+      ]);
+
+
+      const monitoring =
+        extractArray(
+          monitoringResponse.data,
+          [
+            "monitoring",
+            "monitoring_records",
+            "records",
+            "data",
+            "results",
+          ]
         );
 
+
+      const crops =
+        extractArray(
+          cropsResponse.data,
+          [
+            "crops",
+            "data",
+            "results",
+          ]
+        );
+
+
+      const farms =
+        extractArray(
+          farmsResponse.data,
+          [
+            "farms",
+            "data",
+            "results",
+          ]
+        );
+
+
+      const cropMap =
+        new Map(
+          crops.map(
+            (crop) => [
+              normalizeId(
+                crop.id
+              ),
+              crop,
+            ]
+          )
+        );
+
+
+      const farmMap =
+        new Map(
+          farms.map(
+            (farm) => [
+              normalizeId(
+                farm.id
+              ),
+              farm,
+            ]
+          )
+        );
+
+
+      const enrichedMonitoring =
+        monitoring.map(
+          (record) => {
+
+            const crop =
+              cropMap.get(
+                normalizeId(
+                  record.crop_id
+                )
+              );
+
+
+            const farmId =
+              crop?.farm_id ??
+              record.farm_id ??
+              "";
+
+
+            const farm =
+              farmMap.get(
+                normalizeId(
+                  farmId
+                )
+              );
+
+
+            return {
+              ...record,
+
+              crop_name:
+                record.crop_name ||
+                record.crop?.crop_name ||
+                crop?.crop_name ||
+                "Unknown crop",
+
+              variety:
+                record.variety ||
+                record.crop?.variety ||
+                crop?.variety ||
+                "",
+
+              farm_name:
+                record.farm_name ||
+                record.farm?.farm_name ||
+                farm?.farm_name ||
+                "Unknown farm",
+
+              farm_id:
+                farmId,
+            };
+          }
+        );
+
+
       setMonitoringRecords(
-        extractMonitoring(
-          response.data
-        )
+        enrichedMonitoring
       );
 
     } catch (err) {
@@ -149,29 +288,43 @@ const PestDisease = () => {
 
 
   useEffect(() => {
-    loadMonitoring();
+    loadData();
   }, []);
 
 
   // =======================================================
-  // SORT RECORDS
+  // SORT
   // =======================================================
 
-  const sortedRecords = useMemo(() => {
-    return [...monitoringRecords].sort(
-      (a, b) =>
-        new Date(
-          b.recorded_at
-        ) -
-        new Date(
-          a.recorded_at
-        )
-    );
-  }, [monitoringRecords]);
+  const sortedRecords =
+    useMemo(() => {
+      return [
+        ...monitoringRecords,
+      ].sort(
+        (a, b) => {
+
+          const dateA =
+            new Date(
+              a.recorded_at
+            ).getTime() || 0;
+
+          const dateB =
+            new Date(
+              b.recorded_at
+            ).getTime() || 0;
+
+          return (
+            dateB - dateA
+          );
+        }
+      );
+    }, [
+      monitoringRecords,
+    ]);
 
 
   // =======================================================
-  // DETECTION COUNTS
+  // COUNTS
   // =======================================================
 
   const pestDetections =
@@ -182,6 +335,7 @@ const PestDisease = () => {
         )
     ).length;
 
+
   const diseaseDetections =
     monitoringRecords.filter(
       (record) =>
@@ -190,6 +344,7 @@ const PestDisease = () => {
         )
     ).length;
 
+
   const discolorationDetections =
     monitoringRecords.filter(
       (record) =>
@@ -197,6 +352,7 @@ const PestDisease = () => {
           record.discoloration_detected
         )
     ).length;
+
 
   const attentionConditions =
     monitoringRecords.filter(
@@ -215,6 +371,7 @@ const PestDisease = () => {
 
   const detectionRecords =
     useMemo(() => {
+
       return sortedRecords.filter(
         (record) =>
           isTrue(
@@ -232,33 +389,54 @@ const PestDisease = () => {
           ).toLowerCase() !==
             "healthy"
       );
-    }, [sortedRecords]);
+
+    }, [
+      sortedRecords,
+    ]);
 
 
   // =======================================================
-  // FILTERED DETECTIONS
+  // FILTERED RECORDS
   // =======================================================
 
   const filteredRecords =
     useMemo(() => {
+
       const searchValue =
         search
           .trim()
           .toLowerCase();
 
+
       return detectionRecords.filter(
         (record) => {
 
+          const cropName =
+            String(
+              record.crop_name ||
+              ""
+            ).toLowerCase();
+
+          const farmName =
+            String(
+              record.farm_name ||
+              ""
+            ).toLowerCase();
+
+
           const matchesSearch =
             !searchValue ||
-            record.crop_name
-              ?.toLowerCase()
-              .includes(searchValue) ||
-            record.farm_name
-              ?.toLowerCase()
-              .includes(searchValue);
+            cropName.includes(
+              searchValue
+            ) ||
+            farmName.includes(
+              searchValue
+            );
 
-          let matchesFilter = true;
+
+          let matchesFilter =
+            true;
+
 
           if (
             viewFilter ===
@@ -270,6 +448,7 @@ const PestDisease = () => {
               );
           }
 
+
           if (
             viewFilter ===
             "Disease"
@@ -280,6 +459,7 @@ const PestDisease = () => {
               );
           }
 
+
           if (
             viewFilter ===
             "Discoloration"
@@ -289,6 +469,7 @@ const PestDisease = () => {
                 record.discoloration_detected
               );
           }
+
 
           if (
             viewFilter ===
@@ -302,12 +483,14 @@ const PestDisease = () => {
               "healthy";
           }
 
+
           return (
             matchesSearch &&
             matchesFilter
           );
         }
       );
+
     }, [
       detectionRecords,
       search,
@@ -325,12 +508,13 @@ const PestDisease = () => {
 
 
   // =======================================================
-  // GET DETECTION TYPE
+  // DETECTION TYPES
   // =======================================================
 
   const getDetectionTypes = (
     record
   ) => {
+
     const types = [];
 
     if (
@@ -354,7 +538,9 @@ const PestDisease = () => {
         record.discoloration_detected
       )
     ) {
-      types.push("Discoloration");
+      types.push(
+        "Discoloration"
+      );
     }
 
     if (
@@ -365,8 +551,7 @@ const PestDisease = () => {
       "healthy"
     ) {
       types.push(
-        record.plant_condition ||
-          "Plant condition"
+        "Plant Condition"
       );
     }
 
@@ -412,7 +597,7 @@ const PestDisease = () => {
             type="button"
             className="pest-refresh-button"
             onClick={() =>
-              loadMonitoring(true)
+              loadData(true)
             }
             disabled={
               loading ||
@@ -584,7 +769,9 @@ const PestDisease = () => {
               </span>
 
               <strong>
-                {attentionConditions}
+                {
+                  attentionConditions
+                }
               </strong>
 
               <small>
@@ -631,12 +818,15 @@ const PestDisease = () => {
 
               </div>
 
+
               <span className="pest-feature-time">
+
                 {
                   formatDateTime(
                     latestDetection.recorded_at
                   )
                 }
+
               </span>
 
             </div>
@@ -705,6 +895,7 @@ const PestDisease = () => {
 
                 </div>
 
+
                 <h3>
                   {
                     latestDetection.crop_name ||
@@ -712,12 +903,14 @@ const PestDisease = () => {
                   }
                 </h3>
 
+
                 <p>
                   {
                     latestDetection.farm_name ||
                     "Unknown farm"
                   }
                 </p>
+
 
                 <span className="pest-feature-condition">
 
@@ -744,11 +937,12 @@ const PestDisease = () => {
 
 
         {/* =================================================
-            MONITORING INFORMATION
+            NO MONITORING DATA
         ================================================= */}
 
         {!loading &&
-          monitoringRecords.length === 0 && (
+          monitoringRecords.length ===
+            0 && (
 
           <div className="pest-empty">
 
@@ -781,8 +975,9 @@ const PestDisease = () => {
             FILTERS
         ================================================= */}
 
-        {detectionRecords.length >
-          0 && (
+        {!loading &&
+          detectionRecords.length >
+            0 && (
 
           <div className="pest-toolbar">
 
@@ -852,8 +1047,9 @@ const PestDisease = () => {
             HISTORY
         ================================================= */}
 
-        {detectionRecords.length >
-          0 && (
+        {!loading &&
+          detectionRecords.length >
+            0 && (
 
           <div className="pest-content-card">
 
@@ -877,10 +1073,12 @@ const PestDisease = () => {
 
                 <p>
                   {filteredRecords.length}{" "}
-                  {filteredRecords.length ===
-                  1
-                    ? "finding"
-                    : "findings"}{" "}
+                  {
+                    filteredRecords.length ===
+                    1
+                      ? "finding"
+                      : "findings"
+                  }{" "}
                   displayed
                 </p>
 
@@ -889,23 +1087,8 @@ const PestDisease = () => {
             </div>
 
 
-            {loading ? (
-
-              <div className="pest-state">
-
-                <RefreshCw
-                  size={26}
-                  className="pest-spin"
-                  aria-hidden="true"
-                />
-
-                <p>
-                  Loading detection data...
-                </p>
-
-              </div>
-
-            ) : filteredRecords.length === 0 ? (
+            {filteredRecords.length ===
+              0 ? (
 
               <div className="pest-state">
 
@@ -946,6 +1129,7 @@ const PestDisease = () => {
                       isTrue(
                         record.disease_detected
                       );
+
 
                     return (
 
@@ -1005,6 +1189,7 @@ const PestDisease = () => {
 
                             </div>
 
+
                             <small>
                               {
                                 formatDateTime(
@@ -1030,7 +1215,9 @@ const PestDisease = () => {
                                       : "pest-tag warning"
                                   }
                                 >
-                                  {type}
+                                  {
+                                    type
+                                  }
                                 </span>
 
                               )
@@ -1056,6 +1243,7 @@ const PestDisease = () => {
 
                             </span>
 
+
                             <span>
 
                               <strong>
@@ -1063,7 +1251,10 @@ const PestDisease = () => {
                               </strong>
 
                               {" "}
-                              #{record.id}
+                              #
+                              {
+                                record.id
+                              }
 
                             </span>
 
@@ -1125,5 +1316,6 @@ const PestDisease = () => {
     </DashboardLayout>
   );
 };
+
 
 export default PestDisease;

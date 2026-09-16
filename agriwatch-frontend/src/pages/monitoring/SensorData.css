@@ -47,8 +47,7 @@
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    box-shadow 0.2s ease;
 }
 
 .sensor-refresh-button:hover:not(:disabled) {
@@ -405,7 +404,7 @@
 .sensor-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 980px;
+  min-width: 1080px;
 }
 
 .sensor-table th {
@@ -470,6 +469,11 @@
   margin-top: 2px;
   color: #7d887f;
   font-size: 10px;
+}
+
+.sensor-farm-name {
+  color: #536259;
+  font-weight: 500;
 }
 
 .sensor-table-reading {
