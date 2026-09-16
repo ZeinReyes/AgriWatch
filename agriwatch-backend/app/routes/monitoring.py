@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request, current_app
+import os
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
@@ -1285,7 +1286,7 @@ def create_monitoring_record():
             traceback.print_exc()
 
         # =====================================================
-        # INFOBIP SMS
+        # BREVO SMS
         # =====================================================
 
         print(
@@ -1306,8 +1307,13 @@ def create_monitoring_record():
                 owner_id
             )
 
-            sms_recipient = current_app.config.get(
-                "INFOBIP_SMS_RECIPIENT"
+            # The current User model does not yet store a phone
+            # number, so deployment uses one SMS recipient from
+            # the BREVO_SMS_RECIPIENT environment variable.
+            # This can later be replaced with owner.phone_number
+            # when phone numbers are added to User.
+            sms_recipient = os.getenv(
+                "BREVO_SMS_RECIPIENT"
             )
 
             if not owner:
@@ -1324,18 +1330,18 @@ def create_monitoring_record():
             elif not sms_recipient:
 
                 print(
-                    "[SMS] ERROR: INFOBIP_SMS_RECIPIENT "
+                    "[SMS] ERROR: BREVO_SMS_RECIPIENT "
                     "is not configured."
                 )
 
                 sms_error = (
-                    "Infobip SMS recipient is not configured."
+                    "Brevo SMS recipient is not configured."
                 )
 
             else:
 
                 print(
-                    f"[SMS] Sending consolidated Infobip SMS "
+                    f"[SMS] Sending consolidated Brevo SMS "
                     f"with {len(notification_alerts)} "
                     f"condition(s)."
                 )
@@ -1350,7 +1356,7 @@ def create_monitoring_record():
                 sms_sent = True
 
                 print(
-                    "[SMS] Infobip SMS accepted successfully. "
+                    "[SMS] Brevo SMS accepted successfully. "
                     f"message_id={sms_result.get('message_id')} "
                     f"status={sms_result.get('status')}"
                 )

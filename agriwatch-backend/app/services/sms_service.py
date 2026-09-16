@@ -1,29 +1,36 @@
-"""Infobip SMS service for AgriWatch."""
+"""Brevo transactional SMS service for AgriWatch."""
+
+import os
 
 import requests
-from flask import current_app
 
 
-DEFAULT_BASE_URL = "https://api.infobip.com"
-SMS_PATH = "/sms/3/messages"
+DEFAULT_BASE_URL = "https://api.brevo.com"
+SMS_PATH = "/v3/transactionalSMS/send"
 
 
 def _get_config(name, required=True, default=None):
-    """Read an Infobip setting from the Flask application config."""
+    """Read a Brevo SMS setting from Flask config or environment variables."""
 
-    value = current_app.config.get(name, default)
+    try:
+        from flask import current_app
+
+        value = current_app.config.get(name)
+    except RuntimeError:
+        value = None
+
+    if not value:
+        value = os.getenv(name, default)
 
     if required and not value:
-        raise RuntimeError(
-            f"{name} is not configured."
-        )
+        raise RuntimeError(f"{name} is not configured.")
 
     return value
 
 
 def normalize_phone_number(phone_number):
     """
-    Normalize a Philippine mobile number into E.164 digits.
+    Normalize a Philippine mobile number into country-code format.
 
     Accepted common formats:
         09XXXXXXXXX
@@ -36,16 +43,12 @@ def normalize_phone_number(phone_number):
     """
 
     if phone_number is None:
-        raise ValueError(
-            "Recipient phone number is required."
-        )
+        raise ValueError("Recipient phone number is required.")
 
     number = str(phone_number).strip()
 
     if not number:
-        raise ValueError(
-            "Recipient phone number cannot be empty."
-        )
+        raise ValueError("Recipient phone number cannot be empty.")
 
     number = (
         number
@@ -57,10 +60,8 @@ def normalize_phone_number(phone_number):
 
     if number.startswith("+63"):
         number = number[1:]
-
     elif number.startswith("09"):
         number = "63" + number[1:]
-
     elif number.startswith("9") and len(number) == 10:
         number = "63" + number
 
@@ -74,56 +75,41 @@ def normalize_phone_number(phone_number):
 
 
 def _build_url():
-    """Build the current Infobip SMS API URL."""
+    """Build the Brevo transactional SMS API URL."""
 
     base_url = _get_config(
-        "INFOBIP_BASE_URL",
+        "BREVO_API_URL",
         required=False,
         default=DEFAULT_BASE_URL,
     )
 
-    return f"{str(base_url).rstrip('/')}{SMS_PATH}"
+    return f"{str(base_url).rstrip('/')}" f"{SMS_PATH}"
 
 
 def send_sms(recipient, message):
-    """
-    Send an SMS through Infobip SMS API v3.
-
-    Required API key scope:
-        sms:message:send
-    """
+    """Send one transactional SMS through the Brevo API."""
 
     if not message or not str(message).strip():
-        raise ValueError(
-            "SMS message cannot be empty."
-        )
+        raise ValueError("SMS message cannot be empty.")
 
     recipient = normalize_phone_number(recipient)
 
-    api_key = _get_config("INFOBIP_API_KEY")
-    sender = _get_config("INFOBIP_SENDER")
+    api_key = _get_config("BREVO_API_KEY")
+    sender = _get_config("BREVO_SMS_SENDER")
     url = _build_url()
 
     payload = {
-        "messages": [
-            {
-                "sender": str(sender).strip(),
-                "destinations": [
-                    {
-                        "to": recipient
-                    }
-                ],
-                "content": {
-                    "text": str(message).strip()
-                }
-            }
-        ]
+        "sender": str(sender).strip(),
+        "recipient": recipient,
+        "content": str(message).strip(),
+        "type": "transactional",
+        "unicodeEnabled": True,
     }
 
     headers = {
-        "Authorization": f"App {api_key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        "accept": "application/json",
+        "api-key": str(api_key).strip(),
+        "content-type": "application/json",
     }
 
     try:
@@ -133,75 +119,42 @@ def send_sms(recipient, message):
             json=payload,
             timeout=15,
         )
-
     except requests.RequestException as error:
         raise RuntimeError(
-            f"Unable to connect to Infobip: {error}"
+            f"Unable to connect to Brevo SMS API: {error}"
         ) from error
 
     try:
         response_data = response.json()
-
     except ValueError:
         response_data = response.text
 
     if not response.ok:
         raise RuntimeError(
-            f"Infobip API error "
+            f"Brevo SMS API error "
             f"(HTTP {response.status_code}): "
             f"{response_data}"
         )
 
-    messages = (
-        response_data.get("messages", [])
-        if isinstance(response_data, dict)
-        else []
-    )
-
-    first = (
-        messages[0]
-        if messages
-        else {}
-    )
-
-    status = (
-        first.get("status", {})
-        if isinstance(first, dict)
-        else {}
-    )
-
-    if isinstance(status, dict):
-        status_name = status.get("name")
-        status_description = status.get(
-            "description"
-        )
-    else:
-        status_name = status
-        status_description = None
-
-    # Infobip may return HTTP 200 for an accepted request
-    # while the message has a status indicating an error.
-    if (
-        isinstance(status_name, str)
-        and status_name.lower() in {
-            "rejected",
-            "failed",
-            "error",
-        }
-    ):
+    if not isinstance(response_data, dict):
         raise RuntimeError(
-            "Infobip rejected the SMS: "
-            f"{status_description or status_name}"
+            "Brevo returned an unexpected SMS response: "
+            f"{response_data}"
+        )
+
+    message_id = response_data.get("messageId")
+
+    if not message_id:
+        raise RuntimeError(
+            f"Brevo accepted the request but returned no messageId: "
+            f"{response_data}"
         )
 
     return {
         "success": True,
         "recipient": recipient,
-        "message_id": first.get("messageId")
-        if isinstance(first, dict)
-        else None,
-        "status": status_name,
-        "status_description": status_description,
+        "message_id": message_id,
+        "status": "accepted",
         "response": response_data,
     }
 
@@ -244,7 +197,7 @@ def build_alert_sms(
     crop_name,
     alerts,
 ):
-    """Build one consolidated AgriWatch SMS."""
+    """Build one consolidated AgriWatch alert SMS."""
 
     lines = [
         "AgriWatch Alert",
@@ -253,13 +206,9 @@ def build_alert_sms(
     ]
 
     for alert in alerts or []:
-        lines.append(
-            _short_alert_message(alert)
-        )
+        lines.append(_short_alert_message(alert))
 
-    lines.append(
-        "Check the AgriWatch dashboard."
-    )
+    lines.append("Check the AgriWatch dashboard.")
 
     return "\n".join(lines)
 
