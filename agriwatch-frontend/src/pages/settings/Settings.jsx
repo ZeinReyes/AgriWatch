@@ -4,7 +4,20 @@ import {
 } from "react";
 
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+
 import api from "../../services/api";
+
+import {
+  CheckCircle2,
+  CircleAlert,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 
 import "./Settings.css";
 
@@ -13,78 +26,70 @@ const Settings = () => {
 
   const [
     settings,
-    setSettings
+    setSettings,
   ] = useState(null);
 
 
   const [
     fullName,
-    setFullName
+    setFullName,
   ] = useState("");
 
 
   const [
     currentPassword,
-    setCurrentPassword
+    setCurrentPassword,
   ] = useState("");
 
 
   const [
     newPassword,
-    setNewPassword
+    setNewPassword,
   ] = useState("");
 
 
   const [
     confirmPassword,
-    setConfirmPassword
+    setConfirmPassword,
   ] = useState("");
 
 
   const [
-    notifications,
-    setNotifications
-  ] = useState(
-    DEFAULT_NOTIFICATIONS
-  );
-
-
-  const [
     loading,
-    setLoading
+    setLoading,
   ] = useState(true);
 
 
   const [
     profileSaving,
-    setProfileSaving
+    setProfileSaving,
   ] = useState(false);
 
 
   const [
     passwordSaving,
-    setPasswordSaving
+    setPasswordSaving,
   ] = useState(false);
 
 
   const [
     message,
-    setMessage
+    setMessage,
   ] = useState("");
 
 
   const [
     error,
-    setError
+    setError,
   ] = useState("");
 
 
+  // =========================================================
+  // LOAD SETTINGS
+  // =========================================================
+
   useEffect(() => {
-
     loadSettings();
-
-    loadNotificationPreferences();
-
   }, []);
 
 
@@ -96,7 +101,9 @@ const Settings = () => {
       setError("");
 
       const response =
-        await api.get("/settings");
+        await api.get(
+          "/settings"
+        );
 
 
       const data =
@@ -104,10 +111,13 @@ const Settings = () => {
         null;
 
 
-      setSettings(data);
+      setSettings(
+        data
+      );
 
       setFullName(
-        data?.full_name || ""
+        data?.full_name ||
+        ""
       );
 
     } catch (err) {
@@ -130,45 +140,30 @@ const Settings = () => {
   };
 
 
-  const loadNotificationPreferences = () => {
-
-    try {
-
-      const saved =
-        localStorage.getItem(
-          "agriwatch_notification_preferences"
-        );
-
-
-      if (!saved) {
-        return;
-      }
-
-
-      const parsed =
-        JSON.parse(saved);
-
-
-      setNotifications({
-        ...DEFAULT_NOTIFICATIONS,
-        ...parsed,
-      });
-
-    } catch (err) {
-
-      console.error(
-        "Failed to load notification preferences:",
-        err
-      );
-
-    }
-  };
-
+  // =========================================================
+  // PROFILE
+  // =========================================================
 
   const handleProfileSubmit =
     async (event) => {
 
       event.preventDefault();
+
+      const trimmedName =
+        fullName.trim();
+
+
+      if (!trimmedName) {
+
+        setError(
+          "Full name is required."
+        );
+
+        setMessage("");
+
+        return;
+      }
+
 
       try {
 
@@ -183,13 +178,14 @@ const Settings = () => {
             "/settings/profile",
             {
               full_name:
-                fullName.trim(),
+                trimmedName,
             }
           );
 
 
         const updatedUser =
-          response.data?.user;
+          response.data?.user ||
+          {};
 
 
         setSettings(
@@ -208,28 +204,44 @@ const Settings = () => {
 
         if (storedUser) {
 
-          const parsedUser =
-            JSON.parse(
-              storedUser
+          try {
+
+            const parsedUser =
+              JSON.parse(
+                storedUser
+              );
+
+
+            localStorage.setItem(
+              "agriwatch_user",
+              JSON.stringify({
+                ...parsedUser,
+                ...updatedUser,
+              })
             );
 
+          } catch (storageError) {
 
-          localStorage.setItem(
-            "agriwatch_user",
-            JSON.stringify({
-              ...parsedUser,
-              ...updatedUser,
-            })
-          );
+            console.error(
+              "Failed to update stored user:",
+              storageError
+            );
 
+          }
         }
+
+
+        setFullName(
+          updatedUser.full_name ||
+          trimmedName
+        );
 
 
         setMessage(
           "Your profile has been updated."
         );
 
-      } catch (err) {
+    } catch (err) {
 
         console.error(
           "Failed to update profile:",
@@ -249,17 +261,48 @@ const Settings = () => {
     };
 
 
+  // =========================================================
+  // PASSWORD
+  // =========================================================
+
   const handlePasswordSubmit =
     async (event) => {
 
       event.preventDefault();
 
+      setMessage("");
+      setError("");
+
+
+      if (
+        newPassword !==
+        confirmPassword
+      ) {
+
+        setError(
+          "New password and confirmation password do not match."
+        );
+
+        return;
+      }
+
+
+      if (
+        newPassword.length <
+        8
+      ) {
+
+        setError(
+          "New password must be at least 8 characters long."
+        );
+
+        return;
+      }
+
+
       try {
 
         setPasswordSaving(true);
-
-        setMessage("");
-        setError("");
 
 
         await api.post(
@@ -306,42 +349,9 @@ const Settings = () => {
     };
 
 
-  const updateNotification =
-    (
-      key
-    ) => {
-
-      setNotifications(
-        (previous) => {
-
-          const updated = {
-            ...previous,
-            [key]:
-              !previous[key],
-          };
-
-
-          localStorage.setItem(
-            "agriwatch_notification_preferences",
-            JSON.stringify(
-              updated
-            )
-          );
-
-
-          return updated;
-
-        }
-      );
-
-
-      setMessage(
-        "Notification preferences updated."
-      );
-
-      setError("");
-    };
-
+  // =========================================================
+  // LOADING STATE
+  // =========================================================
 
   if (loading) {
 
@@ -353,7 +363,16 @@ const Settings = () => {
 
           <div className="settings-state">
 
-            <div className="settings-spinner"></div>
+            <div className="settings-spinner">
+
+              <Loader2
+                size={25}
+                strokeWidth={2}
+                className="settings-spin"
+                aria-hidden="true"
+              />
+
+            </div>
 
             <h3>
               Loading settings
@@ -373,6 +392,10 @@ const Settings = () => {
   }
 
 
+  // =========================================================
+  // ERROR STATE
+  // =========================================================
+
   if (error && !settings) {
 
     return (
@@ -384,7 +407,13 @@ const Settings = () => {
           <div className="settings-state settings-error">
 
             <div className="settings-state-icon">
-              !
+
+              <CircleAlert
+                size={28}
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
+
             </div>
 
             <h3>
@@ -398,9 +427,21 @@ const Settings = () => {
             <button
               type="button"
               className="settings-retry-button"
-              onClick={loadSettings}
+              onClick={
+                loadSettings
+              }
             >
-              Try Again
+
+              <RefreshCw
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+
+              <span>
+                Try Again
+              </span>
+
             </button>
 
           </div>
@@ -412,6 +453,30 @@ const Settings = () => {
     );
   }
 
+
+  // =========================================================
+  // USER INITIAL
+  // =========================================================
+
+  const userInitial =
+    fullName
+      ?.charAt(0)
+      ?.toUpperCase() ||
+    "U";
+
+
+  const formattedRole =
+    settings?.role
+      ? settings.role
+          .charAt(0)
+          .toUpperCase() +
+        settings.role.slice(1)
+      : "User";
+
+
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
 
@@ -436,8 +501,8 @@ const Settings = () => {
             </h1>
 
             <p>
-              Manage your profile, password,
-              and notification preferences.
+              Manage your profile and
+              account security.
             </p>
 
           </div>
@@ -453,11 +518,15 @@ const Settings = () => {
 
           <div className="settings-message">
 
-            <span>
-              ✓
-            </span>
+            <CheckCircle2
+              size={18}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
 
-            {message}
+            <span>
+              {message}
+            </span>
 
           </div>
 
@@ -468,11 +537,15 @@ const Settings = () => {
 
           <div className="settings-alert-error">
 
-            <span>
-              !
-            </span>
+            <CircleAlert
+              size={18}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
 
-            {error}
+            <span>
+              {error}
+            </span>
 
           </div>
 
@@ -480,7 +553,7 @@ const Settings = () => {
 
 
         {/* =========================================
-            ACCOUNT
+            PROFILE
         ========================================== */}
 
         <section className="settings-section">
@@ -489,9 +562,19 @@ const Settings = () => {
 
             <div>
 
-              <h2>
-                Profile
-              </h2>
+              <div className="settings-title-row">
+
+                <UserRound
+                  size={19}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+
+                <h2>
+                  Profile
+                </h2>
+
+              </div>
 
               <p>
                 Update the information associated
@@ -509,10 +592,7 @@ const Settings = () => {
 
               <div className="settings-profile-avatar">
 
-                {fullName
-                  ?.charAt(0)
-                  ?.toUpperCase() ||
-                  "U"}
+                {userInitial}
 
               </div>
 
@@ -525,8 +605,7 @@ const Settings = () => {
                 </h3>
 
                 <span>
-                  {settings?.role ||
-                    "user"}
+                  {formattedRole}
                 </span>
 
               </div>
@@ -543,13 +622,16 @@ const Settings = () => {
 
               <div className="settings-field">
 
-                <label>
+                <label htmlFor="full_name">
                   Full Name
                 </label>
 
                 <input
+                  id="full_name"
                   type="text"
-                  value={fullName}
+                  value={
+                    fullName
+                  }
                   onChange={(event) =>
                     setFullName(
                       event.target.value
@@ -565,18 +647,29 @@ const Settings = () => {
 
               <div className="settings-field">
 
-                <label>
+                <label htmlFor="email_address">
                   Email Address
                 </label>
 
-                <input
-                  type="email"
-                  value={
-                    settings?.email ||
-                    ""
-                  }
-                  disabled
-                />
+                <div className="settings-input-with-icon">
+
+                  <Mail
+                    size={17}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+
+                  <input
+                    id="email_address"
+                    type="email"
+                    value={
+                      settings?.email ||
+                      ""
+                    }
+                    disabled
+                  />
+
+                </div>
 
                 <small>
                   Your email address is used
@@ -596,9 +689,35 @@ const Settings = () => {
                   }
                 >
 
-                  {profileSaving
-                    ? "Saving..."
-                    : "Save Changes"}
+                  {profileSaving ? (
+
+                    <>
+                      <Loader2
+                        size={17}
+                        className="settings-spin"
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Saving...
+                      </span>
+                    </>
+
+                  ) : (
+
+                    <>
+                      <Save
+                        size={17}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        Save Changes
+                      </span>
+                    </>
+
+                  )}
 
                 </button>
 
@@ -621,12 +740,23 @@ const Settings = () => {
 
             <div>
 
-              <h2>
-                Password
-              </h2>
+              <div className="settings-title-row">
+
+                <LockKeyhole
+                  size={19}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+
+                <h2>
+                  Password
+                </h2>
+
+              </div>
 
               <p>
-                Change your current password.
+                Change your current password
+                to keep your account secure.
               </p>
 
             </div>
@@ -643,11 +773,12 @@ const Settings = () => {
 
             <div className="settings-field">
 
-              <label>
+              <label htmlFor="current_password">
                 Current Password
               </label>
 
               <input
+                id="current_password"
                 type="password"
                 value={
                   currentPassword
@@ -666,11 +797,12 @@ const Settings = () => {
 
             <div className="settings-field">
 
-              <label>
+              <label htmlFor="new_password">
                 New Password
               </label>
 
               <input
+                id="new_password"
                 type="password"
                 value={
                   newPassword
@@ -685,16 +817,22 @@ const Settings = () => {
                 required
               />
 
+              <small>
+                Use at least 8 characters
+                for your new password.
+              </small>
+
             </div>
 
 
             <div className="settings-field">
 
-              <label>
+              <label htmlFor="confirm_password">
                 Confirm New Password
               </label>
 
               <input
+                id="confirm_password"
                 type="password"
                 value={
                   confirmPassword
@@ -712,6 +850,23 @@ const Settings = () => {
             </div>
 
 
+            <div className="settings-password-security">
+
+              <ShieldCheck
+                size={18}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+
+              <span>
+                Your password is securely
+                handled by the AgriWatch
+                authentication system.
+              </span>
+
+            </div>
+
+
             <div className="settings-form-actions">
 
               <button
@@ -722,9 +877,35 @@ const Settings = () => {
                 }
               >
 
-                {passwordSaving
-                  ? "Updating..."
-                  : "Change Password"}
+                {passwordSaving ? (
+
+                  <>
+                    <Loader2
+                      size={17}
+                      className="settings-spin"
+                      aria-hidden="true"
+                    />
+
+                    <span>
+                      Updating...
+                    </span>
+                  </>
+
+                ) : (
+
+                  <>
+                    <LockKeyhole
+                      size={17}
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    />
+
+                    <span>
+                      Change Password
+                    </span>
+                  </>
+
+                )}
 
               </button>
 
@@ -734,11 +915,40 @@ const Settings = () => {
 
         </section>
 
+
         {/* =========================================
             ACCOUNT INFORMATION
         ========================================== */}
 
         <section className="settings-section settings-account-section">
+
+          <div className="settings-section-header">
+
+            <div>
+
+              <div className="settings-title-row">
+
+                <ShieldCheck
+                  size={19}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+
+                <h2>
+                  Account Information
+                </h2>
+
+              </div>
+
+              <p>
+                Current details and status
+                of your AgriWatch account.
+              </p>
+
+            </div>
+
+          </div>
+
 
           <div className="settings-account-row">
 
@@ -749,12 +959,7 @@ const Settings = () => {
               </span>
 
               <strong>
-                {
-                  settings?.role
-                    ?.charAt(0)
-                    ?.toUpperCase() +
-                    settings?.role?.slice(1)
-                }
+                {formattedRole}
               </strong>
 
             </div>
@@ -787,9 +992,12 @@ const Settings = () => {
                       ).toLocaleDateString(
                         "en-PH",
                         {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
+                          month:
+                            "short",
+                          day:
+                            "numeric",
+                          year:
+                            "numeric",
                         }
                       )
                     : "—"
