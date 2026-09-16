@@ -4,6 +4,18 @@ import {
   useState,
 } from "react";
 
+import {
+  AlertTriangle,
+  Bell,
+  Check,
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  History,
+  RefreshCw,
+  ShieldAlert,
+} from "lucide-react";
+
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 
 import {
@@ -109,18 +121,25 @@ const Alerts = () => {
             : 0;
 
 
-        if (dateA !== dateB) {
+        if (
+          dateA !== dateB
+        ) {
 
           return (
-            dateB - dateA
+            dateB -
+            dateA
           );
 
         }
 
 
         return (
-          Number(b.id || 0) -
-          Number(a.id || 0)
+          Number(
+            b.id || 0
+          ) -
+          Number(
+            a.id || 0
+          )
         );
 
       }
@@ -361,19 +380,33 @@ const Alerts = () => {
 
           <div className="alerts-header-content">
 
-            <span className="alerts-eyebrow">
-              CROP MONITORING
-            </span>
+            <div className="alerts-title-icon">
 
-            <h1>
-              Alerts
-            </h1>
+              <Bell
+                size={20}
+                strokeWidth={2}
+              />
 
-            <p>
-              Review current crop conditions
-              that need attention and view
-              previous alert activity.
-            </p>
+            </div>
+
+
+            <div>
+
+              <span className="alerts-eyebrow">
+                CROP MONITORING
+              </span>
+
+              <h1>
+                Alerts
+              </h1>
+
+              <p>
+                Review current crop conditions
+                that require attention and
+                review previous alert activity.
+              </p>
+
+            </div>
 
           </div>
 
@@ -384,6 +417,16 @@ const Alerts = () => {
             onClick={loadAlerts}
             disabled={loading}
           >
+
+            <RefreshCw
+              size={15}
+              strokeWidth={2}
+              className={
+                loading
+                  ? "alerts-refresh-icon spinning"
+                  : "alerts-refresh-icon"
+              }
+            />
 
             {loading
               ? "Refreshing..."
@@ -403,7 +446,12 @@ const Alerts = () => {
           <div className="alert-summary-card">
 
             <div className="summary-icon">
-              !
+
+              <Bell
+                size={18}
+                strokeWidth={2}
+              />
+
             </div>
 
             <div>
@@ -424,7 +472,12 @@ const Alerts = () => {
           <div className="alert-summary-card">
 
             <div className="summary-icon">
-              ●
+
+              <CircleAlert
+                size={18}
+                strokeWidth={2}
+              />
+
             </div>
 
             <div>
@@ -445,7 +498,12 @@ const Alerts = () => {
           <div className="alert-summary-card">
 
             <div className="summary-icon critical">
-              !
+
+              <ShieldAlert
+                size={18}
+                strokeWidth={2}
+              />
+
             </div>
 
             <div>
@@ -474,10 +532,17 @@ const Alerts = () => {
           <div className="alerts-error">
 
             <span>
-              !
+
+              <AlertTriangle
+                size={15}
+                strokeWidth={2}
+              />
+
             </span>
 
-            {error}
+            <p>
+              {error}
+            </p>
 
           </div>
 
@@ -485,17 +550,22 @@ const Alerts = () => {
 
 
         {/* ===================================================
-            LOADING
+            LOADING / EMPTY
         =================================================== */}
 
         {loading ? (
 
           <div className="alerts-empty">
 
-            <div className="alerts-spinner"></div>
+            <div className="alerts-spinner">
+            </div>
+
+            <h3>
+              Loading alerts
+            </h3>
 
             <p>
-              Loading alerts...
+              Retrieving the latest crop monitoring alerts.
             </p>
 
           </div>
@@ -505,7 +575,12 @@ const Alerts = () => {
           <div className="alerts-empty">
 
             <div className="empty-icon">
-              ✓
+
+              <CheckCircle2
+                size={22}
+                strokeWidth={2}
+              />
+
             </div>
 
             <h3>
@@ -542,8 +617,7 @@ const Alerts = () => {
                   </h2>
 
                   <p>
-                    These are the current
-                    conditions requiring
+                    Current conditions requiring
                     attention.
                   </p>
 
@@ -551,11 +625,13 @@ const Alerts = () => {
 
 
                 <span className="alerts-section-count">
+
                   {activeAlerts.length}
                   {" "}
                   {activeAlerts.length === 1
-                    ? "active"
-                    : "active"}
+                    ? "alert"
+                    : "alerts"}
+
                 </span>
 
               </div>
@@ -566,18 +642,23 @@ const Alerts = () => {
                 <div className="alerts-section-empty">
 
                   <div className="section-empty-icon">
-                    ✓
+
+                    <Check
+                      size={18}
+                      strokeWidth={2}
+                    />
+
                   </div>
 
                   <div>
 
                     <strong>
-                      Everything looks okay
+                      No active alerts
                     </strong>
 
                     <p>
                       There are currently no
-                      unresolved crop alerts.
+                      unresolved crop conditions.
                     </p>
 
                   </div>
@@ -610,7 +691,7 @@ const Alerts = () => {
                           }
                         >
 
-                          {/* Severity */}
+                          {/* Severity indicator */}
 
                           <div
                             className={
@@ -625,6 +706,27 @@ const Alerts = () => {
 
                             <div className="alert-title-row">
 
+                              <div className="alert-title-icon">
+
+                                {severity === "critical" ? (
+
+                                  <ShieldAlert
+                                    size={16}
+                                    strokeWidth={2}
+                                  />
+
+                                ) : (
+
+                                  <AlertTriangle
+                                    size={16}
+                                    strokeWidth={2}
+                                  />
+
+                                )}
+
+                              </div>
+
+
                               <h3>
                                 {item.alert_type}
                               </h3>
@@ -633,7 +735,12 @@ const Alerts = () => {
                               {!item.is_read && (
 
                                 <span className="unread-badge">
+
+                                  <span className="unread-dot">
+                                  </span>
+
                                   New
+
                                 </span>
 
                               )}
@@ -657,10 +764,17 @@ const Alerts = () => {
                                 {item.monitoring_id}
                               </span>
 
-                              <span>
+                              <span className="alert-date">
+
+                                <Clock3
+                                  size={12}
+                                  strokeWidth={2}
+                                />
+
                                 {formatDate(
                                   item.created_at
                                 )}
+
                               </span>
 
                             </div>
@@ -677,7 +791,25 @@ const Alerts = () => {
                                 `severity-badge ${severity}`
                               }
                             >
+
+                              {severity === "critical" ? (
+
+                                <ShieldAlert
+                                  size={12}
+                                  strokeWidth={2}
+                                />
+
+                              ) : (
+
+                                <AlertTriangle
+                                  size={12}
+                                  strokeWidth={2}
+                                />
+
+                              )}
+
                               {item.severity}
+
                             </span>
 
 
@@ -694,7 +826,14 @@ const Alerts = () => {
                                     )
                                   }
                                 >
+
+                                  <Check
+                                    size={14}
+                                    strokeWidth={2}
+                                  />
+
                                   Mark as Read
+
                                 </button>
 
                               )}
@@ -709,7 +848,14 @@ const Alerts = () => {
                                   )
                                 }
                               >
+
+                                <CheckCircle2
+                                  size={14}
+                                  strokeWidth={2}
+                                />
+
                                 Resolve
+
                               </button>
 
                             </div>
@@ -741,7 +887,7 @@ const Alerts = () => {
                 <div>
 
                   <span className="alerts-section-eyebrow">
-                    RECORD
+                    RECORDS
                   </span>
 
                   <h2>
@@ -749,20 +895,26 @@ const Alerts = () => {
                   </h2>
 
                   <p>
-                    Previous alerts are kept
-                    here for reference and
-                    reporting.
+                    Previous alerts retained for
+                    reference and reporting.
                   </p>
 
                 </div>
 
 
                 <span className="alerts-section-count history-count">
+
+                  <History
+                    size={12}
+                    strokeWidth={2}
+                  />
+
                   {alertHistory.length}
                   {" "}
                   {alertHistory.length === 1
                     ? "record"
                     : "records"}
+
                 </span>
 
               </div>
@@ -772,8 +924,13 @@ const Alerts = () => {
 
                 <div className="alerts-section-empty">
 
-                  <div className="section-empty-icon">
-                    —
+                  <div className="section-empty-icon muted">
+
+                    <History
+                      size={17}
+                      strokeWidth={2}
+                    />
+
                   </div>
 
                   <div>
@@ -822,13 +979,30 @@ const Alerts = () => {
 
                             <div className="alert-title-row">
 
+                              <div className="alert-title-icon">
+
+                                <CheckCircle2
+                                  size={16}
+                                  strokeWidth={2}
+                                />
+
+                              </div>
+
+
                               <h3>
                                 {item.alert_type}
                               </h3>
 
 
                               <span className="resolved-badge">
+
+                                <Check
+                                  size={11}
+                                  strokeWidth={2}
+                                />
+
                                 Resolved
+
                               </span>
 
                             </div>
@@ -850,22 +1024,37 @@ const Alerts = () => {
                                 {item.monitoring_id}
                               </span>
 
-                              <span>
+                              <span className="alert-date">
+
+                                <Clock3
+                                  size={12}
+                                  strokeWidth={2}
+                                />
+
                                 Created:
                                 {" "}
                                 {formatDate(
                                   item.created_at
                                 )}
+
                               </span>
+
 
                               {item.resolved_at && (
 
-                                <span>
+                                <span className="alert-date">
+
+                                  <CheckCircle2
+                                    size={12}
+                                    strokeWidth={2}
+                                  />
+
                                   Resolved:
                                   {" "}
                                   {formatDate(
                                     item.resolved_at
                                   )}
+
                                 </span>
 
                               )}
@@ -882,7 +1071,25 @@ const Alerts = () => {
                                 `severity-badge ${severity}`
                               }
                             >
+
+                              {severity === "critical" ? (
+
+                                <ShieldAlert
+                                  size={12}
+                                  strokeWidth={2}
+                                />
+
+                              ) : (
+
+                                <AlertTriangle
+                                  size={12}
+                                  strokeWidth={2}
+                                />
+
+                              )}
+
                               {item.severity}
+
                             </span>
 
                           </div>
