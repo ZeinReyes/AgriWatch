@@ -3,6 +3,22 @@ import {
 } from "react-router-dom";
 
 import {
+  LayoutDashboard,
+  House,
+  Sprout,
+  CircleDot,
+  Table2,
+  Bug,
+  TriangleAlert,
+  Cloud,
+  Droplets,
+  FileText,
+  Settings,
+  UserRoundCog,
+  LogOut,
+} from "lucide-react";
+
+import {
   useAuth,
 } from "../../context/AuthContext";
 
@@ -29,7 +45,7 @@ const Sidebar = ({
       links: [
         {
           label: "Dashboard",
-          icon: "⌂",
+          icon: LayoutDashboard,
           path: "/dashboard",
           roles: [
             "admin",
@@ -42,12 +58,39 @@ const Sidebar = ({
 
 
     {
+      title: "Farm Management",
+
+      links: [
+        {
+          label: "My Farm",
+          icon: House,
+          path: "/farm",
+          roles: [
+            "admin",
+            "farmer",
+          ],
+        },
+
+        {
+          label: "My Crops",
+          icon: Sprout,
+          path: "/crops",
+          roles: [
+            "admin",
+            "farmer",
+          ],
+        },
+      ],
+    },
+
+
+    {
       title: "Monitoring",
 
       links: [
         {
           label: "Crop Monitoring",
-          icon: "◉",
+          icon: CircleDot,
           path: "/monitoring",
           roles: [
             "admin",
@@ -57,7 +100,7 @@ const Sidebar = ({
 
         {
           label: "Sensor Data",
-          icon: "▥",
+          icon: Table2,
           path: "/sensor-data",
           roles: [
             "admin",
@@ -67,7 +110,7 @@ const Sidebar = ({
 
         {
           label: "Pest & Disease",
-          icon: "🐛",
+          icon: Bug,
           path: "/pest-disease",
           roles: [
             "admin",
@@ -84,7 +127,7 @@ const Sidebar = ({
       links: [
         {
           label: "Alerts",
-          icon: "⚠",
+          icon: TriangleAlert,
           path: "/alerts",
           roles: [
             "admin",
@@ -94,7 +137,7 @@ const Sidebar = ({
 
         {
           label: "Weather",
-          icon: "☁",
+          icon: Cloud,
           path: "/weather",
           roles: [
             "admin",
@@ -104,7 +147,7 @@ const Sidebar = ({
 
         {
           label: "Irrigation",
-          icon: "💧",
+          icon: Droplets,
           path: "/irrigation",
           roles: [
             "admin",
@@ -121,7 +164,7 @@ const Sidebar = ({
       links: [
         {
           label: "Reports",
-          icon: "▤",
+          icon: FileText,
           path: "/reports",
           roles: [
             "admin",
@@ -139,7 +182,7 @@ const Sidebar = ({
       links: [
         {
           label: "Settings",
-          icon: "⚙",
+          icon: Settings,
           path: "/settings",
           roles: [
             "admin",
@@ -156,7 +199,7 @@ const Sidebar = ({
       links: [
         {
           label: "User Management",
-          icon: "♙",
+          icon: UserRoundCog,
           path: "/admin/users",
           roles: [
             "admin",
@@ -204,7 +247,10 @@ const Sidebar = ({
         <div className="sidebar-brand">
 
           <div className="brand-icon">
-            🌱
+            <Sprout
+              size={22}
+              strokeWidth={2.2}
+            />
           </div>
 
 
@@ -255,33 +301,44 @@ const Sidebar = ({
 
 
                   {visibleLinks.map(
-                    (link) => (
+                    (link) => {
 
-                      <NavLink
-                        key={link.path}
-                        to={link.path}
-                        onClick={onClose}
-                        className={({ isActive }) =>
-                          `nav-item ${
-                            isActive
-                              ? "nav-item-active"
-                              : ""
-                          }`
-                        }
-                      >
-
-                        <span className="nav-icon">
-                          {link.icon}
-                        </span>
+                      const Icon =
+                        link.icon;
 
 
-                        <span className="nav-label">
-                          {link.label}
-                        </span>
+                      return (
+                        <NavLink
+                          key={link.path}
+                          to={link.path}
+                          onClick={onClose}
+                          className={({ isActive }) =>
+                            `nav-item ${
+                              isActive
+                                ? "nav-item-active"
+                                : ""
+                            }`
+                          }
+                        >
 
-                      </NavLink>
+                          <span className="nav-icon">
 
-                    )
+                            <Icon
+                              size={18}
+                              strokeWidth={2}
+                            />
+
+                          </span>
+
+
+                          <span className="nav-label">
+                            {link.label}
+                          </span>
+
+                        </NavLink>
+                      );
+
+                    }
                   )}
 
                 </div>
@@ -293,7 +350,7 @@ const Sidebar = ({
         </nav>
 
 
-        {/* LOGOUT ONLY */}
+        {/* LOGOUT */}
 
         <div className="sidebar-bottom">
 
@@ -304,8 +361,14 @@ const Sidebar = ({
           >
 
             <span className="logout-icon">
-              ↪
+
+              <LogOut
+                size={18}
+                strokeWidth={2}
+              />
+
             </span>
+
 
             <span>
               Logout

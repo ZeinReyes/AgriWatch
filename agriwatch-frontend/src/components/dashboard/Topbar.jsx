@@ -9,6 +9,14 @@ import {
 } from "react-router-dom";
 
 import {
+  Menu,
+  Bell,
+  BellOff,
+  CheckCircle2,
+  TriangleAlert,
+} from "lucide-react";
+
+import {
   useAuth,
 } from "../../context/AuthContext";
 
@@ -321,7 +329,7 @@ const Topbar = ({
           >
 
             <span className="notification-icon">
-              🔔
+              <Bell size={19} strokeWidth={2} />
             </span>
 
 
@@ -393,7 +401,7 @@ const Topbar = ({
                     <div className="notification-empty">
 
                       <div className="notification-empty-icon">
-                        🔕
+                        <BellOff size={30} strokeWidth={1.8} />
                       </div>
 
                       <strong>
@@ -432,7 +440,7 @@ const Topbar = ({
                       <div className="notification-empty">
 
                         <div className="notification-empty-icon">
-                          ✓
+                          <CheckCircle2 size={30} strokeWidth={1.8} />
                         </div>
 
                         <strong>
@@ -483,7 +491,7 @@ const Topbar = ({
                               }`
                             }
                           >
-                            ⚠
+                            <TriangleAlert size={19} strokeWidth={2} />
                           </span>
 
 
