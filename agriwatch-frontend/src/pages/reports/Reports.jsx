@@ -3,6 +3,23 @@ import {
   useState,
 } from "react";
 
+import {
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  CircleAlert,
+  Cloud,
+  Download,
+  Droplets,
+  FileBarChart,
+  Leaf,
+  RefreshCw,
+  ShieldAlert,
+  Thermometer,
+  Wheat,
+} from "lucide-react";
+
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import api from "../../services/api";
 
@@ -60,7 +77,9 @@ const Reports = () => {
           "/reports/summary"
         );
 
-      setReport(response.data);
+      setReport(
+        response.data
+      );
 
     } catch (err) {
 
@@ -302,28 +321,170 @@ const Reports = () => {
   };
 
 
+  const summary =
+    report?.summary || {};
+
+
+  const overviewCards = [
+    {
+      label: "Farms",
+      value: formatNumber(
+        summary.farms
+      ),
+      icon: Wheat,
+      className: "green",
+    },
+
+    {
+      label: "Crops",
+      value: formatNumber(
+        summary.crops
+      ),
+      icon: Leaf,
+      className: "green",
+    },
+
+    {
+      label: "Crop Health",
+      value: formatNumber(
+        summary.crop_health_percentage,
+        "%"
+      ),
+      icon: CheckCircle2,
+      className: "success",
+    },
+
+    {
+      label: "Monitoring Records",
+      value: formatNumber(
+        summary.monitoring_records
+      ),
+      icon: Activity,
+      className: "blue",
+    },
+
+    {
+      label: "Total Alerts",
+      value: formatNumber(
+        summary.alerts
+      ),
+      icon: AlertTriangle,
+      className: "warning",
+    },
+
+    {
+      label: "Unresolved Alerts",
+      value: formatNumber(
+        summary.unresolved_alerts
+      ),
+      icon: ShieldAlert,
+      className: "danger",
+    },
+  ];
+
+
+  const monitoringCards = [
+    {
+      label: "Average Soil Moisture",
+      value: formatNumber(
+        summary.average_moisture,
+        "%"
+      ),
+      icon: Droplets,
+    },
+
+    {
+      label: "Average Crop Temperature",
+      value: formatNumber(
+        summary.average_temperature,
+        "°C"
+      ),
+      icon: Thermometer,
+    },
+
+    {
+      label: "Low Moisture Records",
+      value: formatNumber(
+        summary.low_moisture_count
+      ),
+      icon: Droplets,
+    },
+
+    {
+      label: "High Temperature Records",
+      value: formatNumber(
+        summary.high_temperature_count
+      ),
+      icon: Thermometer,
+    },
+
+    {
+      label: "Pest Detections",
+      value: formatNumber(
+        summary.pest_count
+      ),
+      icon: CircleAlert,
+    },
+
+    {
+      label: "Disease Detections",
+      value: formatNumber(
+        summary.disease_count
+      ),
+      icon: ShieldAlert,
+    },
+
+    {
+      label: "Discoloration Records",
+      value: formatNumber(
+        summary.discoloration_count
+      ),
+      icon: Leaf,
+    },
+  ];
+
+
   return (
 
     <DashboardLayout>
 
       <div className="reports-page">
 
+        {/* =========================================
+            PAGE HEADER
+        ========================================== */}
+
         <div className="reports-header">
 
-          <div>
+          <div className="reports-header-content">
 
-            <span className="reports-eyebrow">
-              FARM REPORTS
-            </span>
+            <div className="reports-title-icon">
 
-            <h1>
-              Reports
-            </h1>
+              <FileBarChart
+                size={20}
+                strokeWidth={2}
+              />
 
-            <p>
-              View summarized crop monitoring,
-              sensor, and alert information.
-            </p>
+            </div>
+
+
+            <div>
+
+              <span className="reports-eyebrow">
+                ANALYTICS & REPORTING
+              </span>
+
+              <h1>
+                Reports
+              </h1>
+
+              <p>
+                Review summarized crop monitoring,
+                environmental measurements, and
+                alert activity across your farm.
+              </p>
+
+            </div>
 
           </div>
 
@@ -331,10 +492,20 @@ const Reports = () => {
           <div className="reports-header-actions">
 
             {isViewer && (
+
               <span className="reports-view-only">
+
+                <BarChart3
+                  size={14}
+                  strokeWidth={2}
+                />
+
                 View Only
+
               </span>
+
             )}
+
 
             <button
               type="button"
@@ -345,7 +516,14 @@ const Reports = () => {
                 !report
               }
             >
+
+              <Download
+                size={16}
+                strokeWidth={2}
+              />
+
               Export CSV
+
             </button>
 
           </div>
@@ -353,18 +531,31 @@ const Reports = () => {
         </div>
 
 
+        {/* =========================================
+            LOADING
+        ========================================== */}
+
         {loading && (
 
           <div className="reports-state-card">
 
             <div className="reports-spinner"></div>
 
+            <div className="reports-state-icon">
+
+              <FileBarChart
+                size={22}
+                strokeWidth={2}
+              />
+
+            </div>
+
             <h3>
-              Loading reports
+              Loading report
             </h3>
 
             <p>
-              Preparing your farm report.
+              Preparing your latest monitoring summary.
             </p>
 
           </div>
@@ -372,12 +563,21 @@ const Reports = () => {
         )}
 
 
+        {/* =========================================
+            ERROR
+        ========================================== */}
+
         {!loading && error && (
 
           <div className="reports-state-card reports-error">
 
-            <div className="reports-state-icon">
-              !
+            <div className="reports-state-icon reports-state-icon-error">
+
+              <AlertTriangle
+                size={22}
+                strokeWidth={2}
+              />
+
             </div>
 
             <h3>
@@ -393,7 +593,14 @@ const Reports = () => {
               className="reports-retry-button"
               onClick={loadReports}
             >
+
+              <RefreshCw
+                size={15}
+                strokeWidth={2}
+              />
+
               Try Again
+
             </button>
 
           </div>
@@ -401,11 +608,19 @@ const Reports = () => {
         )}
 
 
+        {/* =========================================
+            REPORT CONTENT
+        ========================================== */}
+
         {!loading &&
           !error &&
           report && (
 
             <>
+
+              {/* =========================================
+                  OVERVIEW
+              ========================================== */}
 
               <section className="reports-section">
 
@@ -413,13 +628,17 @@ const Reports = () => {
 
                   <div>
 
+                    <span className="reports-section-label">
+                      SNAPSHOT
+                    </span>
+
                     <h2>
                       Overview
                     </h2>
 
                     <p>
-                      Current summary of your
-                      farm monitoring data.
+                      A high-level view of the current
+                      farm monitoring environment.
                     </p>
 
                   </div>
@@ -429,103 +648,60 @@ const Reports = () => {
 
                 <div className="reports-overview-grid">
 
-                  <div className="report-stat-card">
+                  {overviewCards.map(
+                    (card) => {
 
-                    <span>
-                      Farms
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary?.farms
-                      )}
-                    </strong>
-
-                  </div>
+                      const Icon =
+                        card.icon;
 
 
-                  <div className="report-stat-card">
+                      return (
 
-                    <span>
-                      Crops
-                    </span>
+                        <div
+                          className="report-stat-card"
+                          key={card.label}
+                        >
 
-                    <strong>
-                      {formatNumber(
-                        report.summary?.crops
-                      )}
-                    </strong>
+                          <div className="report-stat-top">
 
-                  </div>
-
-
-                  <div className="report-stat-card">
-
-                    <span>
-                      Crop Health
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.crop_health_percentage,
-                        "%"
-                      )}
-                    </strong>
-
-                  </div>
+                            <span>
+                              {card.label}
+                            </span>
 
 
-                  <div className="report-stat-card">
+                            <div
+                              className={`report-stat-icon ${card.className}`}
+                            >
 
-                    <span>
-                      Monitoring Records
-                    </span>
+                              <Icon
+                                size={17}
+                                strokeWidth={2}
+                              />
 
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.monitoring_records
-                      )}
-                    </strong>
+                            </div>
 
-                  </div>
+                          </div>
 
 
-                  <div className="report-stat-card">
+                          <strong>
+                            {card.value}
+                          </strong>
 
-                    <span>
-                      Total Alerts
-                    </span>
+                        </div>
 
-                    <strong>
-                      {formatNumber(
-                        report.summary?.alerts
-                      )}
-                    </strong>
+                      );
 
-                  </div>
-
-
-                  <div className="report-stat-card">
-
-                    <span>
-                      Unresolved Alerts
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.unresolved_alerts
-                      )}
-                    </strong>
-
-                  </div>
+                    }
+                  )}
 
                 </div>
 
               </section>
 
+
+              {/* =========================================
+                  CROP HEALTH
+              ========================================== */}
 
               <section className="reports-section">
 
@@ -533,13 +709,17 @@ const Reports = () => {
 
                   <div>
 
+                    <span className="reports-section-label">
+                      CROP CONDITION
+                    </span>
+
                     <h2>
                       Crop Health
                     </h2>
 
                     <p>
-                      Latest condition recorded
-                      for each monitored crop.
+                      Latest recorded condition across
+                      monitored crops.
                     </p>
 
                   </div>
@@ -551,14 +731,36 @@ const Reports = () => {
 
                   <div className="health-card healthy">
 
-                    <span>
-                      Healthy
-                    </span>
+                    <div className="health-card-main">
+
+                      <div className="health-icon">
+
+                        <CheckCircle2
+                          size={18}
+                          strokeWidth={2}
+                        />
+
+                      </div>
+
+                      <div>
+
+                        <span>
+                          Healthy
+                        </span>
+
+                        <small>
+                          Stable condition
+                        </small>
+
+                      </div>
+
+                    </div>
+
 
                     <strong>
                       {
-                        report.summary
-                          ?.healthy_crops ?? 0
+                        summary.healthy_crops ??
+                        0
                       }
                     </strong>
 
@@ -567,14 +769,36 @@ const Reports = () => {
 
                   <div className="health-card attention">
 
-                    <span>
-                      Needs Attention
-                    </span>
+                    <div className="health-card-main">
+
+                      <div className="health-icon">
+
+                        <CircleAlert
+                          size={18}
+                          strokeWidth={2}
+                        />
+
+                      </div>
+
+                      <div>
+
+                        <span>
+                          Needs Attention
+                        </span>
+
+                        <small>
+                          Requires review
+                        </small>
+
+                      </div>
+
+                    </div>
+
 
                     <strong>
                       {
-                        report.summary
-                          ?.needs_attention_crops ?? 0
+                        summary.needs_attention_crops ??
+                        0
                       }
                     </strong>
 
@@ -583,14 +807,36 @@ const Reports = () => {
 
                   <div className="health-card critical">
 
-                    <span>
-                      Critical
-                    </span>
+                    <div className="health-card-main">
+
+                      <div className="health-icon">
+
+                        <ShieldAlert
+                          size={18}
+                          strokeWidth={2}
+                        />
+
+                      </div>
+
+                      <div>
+
+                        <span>
+                          Critical
+                        </span>
+
+                        <small>
+                          Immediate attention
+                        </small>
+
+                      </div>
+
+                    </div>
+
 
                     <strong>
                       {
-                        report.summary
-                          ?.critical_crops ?? 0
+                        summary.critical_crops ??
+                        0
                       }
                     </strong>
 
@@ -599,14 +845,36 @@ const Reports = () => {
 
                   <div className="health-card monitored">
 
-                    <span>
-                      With Monitoring
-                    </span>
+                    <div className="health-card-main">
+
+                      <div className="health-icon">
+
+                        <Activity
+                          size={18}
+                          strokeWidth={2}
+                        />
+
+                      </div>
+
+                      <div>
+
+                        <span>
+                          With Monitoring
+                        </span>
+
+                        <small>
+                          Active data coverage
+                        </small>
+
+                      </div>
+
+                    </div>
+
 
                     <strong>
                       {
-                        report.summary
-                          ?.crops_with_monitoring ?? 0
+                        summary.crops_with_monitoring ??
+                        0
                       }
                     </strong>
 
@@ -617,19 +885,27 @@ const Reports = () => {
               </section>
 
 
+              {/* =========================================
+                  MONITORING STATISTICS
+              ========================================== */}
+
               <section className="reports-section">
 
                 <div className="reports-section-header">
 
                   <div>
 
+                    <span className="reports-section-label">
+                      ENVIRONMENTAL DATA
+                    </span>
+
                     <h2>
                       Monitoring Statistics
                     </h2>
 
                     <p>
-                      Recorded environmental and
-                      crop condition measurements.
+                      Recorded environmental and crop
+                      condition measurements.
                     </p>
 
                   </div>
@@ -639,123 +915,57 @@ const Reports = () => {
 
                 <div className="monitoring-stat-grid">
 
-                  <div className="monitoring-stat-card">
+                  {monitoringCards.map(
+                    (card) => {
 
-                    <span>
-                      Average Soil Moisture
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.average_moisture,
-                        "%"
-                      )}
-                    </strong>
-
-                  </div>
+                      const Icon =
+                        card.icon;
 
 
-                  <div className="monitoring-stat-card">
+                      return (
 
-                    <span>
-                      Average Crop Temperature
-                    </span>
+                        <div
+                          className="monitoring-stat-card"
+                          key={card.label}
+                        >
 
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.average_temperature,
-                        "°C"
-                      )}
-                    </strong>
+                          <div className="monitoring-stat-icon">
 
-                  </div>
+                            <Icon
+                              size={17}
+                              strokeWidth={2}
+                            />
 
-
-                  <div className="monitoring-stat-card">
-
-                    <span>
-                      Low Moisture Records
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.low_moisture_count
-                      )}
-                    </strong>
-
-                  </div>
+                          </div>
 
 
-                  <div className="monitoring-stat-card">
+                          <div>
 
-                    <span>
-                      High Temperature Records
-                    </span>
+                            <span>
+                              {card.label}
+                            </span>
 
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.high_temperature_count
-                      )}
-                    </strong>
+                            <strong>
+                              {card.value}
+                            </strong>
 
-                  </div>
+                          </div>
 
+                        </div>
 
-                  <div className="monitoring-stat-card">
+                      );
 
-                    <span>
-                      Pest Detections
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.pest_count
-                      )}
-                    </strong>
-
-                  </div>
-
-
-                  <div className="monitoring-stat-card">
-
-                    <span>
-                      Disease Detections
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.disease_count
-                      )}
-                    </strong>
-
-                  </div>
-
-
-                  <div className="monitoring-stat-card">
-
-                    <span>
-                      Discoloration Records
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        report.summary
-                          ?.discoloration_count
-                      )}
-                    </strong>
-
-                  </div>
+                    }
+                  )}
 
                 </div>
 
               </section>
 
+
+              {/* =========================================
+                  ALERT BREAKDOWN
+              ========================================== */}
 
               <section className="reports-section">
 
@@ -763,13 +973,17 @@ const Reports = () => {
 
                   <div>
 
+                    <span className="reports-section-label">
+                      ALERT ANALYSIS
+                    </span>
+
                     <h2>
                       Alert Breakdown
                     </h2>
 
                     <p>
-                      Distribution of generated
-                      monitoring alerts.
+                      Distribution of monitoring alerts
+                      recorded by condition.
                     </p>
 
                   </div>
@@ -789,13 +1003,23 @@ const Reports = () => {
                           key={item.alert_type}
                         >
 
-                          <div>
+                          <div className="alert-breakdown-name">
+
+                            <div className="alert-breakdown-icon">
+
+                              <AlertTriangle
+                                size={15}
+                                strokeWidth={2}
+                              />
+
+                            </div>
 
                             <span>
                               {item.alert_type}
                             </span>
 
                           </div>
+
 
                           <strong>
                             {item.count}
@@ -809,7 +1033,16 @@ const Reports = () => {
                   ) : (
 
                     <div className="reports-empty">
-                      No alerts recorded.
+
+                      <Cloud
+                        size={19}
+                        strokeWidth={1.8}
+                      />
+
+                      <span>
+                        No alerts recorded.
+                      </span>
+
                     </div>
 
                   )}
@@ -819,19 +1052,27 @@ const Reports = () => {
               </section>
 
 
+              {/* =========================================
+                  RECENT MONITORING
+              ========================================== */}
+
               <section className="reports-section">
 
                 <div className="reports-section-header">
 
                   <div>
 
+                    <span className="reports-section-label">
+                      RECENT ACTIVITY
+                    </span>
+
                     <h2>
                       Recent Monitoring
                     </h2>
 
                     <p>
-                      Latest monitoring records
-                      from your crops.
+                      Latest monitoring records from
+                      the registered crops.
                     </p>
 
                   </div>
@@ -860,7 +1101,7 @@ const Reports = () => {
                             </th>
 
                             <th>
-                              Moisture
+                              Soil Moisture
                             </th>
 
                             <th>
@@ -890,14 +1131,29 @@ const Reports = () => {
                               >
 
                                 <td>
-                                  {record.crop_name ||
-                                    "—"}
+
+                                  <div className="table-primary">
+
+                                    <Leaf
+                                      size={14}
+                                      strokeWidth={2}
+                                    />
+
+                                    <span>
+                                      {record.crop_name ||
+                                        "—"}
+                                    </span>
+
+                                  </div>
+
                                 </td>
+
 
                                 <td>
                                   {record.farm_name ||
                                     "—"}
                                 </td>
+
 
                                 <td>
                                   {formatNumber(
@@ -906,12 +1162,14 @@ const Reports = () => {
                                   )}
                                 </td>
 
+
                                 <td>
                                   {formatNumber(
                                     record.crop_temperature,
                                     "°C"
                                   )}
                                 </td>
+
 
                                 <td>
 
@@ -928,13 +1186,16 @@ const Reports = () => {
                                         )}`
                                     }
                                   >
+
                                     {
                                       record.plant_condition ||
                                       "Healthy"
                                     }
+
                                   </span>
 
                                 </td>
+
 
                                 <td>
                                   {formatDate(
@@ -956,7 +1217,16 @@ const Reports = () => {
                   ) : (
 
                     <div className="reports-empty">
-                      No monitoring records available.
+
+                      <Activity
+                        size={19}
+                        strokeWidth={1.8}
+                      />
+
+                      <span>
+                        No monitoring records available.
+                      </span>
+
                     </div>
 
                   )}
@@ -966,19 +1236,27 @@ const Reports = () => {
               </section>
 
 
+              {/* =========================================
+                  RECENT ALERTS
+              ========================================== */}
+
               <section className="reports-section">
 
                 <div className="reports-section-header">
 
                   <div>
 
+                    <span className="reports-section-label">
+                      ALERT ACTIVITY
+                    </span>
+
                     <h2>
                       Recent Alerts
                     </h2>
 
                     <p>
-                      Latest alerts generated by
-                      crop monitoring.
+                      Latest alerts generated by crop
+                      monitoring activity.
                     </p>
 
                   </div>
@@ -1036,9 +1314,18 @@ const Reports = () => {
 
                                   <div className="alert-cell">
 
-                                    <strong>
-                                      {alert.alert_type}
-                                    </strong>
+                                    <div className="alert-cell-title">
+
+                                      <AlertTriangle
+                                        size={14}
+                                        strokeWidth={2}
+                                      />
+
+                                      <strong>
+                                        {alert.alert_type}
+                                      </strong>
+
+                                    </div>
 
                                     <span>
                                       {alert.message}
@@ -1048,10 +1335,12 @@ const Reports = () => {
 
                                 </td>
 
+
                                 <td>
                                   {alert.crop_name ||
                                     "—"}
                                 </td>
+
 
                                 <td>
 
@@ -1071,6 +1360,7 @@ const Reports = () => {
 
                                 </td>
 
+
                                 <td>
 
                                   <span
@@ -1080,14 +1370,33 @@ const Reports = () => {
                                         : "alert-status unresolved"
                                     }
                                   >
+
+                                    {alert.is_resolved ? (
+
+                                      <CheckCircle2
+                                        size={13}
+                                        strokeWidth={2}
+                                      />
+
+                                    ) : (
+
+                                      <CircleAlert
+                                        size={13}
+                                        strokeWidth={2}
+                                      />
+
+                                    )}
+
                                     {
                                       alert.is_resolved
                                         ? "Resolved"
                                         : "Unresolved"
                                     }
+
                                   </span>
 
                                 </td>
+
 
                                 <td>
                                   {formatDate(
@@ -1109,7 +1418,16 @@ const Reports = () => {
                   ) : (
 
                     <div className="reports-empty">
-                      No alerts available.
+
+                      <CheckCircle2
+                        size={19}
+                        strokeWidth={1.8}
+                      />
+
+                      <span>
+                        No alerts available.
+                      </span>
+
                     </div>
 
                   )}
@@ -1119,13 +1437,31 @@ const Reports = () => {
               </section>
 
 
+              {/* =========================================
+                  REPORT FOOTER
+              ========================================== */}
+
               <div className="reports-generated">
 
-                Report generated:
-                {" "}
-                {formatDate(
-                  report.generated_at
-                )}
+                <div className="reports-generated-label">
+
+                  <FileBarChart
+                    size={13}
+                    strokeWidth={2}
+                  />
+
+                  <span>
+                    Report generated
+                  </span>
+
+                </div>
+
+
+                <span>
+                  {formatDate(
+                    report.generated_at
+                  )}
+                </span>
 
               </div>
 
