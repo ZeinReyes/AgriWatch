@@ -1,5 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  Sprout,
+  Leaf,
+  Thermometer,
+  Droplet,
+  Droplets,
+  Clock,
+  LayoutGrid,
+  CheckCircle2,
+  Activity,
+  Bug,
+  Microscope,
+  AlertTriangle,
+  Bell,
+  BarChart3,
+  Shield,
+  CloudOff,
+  Sun,
+  CloudSun,
+  Cloud,
+  CloudFog,
+  CloudRain,
+  CloudSnow,
+  CloudDrizzle,
+  CloudLightning,
+  Wind,
+} from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -292,9 +319,21 @@ const Dashboard = () => {
     }));
   }, [monitoringRecords]);
 
+  // Historical humidity as actually logged on monitoring records.
   const hasHistoricalHumidity = chartData.some(
     (item) => item.humidity != null
   );
+
+  // Live humidity pulled from the weather API for the farm, used as a
+  // fallback reference whenever monitoring records don't carry a
+  // historical humidity reading of their own.
+  const currentWeatherHumidity =
+    weather?.humidity != null
+      ? Number(weather.humidity)
+      : null;
+
+  const showHumidityInTrend =
+    hasHistoricalHumidity || currentWeatherHumidity != null;
 
   const recentAlerts = useMemo(
     () =>
@@ -400,7 +439,7 @@ const Dashboard = () => {
 
         <section className="dashboard-stat-grid dashboard-stat-grid-five">
           <DashboardStat
-            icon="🌱"
+            icon={<Sprout size={20} strokeWidth={1.75} />}
             label="Farm Status"
             value={farmStatus.label}
             description={farmStatus.description}
@@ -408,7 +447,7 @@ const Dashboard = () => {
           />
 
           <DashboardStat
-            icon="🌡️"
+            icon={<Thermometer size={20} strokeWidth={1.75} />}
             label="Temperature"
             value={
               latestMonitoring?.crop_temperature != null
@@ -427,7 +466,7 @@ const Dashboard = () => {
           />
 
           <DashboardStat
-            icon="💧"
+            icon={<Droplet size={20} strokeWidth={1.75} />}
             label="Humidity"
             value={
               weather
@@ -438,7 +477,7 @@ const Dashboard = () => {
           />
 
           <DashboardStat
-            icon="💦"
+            icon={<Droplets size={20} strokeWidth={1.75} />}
             label="Soil Moisture"
             value={
               latestMonitoring?.soil_moisture != null
@@ -457,7 +496,7 @@ const Dashboard = () => {
           />
 
           <DashboardStat
-            icon="◷"
+            icon={<Clock size={20} strokeWidth={1.75} />}
             label="Last Updated"
             value={
               lastUpdated
@@ -490,7 +529,7 @@ const Dashboard = () => {
             <div className="field-overview-content">
               {crops.length === 0 ? (
                 <EmptyState
-                  icon="▦"
+                  icon={<LayoutGrid size={22} strokeWidth={1.75} />}
                   title="No crops yet"
                   text="Add a tomato crop to start monitoring field status."
                   link="/crops"
@@ -561,7 +600,7 @@ const Dashboard = () => {
               <DashboardLoading />
             ) : recentAlerts.length === 0 ? (
               <EmptyState
-                icon="✓"
+                icon={<CheckCircle2 size={22} strokeWidth={1.75} />}
                 title="No alerts"
                 text="Your crops currently have no recorded alerts."
                 link="/alerts"
@@ -580,7 +619,11 @@ const Dashboard = () => {
                       )}`}
                     />
 
-                    <div className="dashboard-alert-icon">
+                    <div
+                      className={`dashboard-alert-icon ${getSeverityClass(
+                        alert.severity
+                      )}`}
+                    >
                       {getAlertIcon(
                         alert.alert_type
                       )}
@@ -633,7 +676,7 @@ const Dashboard = () => {
               <DashboardLoading />
             ) : chartData.length === 0 ? (
               <EmptyState
-                icon="⌁"
+                icon={<Activity size={22} strokeWidth={1.75} />}
                 title="No trend data yet"
                 text="Add monitoring records to start seeing environmental trends."
                 link="/monitoring"
@@ -642,7 +685,9 @@ const Dashboard = () => {
             ) : (
               <EnvironmentalTrendChart
                 data={chartData}
-                showHumidity={hasHistoricalHumidity}
+                showHumidity={showHumidityInTrend}
+                hasHistoricalHumidity={hasHistoricalHumidity}
+                currentHumidity={currentWeatherHumidity}
               />
             )}
           </div>
@@ -747,7 +792,7 @@ const Dashboard = () => {
 
                 <div className="weather-details">
                   <WeatherDetail
-                    icon="💧"
+                    icon={<Droplet size={16} strokeWidth={1.75} />}
                     label="Humidity"
                     value={`${Math.round(
                       weather.humidity
@@ -755,7 +800,7 @@ const Dashboard = () => {
                   />
 
                   <WeatherDetail
-                    icon="💨"
+                    icon={<Wind size={16} strokeWidth={1.75} />}
                     label="Wind"
                     value={`${Math.round(
                       weather.windSpeed
@@ -763,7 +808,7 @@ const Dashboard = () => {
                   />
 
                   <WeatherDetail
-                    icon="🌧️"
+                    icon={<CloudRain size={16} strokeWidth={1.75} />}
                     label="Rain"
                     value={`${weather.rain} mm`}
                   />
@@ -771,7 +816,7 @@ const Dashboard = () => {
               </>
             ) : (
               <EmptyState
-                icon="☁️"
+                icon={<CloudOff size={22} strokeWidth={1.75} />}
                 title="Weather unavailable"
                 text={
                   farms?.[0]
@@ -798,7 +843,7 @@ const Dashboard = () => {
 
             {crops.length === 0 ? (
               <EmptyState
-                icon="🍅"
+                icon={<Sprout size={22} strokeWidth={1.75} />}
                 title="No monitored crops"
                 text="Add a crop and record monitoring data to populate this section."
                 link="/crops"
@@ -812,7 +857,7 @@ const Dashboard = () => {
                     key={crop.id}
                   >
                     <div className="crop-monitoring-thumb">
-                      🍅
+                      <Leaf size={17} strokeWidth={1.75} />
                     </div>
 
                     <div className="crop-monitoring-info">
@@ -861,9 +906,7 @@ const Dashboard = () => {
             {recentDetection ? (
               <div className="detection-feature">
                 <div className="detection-feature-visual">
-                  <div className="detection-leaf">
-                    🍃
-                  </div>
+                  <div className="detection-leaf" />
 
                   <span
                     className={`detection-status-chip ${
@@ -926,7 +969,7 @@ const Dashboard = () => {
               </div>
             ) : (
               <EmptyState
-                icon="✓"
+                icon={<CheckCircle2 size={22} strokeWidth={1.75} />}
                 title="No detections recorded"
                 text="Detection results will appear here when monitoring data is available."
                 link="/monitoring"
@@ -1026,7 +1069,9 @@ const Dashboard = () => {
                 to="/monitoring"
                 className="quick-action"
               >
-                <span>💧</span>
+                <span>
+                  <Droplet size={17} strokeWidth={1.75} />
+                </span>
                 <div>
                   <strong>
                     Add Monitoring
@@ -1042,7 +1087,9 @@ const Dashboard = () => {
               to="/alerts"
               className="quick-action"
             >
-              <span>🔔</span>
+              <span>
+                <Bell size={17} strokeWidth={1.75} />
+              </span>
               <div>
                 <strong>View Alerts</strong>
                 <small>
@@ -1055,7 +1102,9 @@ const Dashboard = () => {
               to="/crops"
               className="quick-action"
             >
-              <span>🍅</span>
+              <span>
+                <Leaf size={17} strokeWidth={1.75} />
+              </span>
               <div>
                 <strong>My Crops</strong>
                 <small>
@@ -1068,7 +1117,9 @@ const Dashboard = () => {
               to="/analytics"
               className="quick-action"
             >
-              <span>📊</span>
+              <span>
+                <BarChart3 size={17} strokeWidth={1.75} />
+              </span>
               <div>
                 <strong>Analytics</strong>
                 <small>
@@ -1086,7 +1137,7 @@ const Dashboard = () => {
         {role === "admin" && (
           <section className="admin-dashboard-note">
             <div className="admin-dashboard-icon">
-              🛡️
+              <Shield size={19} strokeWidth={1.75} />
             </div>
 
             <div>
@@ -1113,7 +1164,12 @@ const Dashboard = () => {
 // CHART
 // =========================================================
 
-const EnvironmentalTrendChart = ({ data, showHumidity }) => {
+const EnvironmentalTrendChart = ({
+  data,
+  showHumidity,
+  hasHistoricalHumidity,
+  currentHumidity,
+}) => {
   const chartWidth = 820;
   const chartHeight = 255;
   const left = 42;
@@ -1148,10 +1204,15 @@ const EnvironmentalTrendChart = ({ data, showHumidity }) => {
       .join(" ");
 
   const temperaturePoints = buildPoints("temperature");
-  const humidityPoints = showHumidity
+  const humidityPoints = hasHistoricalHumidity
     ? buildPoints("humidity")
     : "";
   const soilPoints = buildPoints("moisture");
+
+  const showLiveHumidityReference =
+    showHumidity &&
+    !hasHistoricalHumidity &&
+    currentHumidity != null;
 
   return (
     <div className="trend-chart">
@@ -1164,7 +1225,9 @@ const EnvironmentalTrendChart = ({ data, showHumidity }) => {
           {showHumidity && (
             <span>
               <i className="legend-dot humidity-dot" />
-              Humidity (%)
+              {hasHistoricalHumidity
+                ? "Humidity (%)"
+                : "Humidity (live weather, %)"}
             </span>
           )}
           <span>
@@ -1212,12 +1275,32 @@ const EnvironmentalTrendChart = ({ data, showHumidity }) => {
             fill="none"
           />
 
-          {showHumidity && (
+          {showHumidity && hasHistoricalHumidity && (
             <polyline
               points={humidityPoints}
               className="trend-line trend-humidity"
               fill="none"
             />
+          )}
+
+          {showLiveHumidityReference && (
+            <g>
+              <line
+                x1={left}
+                x2={chartWidth - right}
+                y1={yFor(currentHumidity)}
+                y2={yFor(currentHumidity)}
+                className="trend-line trend-humidity trend-humidity-reference"
+              />
+              <text
+                x={chartWidth - right}
+                y={yFor(currentHumidity) - 7}
+                textAnchor="end"
+                className="chart-reference-label"
+              >
+                Current humidity — {Math.round(currentHumidity)}%
+              </text>
+            </g>
           )}
 
           <polyline
@@ -1237,7 +1320,7 @@ const EnvironmentalTrendChart = ({ data, showHumidity }) => {
                 />
               )}
 
-              {showHumidity && item.humidity != null && (
+              {hasHistoricalHumidity && item.humidity != null && (
                 <circle
                   cx={xFor(index)}
                   cy={yFor(item.humidity)}
@@ -1268,12 +1351,11 @@ const EnvironmentalTrendChart = ({ data, showHumidity }) => {
         </svg>
       </div>
 
-      {!showHumidity && (
+      {!hasHistoricalHumidity && (
         <p className="chart-note">
-          Temperature and soil moisture are shown from monitoring
-          records. Humidity is displayed in the summary and weather
-          cards because historical humidity is not currently stored
-          in monitoring records.
+          {currentHumidity != null
+            ? "Monitoring records don't log historical humidity, so the dashed line shows the current humidity reading pulled from live weather data for this farm."
+            : "Humidity trend isn't available — monitoring records don't log humidity and live weather data couldn't be retrieved for this farm."}
         </p>
       )}
     </div>
@@ -1612,30 +1694,32 @@ function getAlertIcon(type) {
     type || ""
   ).toLowerCase();
 
+  const iconProps = { size: 15, strokeWidth: 1.85 };
+
   if (
     value.includes("soil") ||
     value.includes("moisture")
   ) {
-    return "💧";
+    return <Droplet {...iconProps} />;
   }
 
   if (value.includes("temperature")) {
-    return "🌡️";
+    return <Thermometer {...iconProps} />;
   }
 
   if (value.includes("pest")) {
-    return "🐛";
+    return <Bug {...iconProps} />;
   }
 
   if (value.includes("disease")) {
-    return "🦠";
+    return <Microscope {...iconProps} />;
   }
 
   if (value.includes("discolor")) {
-    return "🍃";
+    return <Leaf {...iconProps} />;
   }
 
-  return "⚠️";
+  return <AlertTriangle {...iconProps} />;
 }
 
 function getStatusClass(status) {
@@ -1806,39 +1890,45 @@ async function getWeather(latitude, longitude) {
 }
 
 function getWeatherIcon(code) {
+  const iconProps = { size: 38, strokeWidth: 1.6 };
+
   if (code === 0) {
-    return "☀️";
+    return <Sun {...iconProps} />;
   }
 
   if (code === 1 || code === 2) {
-    return "⛅";
+    return <CloudSun {...iconProps} />;
   }
 
   if (code === 3) {
-    return "☁️";
+    return <Cloud {...iconProps} />;
   }
 
   if (code >= 45 && code <= 48) {
-    return "🌫️";
+    return <CloudFog {...iconProps} />;
   }
 
   if (code >= 51 && code <= 67) {
-    return "🌧️";
+    return code <= 57 ? (
+      <CloudDrizzle {...iconProps} />
+    ) : (
+      <CloudRain {...iconProps} />
+    );
   }
 
   if (code >= 71 && code <= 77) {
-    return "🌨️";
+    return <CloudSnow {...iconProps} />;
   }
 
   if (code >= 80 && code <= 82) {
-    return "🌦️";
+    return <CloudRain {...iconProps} />;
   }
 
   if (code >= 95) {
-    return "⛈️";
+    return <CloudLightning {...iconProps} />;
   }
 
-  return "🌤️";
+  return <CloudSun {...iconProps} />;
 }
 
 function getWeatherDescription(code) {

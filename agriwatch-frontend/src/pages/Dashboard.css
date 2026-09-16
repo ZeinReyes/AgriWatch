@@ -146,7 +146,6 @@
   border-radius: 13px;
   background: #edf5ef;
   color: #27703e;
-  font-size: 21px;
 }
 
 .dashboard-stat-info {
@@ -414,7 +413,22 @@
   height: 32px;
   border-radius: 9px;
   background: #f3f6f3;
-  font-size: 15px;
+  color: #5b6b60;
+}
+
+.dashboard-alert-icon.severity-critical {
+  background: #fff1ee;
+  color: #b14339;
+}
+
+.dashboard-alert-icon.severity-warning {
+  background: #fff7e2;
+  color: #9d6b13;
+}
+
+.dashboard-alert-icon.severity-info {
+  background: #edf5fb;
+  color: #3a6e97;
 }
 
 .dashboard-alert-content {
@@ -580,6 +594,18 @@
 .trend-humidity {
   stroke: #4a83a5;
   stroke-dasharray: 4 4;
+}
+
+.trend-humidity-reference {
+  stroke-width: 2;
+  opacity: 0.85;
+}
+
+.chart-reference-label {
+  fill: #4a83a5;
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 700;
 }
 
 .trend-soil {
@@ -784,7 +810,7 @@
   height: 68px;
   border-radius: 18px;
   background: #edf4f7;
-  font-size: 38px;
+  color: #3a7ca5;
 }
 
 .weather-temperature {
@@ -816,7 +842,9 @@
 }
 
 .weather-detail > span {
-  font-size: 15px;
+  display: grid;
+  place-items: center;
+  color: #3a7ca5;
 }
 
 .weather-detail small {
@@ -866,7 +894,7 @@
   height: 36px;
   border-radius: 10px;
   background: #eef5ee;
-  font-size: 18px;
+  color: #2f7643;
 }
 
 .crop-monitoring-info {
@@ -1114,15 +1142,22 @@
   height: 31px;
   border-radius: 9px;
   background: #f4f7f4;
-  font-size: 14px;
+  color: #5b6b60;
 }
 
 .alert-summary-icon.severity-critical {
   background: #fff1ee;
+  color: #b14339;
 }
 
 .alert-summary-icon.severity-warning {
   background: #fff7e2;
+  color: #9d6b13;
+}
+
+.alert-summary-icon.severity-info {
+  background: #edf5fb;
+  color: #3a6e97;
 }
 
 .alert-summary-row > div:nth-child(2) {
@@ -1224,7 +1259,7 @@
   height: 34px;
   border-radius: 9px;
   background: #edf5ef;
-  font-size: 15px;
+  color: #2d7042;
 }
 
 .quick-action div {
@@ -1270,7 +1305,7 @@
   height: 40px;
   border-radius: 11px;
   background: #e9f3eb;
-  font-size: 18px;
+  color: #2c6f41;
 }
 
 .admin-dashboard-note strong {
@@ -1331,7 +1366,6 @@
   border-radius: 13px;
   background: #eff5f0;
   color: #3f7f50;
-  font-size: 21px;
 }
 
 .dashboard-empty strong {

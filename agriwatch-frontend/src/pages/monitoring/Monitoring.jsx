@@ -1,4 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  Plus,
+  X,
+  Sprout,
+  Bug,
+  Microscope,
+  Leaf,
+  CheckCircle2,
+  AlertTriangle,
+  AlertOctagon,
+  Trash2,
+} from "lucide-react";
+
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 
 import { getFarms } from "../../services/farmService";
@@ -39,6 +52,21 @@ function getConditionClass(condition) {
   if (condition === "Critical") return "critical";
   if (condition === "Needs Attention") return "warning";
   return "healthy";
+}
+
+
+function getConditionIcon(condition) {
+  const iconProps = { size: 13, strokeWidth: 2 };
+
+  if (condition === "Critical") {
+    return <AlertOctagon {...iconProps} />;
+  }
+
+  if (condition === "Needs Attention") {
+    return <AlertTriangle {...iconProps} />;
+  }
+
+  return <CheckCircle2 {...iconProps} />;
 }
 
 
@@ -465,7 +493,8 @@ function Monitoring() {
               className="monitoring-primary-button"
               onClick={openForm}
             >
-              + Add Monitoring
+              <Plus size={16} strokeWidth={2.25} />
+              Add Monitoring
             </button>
           )}
 
@@ -567,7 +596,7 @@ function Monitoring() {
           <div className="monitoring-empty">
 
             <div className="monitoring-empty-icon">
-              🌱
+              <Sprout size={30} strokeWidth={1.75} />
             </div>
 
             <h2>
@@ -668,6 +697,9 @@ function Monitoring() {
                         latestRecord.plant_condition
                       )}`}
                     >
+                      {getConditionIcon(
+                        latestRecord.plant_condition
+                      )}
                       {latestRecord.plant_condition}
                     </strong>
 
@@ -696,6 +728,7 @@ function Monitoring() {
                     className="monitoring-primary-button"
                     onClick={openForm}
                   >
+                    <Plus size={16} strokeWidth={2.25} />
                     Add Monitoring Record
                   </button>
 
@@ -735,9 +768,14 @@ function Monitoring() {
 
                   <div className="detection-card">
 
-                    <span>
-                      Pest Detection
-                    </span>
+                    <div className="detection-card-heading">
+                      <span className="detection-card-icon">
+                        <Bug size={15} strokeWidth={1.85} />
+                      </span>
+                      <span>
+                        Pest Detection
+                      </span>
+                    </div>
 
                     <strong
                       className={
@@ -746,6 +784,11 @@ function Monitoring() {
                           : "not-detected"
                       }
                     >
+                      {latestRecord.pest_detected ? (
+                        <AlertTriangle size={14} strokeWidth={2} />
+                      ) : (
+                        <CheckCircle2 size={14} strokeWidth={2} />
+                      )}
                       {latestRecord.pest_detected
                         ? "Detected"
                         : "Not Detected"}
@@ -756,9 +799,14 @@ function Monitoring() {
 
                   <div className="detection-card">
 
-                    <span>
-                      Disease Detection
-                    </span>
+                    <div className="detection-card-heading">
+                      <span className="detection-card-icon">
+                        <Microscope size={15} strokeWidth={1.85} />
+                      </span>
+                      <span>
+                        Disease Detection
+                      </span>
+                    </div>
 
                     <strong
                       className={
@@ -767,6 +815,11 @@ function Monitoring() {
                           : "not-detected"
                       }
                     >
+                      {latestRecord.disease_detected ? (
+                        <AlertTriangle size={14} strokeWidth={2} />
+                      ) : (
+                        <CheckCircle2 size={14} strokeWidth={2} />
+                      )}
                       {latestRecord.disease_detected
                         ? "Detected"
                         : "Not Detected"}
@@ -777,9 +830,14 @@ function Monitoring() {
 
                   <div className="detection-card">
 
-                    <span>
-                      Discoloration Detection
-                    </span>
+                    <div className="detection-card-heading">
+                      <span className="detection-card-icon">
+                        <Leaf size={15} strokeWidth={1.85} />
+                      </span>
+                      <span>
+                        Discoloration Detection
+                      </span>
+                    </div>
 
                     <strong
                       className={
@@ -788,6 +846,11 @@ function Monitoring() {
                           : "not-detected"
                       }
                     >
+                      {latestRecord.discoloration_detected ? (
+                        <AlertTriangle size={14} strokeWidth={2} />
+                      ) : (
+                        <CheckCircle2 size={14} strokeWidth={2} />
+                      )}
                       {latestRecord.discoloration_detected
                         ? "Detected"
                         : "Not Detected"}
@@ -907,6 +970,9 @@ function Monitoring() {
                                 record.plant_condition
                               )}`}
                             >
+                              {getConditionIcon(
+                                record.plant_condition
+                              )}
                               {record.plant_condition}
                             </span>
 
@@ -923,9 +989,14 @@ function Monitoring() {
                                 deletingId === record.id
                               }
                             >
-                              {deletingId === record.id
-                                ? "..."
-                                : "Delete"}
+                              {deletingId === record.id ? (
+                                "..."
+                              ) : (
+                                <>
+                                  <Trash2 size={13} strokeWidth={2} />
+                                  Delete
+                                </>
+                              )}
                             </button>
 
                           </td>
@@ -984,8 +1055,9 @@ function Monitoring() {
                 <button
                   className="modal-close"
                   onClick={() => setShowForm(false)}
+                  aria-label="Close"
                 >
-                  ×
+                  <X size={18} strokeWidth={2} />
                 </button>
 
               </div>

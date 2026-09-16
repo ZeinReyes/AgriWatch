@@ -25,6 +25,9 @@
 }
 
 .monitoring-primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: none;
   border-radius: 9px;
   padding: 11px 17px;
@@ -154,6 +157,7 @@
 .condition-badge {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   width: fit-content;
   border-radius: 999px;
   padding: 6px 11px;
@@ -189,7 +193,24 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+}
+
+.detection-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.detection-card-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f0f4f0;
+  color: #4c8b5c;
 }
 
 .detection-card span {
@@ -199,7 +220,11 @@
 }
 
 .detection-card strong {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  font-size: 15px;
 }
 
 .detected {
@@ -235,6 +260,9 @@
   background: #f7f9f7;
   color: #59645c;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
 }
 
 .monitoring-table td {
@@ -245,14 +273,23 @@
   border-bottom: none;
 }
 
+.monitoring-table tr:hover td {
+  background: #fafbfa;
+}
+
 .table-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid #e1bcbc;
   background: #fff7f7;
   color: #a33a3a;
   border-radius: 7px;
   padding: 6px 10px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .table-delete-button:hover {
@@ -274,8 +311,14 @@
 }
 
 .monitoring-empty-icon {
-  font-size: 38px;
-  margin-bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: #edf5ee;
+  color: #3f7f50;
 }
 
 .monitoring-empty h2,
@@ -289,6 +332,10 @@
   margin: 0 0 18px;
   color: #7b857e;
   font-size: 14px;
+}
+
+.monitoring-no-records .monitoring-primary-button {
+  margin: 0 auto;
 }
 
 .monitoring-loading {
@@ -356,14 +403,21 @@
 }
 
 .modal-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
   width: 34px;
   height: 34px;
   border: none;
   border-radius: 50%;
   background: #f1f4f1;
   color: #4b574f;
-  font-size: 22px;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.modal-close:hover {
+  background: #e6ebe6;
 }
 
 .form-grid {
