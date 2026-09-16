@@ -13,6 +13,7 @@ from app.models.monitoring import MonitoringRecord
 from app.models.alert import Alert
 
 from app.services.email_service import send_email
+from app.services.sms_service import send_alert_sms
 
 
 monitoring_bp = Blueprint(
@@ -1194,13 +1195,19 @@ def create_monitoring_record():
     )
 
     # -----------------------------------------------------
-    # SEND EMAIL FOR EVERY ABNORMAL MONITORING EVENT
+    # SEND EMAIL AND SMS FOR EVERY ABNORMAL MONITORING EVENT
     # -----------------------------------------------------
 
     email_sent = False
     email_error = None
+    sms_sent = False
+    sms_error = None
 
     if notification_alerts:
+
+        # =====================================================
+        # EMAIL
+        # =====================================================
 
         print(
             "[EMAIL] Abnormal monitoring event detected."
@@ -1252,13 +1259,9 @@ def create_monitoring_record():
                 )
 
                 send_consolidated_alert_email(
-
                     recipient=owner.email,
-
                     crop=crop,
-
                     alerts=notification_alerts
-
                 )
 
                 email_sent = True
@@ -1281,11 +1284,100 @@ def create_monitoring_record():
 
             traceback.print_exc()
 
+        # =====================================================
+        # INFOBIP SMS
+        # =====================================================
+
+        print(
+            "[SMS] Abnormal monitoring event detected."
+        )
+
+        try:
+
+            owner_id = crop.farm.owner_id
+
+            print(
+                f"[SMS] Looking up farm owner "
+                f"ID={owner_id}"
+            )
+
+            owner = db.session.get(
+                User,
+                owner_id
+            )
+
+            sms_recipient = current_app.config.get(
+                "INFOBIP_SMS_RECIPIENT"
+            )
+
+            if not owner:
+
+                print(
+                    f"[SMS] ERROR: No user found "
+                    f"for owner ID={owner_id}"
+                )
+
+                sms_error = (
+                    "Farm owner account was not found."
+                )
+
+            elif not sms_recipient:
+
+                print(
+                    "[SMS] ERROR: INFOBIP_SMS_RECIPIENT "
+                    "is not configured."
+                )
+
+                sms_error = (
+                    "Infobip SMS recipient is not configured."
+                )
+
+            else:
+
+                print(
+                    f"[SMS] Sending consolidated Infobip SMS "
+                    f"with {len(notification_alerts)} "
+                    f"condition(s)."
+                )
+
+                sms_result = send_alert_sms(
+                    recipient=sms_recipient,
+                    farm_name=crop.farm.farm_name,
+                    crop_name=crop.crop_name,
+                    alerts=notification_alerts
+                )
+
+                sms_sent = True
+
+                print(
+                    "[SMS] Infobip SMS accepted successfully. "
+                    f"message_id={sms_result.get('message_id')} "
+                    f"status={sms_result.get('status')}"
+                )
+
+        except Exception as error:
+
+            sms_error = str(
+                error
+            )
+
+            print(
+                "[SMS] ERROR:",
+                error
+            )
+
+            traceback.print_exc()
+
     else:
 
         print(
             "[EMAIL] Monitoring record is normal. "
             "No email was sent."
+        )
+
+        print(
+            "[SMS] Monitoring record is normal. "
+            "No SMS was sent."
         )
 
     # -----------------------------------------------------
@@ -1314,7 +1406,11 @@ def create_monitoring_record():
 
         "email_sent": email_sent,
 
-        "email_error": email_error
+        "email_error": email_error,
+
+        "sms_sent": sms_sent,
+
+        "sms_error": sms_error
 
     }), 201
 

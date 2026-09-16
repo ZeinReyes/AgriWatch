@@ -76,3 +76,22 @@ class Config:
             "5"
         )
     )
+
+
+    INFOBIP_API_KEY = os.getenv(
+        "INFOBIP_API_KEY"
+    )
+
+    INFOBIP_BASE_URL = os.getenv(
+        "INFOBIP_BASE_URL",
+        "https://api.infobip.com"
+    )
+
+    INFOBIP_SENDER = os.getenv(
+        "INFOBIP_SENDER",
+        "ServiceSMS"
+    )
+
+    INFOBIP_SMS_RECIPIENT = os.getenv(
+        "INFOBIP_SMS_RECIPIENT"
+    )
