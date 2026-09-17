@@ -30,75 +30,103 @@
 
 /* =========================================================
    SIDEBAR
-========================================================= */
+   ========================================================= */
 
 .dashboard-layout .sidebar {
   position: fixed;
-
   top: 72px;
   left: 0;
   bottom: 0;
-
   width: 260px;
   height: calc(100vh - 72px);
-
   display: flex;
   flex-direction: column;
-
   overflow: hidden;
-
   z-index: 1000;
 }
 
 
 /* =========================================================
    SIDEBAR NAVIGATION
-========================================================= */
+   ========================================================= */
 
 .dashboard-layout .sidebar-nav {
   flex: 1;
-
   min-height: 0;
 
-  padding:
-    12px 14px;
+  padding: 12px 14px 20px;
 
-  overflow: hidden;
+  /*
+   * The navigation needs to scroll when there are
+   * enough sections to exceed the available height.
+   */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /*
+   * Keeps the navigation visually clean while still
+   * allowing the admin section to remain accessible.
+   */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+
+/* =========================================================
+   SIDEBAR SCROLLBAR
+   ========================================================= */
+
+.dashboard-layout .sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-layout .sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-layout .sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+}
+
+.dashboard-layout .sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 
 /* =========================================================
    SIDEBAR SECTIONS
-========================================================= */
+   ========================================================= */
+
+.dashboard-layout .sidebar-section {
+  margin-bottom: 8px;
+}
+
+.dashboard-layout .sidebar-section:last-child {
+  margin-bottom: 0;
+}
 
 .dashboard-layout .nav-section-title {
-  padding:
-    8px 12px 5px;
+  padding: 8px 12px 5px;
 
   font-size: 9px;
-
   line-height: 1.2;
-
   letter-spacing: 1px;
 }
 
 
 /* =========================================================
    NAV ITEMS
-========================================================= */
+   ========================================================= */
 
 .dashboard-layout .nav-item {
   min-height: 38px;
 
   display: flex;
-
   align-items: center;
-
   gap: 11px;
 
-  padding:
-    7px 13px;
-
+  padding: 7px 13px;
   margin-bottom: 2px;
 
   border-radius: 9px;
@@ -109,88 +137,102 @@
 
 /* =========================================================
    NAV ICON
-========================================================= */
+   ========================================================= */
 
 .dashboard-layout .nav-icon {
   width: 21px;
-
   min-width: 21px;
 
   display: flex;
-
   align-items: center;
   justify-content: center;
+}
 
-  font-size: 15px;
+
+/* =========================================================
+   NAV LABEL
+   ========================================================= */
+
+.dashboard-layout .nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
 /* =========================================================
    SIDEBAR BOTTOM
-========================================================= */
+   ========================================================= */
 
 .dashboard-layout .sidebar-bottom {
   flex-shrink: 0;
 
-  padding:
-    14px 16px 18px;
+  padding: 14px 16px 18px;
 
-  border-top:
-    1px solid
-    rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: inherit;
 }
 
 
 /* =========================================================
    LOGOUT
-========================================================= */
+   ========================================================= */
 
 .dashboard-layout .logout-button {
   width: 100%;
-
   height: 38px;
 
   display: flex;
-
   align-items: center;
   justify-content: center;
-
   gap: 8px;
 
-  border:
-    1px solid
-    rgba(255, 255, 255, 0.1);
-
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9px;
 
-  background:
-    rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
 
-  color:
-    rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.72);
 
   font-size: 12px;
-
   cursor: pointer;
 
   transition:
     background 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 
 .dashboard-layout .logout-button:hover {
-  background:
-    rgba(255, 255, 255, 0.1);
-
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
   color: #ffffff;
 }
 
 
-.logout-icon {
-  font-size: 13px;
+.dashboard-layout .logout-button:active {
+  transform: translateY(1px);
 }
 
+
+.dashboard-layout .logout-button:focus-visible {
+  outline: 2px solid rgba(145, 212, 158, 0.7);
+  outline-offset: 2px;
+}
+
+
+/* =========================================================
+   LOGOUT ICON
+   ========================================================= */
+
+.logout-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* =========================================================
    MAIN CONTENT
