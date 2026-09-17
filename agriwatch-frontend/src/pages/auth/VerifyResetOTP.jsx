@@ -3,20 +3,19 @@ import {
   Link,
   useLocation,
 } from "react-router-dom";
+import {
+  CircleAlert,
+  KeyRound,
+} from "lucide-react";
 
 import AuthLayout from "../../components/auth/AuthLayout";
 
-import {
-  verifyResetOTP,
-} from "../../services/authService";
+import { verifyResetOTP } from "../../services/authService";
 
 const VerifyResetOTP = () => {
   const location = useLocation();
 
-  const params = new URLSearchParams(
-    location.search
-  );
-
+  const params = new URLSearchParams(location.search);
   const email = params.get("email") || "";
 
   const [otp, setOtp] = useState("");
@@ -59,9 +58,6 @@ const VerifyResetOTP = () => {
         otp,
       });
 
-      /*
-       * Store the verified reset information.
-       */
       sessionStorage.setItem(
         "agriwatch_reset_otp",
         otp
@@ -72,19 +68,9 @@ const VerifyResetOTP = () => {
         email
       );
 
-      /*
-       * Navigate using a full page navigation.
-       *
-       * This guarantees that ResetPassword.jsx
-       * is mounted immediately instead of requiring
-       * a manual browser refresh.
-       */
       window.location.assign(
-        `/reset-password?email=${encodeURIComponent(
-          email
-        )}`
+        `/reset-password?email=${encodeURIComponent(email)}`
       );
-
     } catch (error) {
       console.error(
         "OTP verification error:",
@@ -103,33 +89,27 @@ const VerifyResetOTP = () => {
 
   return (
     <AuthLayout
-      title="Enter verification code"
-      subtitle="Enter the 6-digit code sent to your email address."
+      title="Verify your identity"
+      subtitle="Enter the 6-digit code sent to your email address to continue resetting your password."
       showBackToLogin
     >
-      <div className="otp-icon">
-        🔢
+      <div className="otp-icon" aria-hidden="true">
+        <KeyRound size={28} strokeWidth={1.8} />
       </div>
 
       <div className="otp-email">
         <span>Code sent to</span>
-
-        <strong>
-          {email}
-        </strong>
+        <strong>{email}</strong>
       </div>
 
       {error && (
-        <div className="auth-error">
-          <span>!</span>
-          {error}
+        <div className="auth-error" role="alert">
+          <CircleAlert size={18} strokeWidth={2} />
+          <span>{error}</span>
         </div>
       )}
 
-      <form
-        className="auth-form"
-        onSubmit={handleSubmit}
-      >
+      <form className="auth-form" onSubmit={handleSubmit}>
         <div className="auth-input-group">
           <label htmlFor="otp">
             Verification code
@@ -154,10 +134,7 @@ const VerifyResetOTP = () => {
         <button
           type="submit"
           className="auth-button"
-          disabled={
-            loading ||
-            otp.length !== 6
-          }
+          disabled={loading || otp.length !== 6}
         >
           {loading ? (
             <>
@@ -172,7 +149,6 @@ const VerifyResetOTP = () => {
 
       <p className="auth-footer">
         Need a new code?{" "}
-
         <Link
           to="/forgot-password"
           className="auth-link"

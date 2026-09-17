@@ -4,6 +4,11 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import {
+  CheckCircle2,
+  CircleAlert,
+  MailCheck,
+} from "lucide-react";
 
 import AuthLayout from "../../components/auth/AuthLayout";
 
@@ -16,69 +21,61 @@ const VerifyEmail = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const params =
-    new URLSearchParams(
-      location.search
-    );
+  const params = new URLSearchParams(location.search);
+  const initialEmail = params.get("email") || "";
 
-  const initialEmail =
-    params.get("email") || "";
+  const [email, setEmail] = useState(initialEmail);
+  const [otp, setOtp] = useState("");
 
-  const [email, setEmail] =
-    useState(initialEmail);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [otp, setOtp] =
-    useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
-  const [error, setError] =
-    useState("");
-
-  const [success, setSuccess] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [resending, setResending] =
-    useState(false);
-
-  const [
-    countdown,
-    setCountdown,
-  ] = useState(0);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
-    if (countdown <= 0) return;
+    if (countdown <= 0) {
+      return;
+    }
 
     const timer = setInterval(() => {
-      setCountdown(
-        (previous) =>
-          previous - 1
-      );
+      setCountdown((previous) => previous - 1);
     }, 1000);
 
-    return () =>
-      clearInterval(timer);
+    return () => clearInterval(timer);
   }, [countdown]);
 
-  const handleOtpChange = (
-    event
-  ) => {
-    const value =
-      event.target.value
-        .replace(/\D/g, "")
-        .slice(0, 6);
+  const handleOtpChange = (event) => {
+    const value = event.target.value
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
     setOtp(value);
+    setError("");
   };
 
-  const handleSubmit = async (
-    event
-  ) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     setError("");
     setSuccess("");
+
+    if (!email) {
+      setError(
+        "Email address is missing. Please return to signup and try again."
+      );
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError(
+        "Please enter the complete 6-digit verification code."
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -88,7 +85,7 @@ const VerifyEmail = () => {
       });
 
       setSuccess(
-        "Your email has been verified successfully."
+        "Your email has been verified successfully. Redirecting you to sign in..."
       );
 
       setTimeout(() => {
@@ -105,7 +102,9 @@ const VerifyEmail = () => {
   };
 
   const handleResend = async () => {
-    if (countdown > 0) return;
+    if (countdown > 0 || resending) {
+      return;
+    }
 
     setError("");
     setSuccess("");
@@ -135,11 +134,11 @@ const VerifyEmail = () => {
   return (
     <AuthLayout
       title="Verify your email"
-      subtitle="We've sent a 6-digit verification code to your email address."
+      subtitle="Enter the 6-digit verification code sent to your email address."
       showBackToLogin
     >
-      <div className="otp-icon">
-        ✉
+      <div className="otp-icon" aria-hidden="true">
+        <MailCheck size={28} strokeWidth={1.8} />
       </div>
 
       <div className="otp-email">
@@ -148,23 +147,20 @@ const VerifyEmail = () => {
       </div>
 
       {error && (
-        <div className="auth-error">
-          <span>!</span>
-          {error}
+        <div className="auth-error" role="alert">
+          <CircleAlert size={18} strokeWidth={2} />
+          <span>{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="auth-success">
-          <span>✓</span>
-          {success}
+        <div className="auth-success" role="status">
+          <CheckCircle2 size={18} strokeWidth={2} />
+          <span>{success}</span>
         </div>
       )}
 
-      <form
-        className="auth-form"
-        onSubmit={handleSubmit}
-      >
+      <form className="auth-form" onSubmit={handleSubmit}>
         <div className="auth-input-group">
           <label htmlFor="otp">
             Verification code
@@ -182,16 +178,14 @@ const VerifyEmail = () => {
             maxLength={6}
             className="otp-input"
             required
+            autoFocus
           />
         </div>
 
         <button
           type="submit"
           className="auth-button"
-          disabled={
-            loading ||
-            otp.length !== 6
-          }
+          disabled={loading || otp.length !== 6}
         >
           {loading ? (
             <>
@@ -205,18 +199,13 @@ const VerifyEmail = () => {
       </form>
 
       <div className="resend-section">
-        <p>
-          Didn't receive the code?
-        </p>
+        <p>Didn't receive the code?</p>
 
         <button
           type="button"
           className="text-button"
           onClick={handleResend}
-          disabled={
-            resending ||
-            countdown > 0
-          }
+          disabled={resending || countdown > 0}
         >
           {resending
             ? "Sending..."
@@ -228,10 +217,7 @@ const VerifyEmail = () => {
 
       <p className="auth-footer">
         Wrong email?{" "}
-        <Link
-          to="/signup"
-          className="auth-link"
-        >
+        <Link to="/signup" className="auth-link">
           Create a new account
         </Link>
       </p>

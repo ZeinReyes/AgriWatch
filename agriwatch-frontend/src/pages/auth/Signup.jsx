@@ -1,8 +1,6 @@
 import { useState } from "react";
-import {
-  Link,
-  useNavigate,
-} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { CircleAlert } from "lucide-react";
 
 import AuthInput from "../../components/auth/AuthInput";
 import PasswordInput from "../../components/auth/PasswordInput";
@@ -20,42 +18,42 @@ const Signup = () => {
     password: "",
   });
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const handleChange = (
-    event
-  ) => {
+  const handleChange = (event) => {
     setForm({
       ...form,
-      [event.target.name]:
-        event.target.value,
+      [event.target.name]: event.target.value,
     });
+
+    if (error) {
+      setError("");
+    }
   };
 
-  const handleSubmit = async (
-    event
-  ) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
-      await registerUser(form);
+      await registerUser({
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      });
 
       navigate(
         `/verify-email?email=${encodeURIComponent(
-          form.email
+          form.email.trim()
         )}`
       );
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Unable to create your account."
+          "Unable to create your account. Please review your information and try again."
       );
     } finally {
       setLoading(false);
@@ -65,19 +63,16 @@ const Signup = () => {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Start monitoring your tomato crops with AgriWatch."
+      subtitle="Set up your AgriWatch account to monitor your farm and crops."
     >
       {error && (
-        <div className="auth-error">
-          <span>!</span>
-          {error}
+        <div className="auth-error" role="alert">
+          <CircleAlert size={18} strokeWidth={2} />
+          <span>{error}</span>
         </div>
       )}
 
-      <form
-        className="auth-form"
-        onSubmit={handleSubmit}
-      >
+      <form className="auth-form" onSubmit={handleSubmit}>
         <AuthInput
           label="Full name"
           name="full_name"
@@ -85,6 +80,7 @@ const Signup = () => {
           onChange={handleChange}
           placeholder="Enter your full name"
           autoComplete="name"
+          required
         />
 
         <AuthInput
@@ -94,6 +90,8 @@ const Signup = () => {
           value={form.email}
           onChange={handleChange}
           placeholder="you@example.com"
+          autoComplete="email"
+          required
         />
 
         <PasswordInput
@@ -104,9 +102,7 @@ const Signup = () => {
           autoComplete="new-password"
         />
 
-        <PasswordStrength
-          password={form.password}
-        />
+        <PasswordStrength password={form.password} />
 
         <button
           type="submit"
@@ -126,10 +122,7 @@ const Signup = () => {
 
       <p className="auth-footer">
         Already have an account?{" "}
-        <Link
-          to="/login"
-          className="auth-link"
-        >
+        <Link to="/login" className="auth-link">
           Sign in
         </Link>
       </p>

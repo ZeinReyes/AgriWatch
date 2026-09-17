@@ -1,8 +1,6 @@
 import { useState } from "react";
-import {
-  Link,
-  useNavigate,
-} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { CircleAlert } from "lucide-react";
 
 import AuthInput from "../../components/auth/AuthInput";
 import PasswordInput from "../../components/auth/PasswordInput";
@@ -20,33 +18,31 @@ const Login = () => {
     password: "",
   });
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const handleChange = (
-    event
-  ) => {
+  const handleChange = (event) => {
     setForm({
       ...form,
-      [event.target.name]:
-        event.target.value,
+      [event.target.name]: event.target.value,
     });
+
+    if (error) {
+      setError("");
+    }
   };
 
-  const handleSubmit = async (
-    event
-  ) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
-      const data =
-        await loginUser(form);
+      const data = await loginUser({
+        email: form.email.trim(),
+        password: form.password,
+      });
 
       login(data);
 
@@ -54,7 +50,7 @@ const Login = () => {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Unable to log in. Please check your credentials."
+          "Unable to sign in. Please check your email and password."
       );
     } finally {
       setLoading(false);
@@ -67,16 +63,13 @@ const Login = () => {
       subtitle="Sign in to your AgriWatch account."
     >
       {error && (
-        <div className="auth-error">
-          <span>!</span>
-          {error}
+        <div className="auth-error" role="alert">
+          <CircleAlert size={18} strokeWidth={2} />
+          <span>{error}</span>
         </div>
       )}
 
-      <form
-        className="auth-form"
-        onSubmit={handleSubmit}
-      >
+      <form className="auth-form" onSubmit={handleSubmit}>
         <AuthInput
           label="Email address"
           type="email"
@@ -84,19 +77,19 @@ const Login = () => {
           value={form.email}
           onChange={handleChange}
           placeholder="you@example.com"
+          autoComplete="email"
+          required
         />
 
         <PasswordInput
           name="password"
           value={form.password}
           onChange={handleChange}
+          autoComplete="current-password"
         />
 
         <div className="auth-forgot-row">
-          <Link
-            to="/forgot-password"
-            className="auth-link"
-          >
+          <Link to="/forgot-password" className="auth-link">
             Forgot password?
           </Link>
         </div>
@@ -121,10 +114,7 @@ const Login = () => {
         <span>New to AgriWatch?</span>
       </div>
 
-      <Link
-        to="/signup"
-        className="auth-secondary-button"
-      >
+      <Link to="/signup" className="auth-secondary-button">
         Create an account
       </Link>
     </AuthLayout>
