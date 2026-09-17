@@ -34,8 +34,7 @@ const Sidebar = ({
   } = useAuth();
 
 
-  const role =
-    user?.role;
+  const role = user?.role;
 
 
   const navigationSections = [
@@ -55,7 +54,6 @@ const Sidebar = ({
         },
       ],
     },
-
 
     {
       title: "Farm Management",
@@ -82,7 +80,6 @@ const Sidebar = ({
         },
       ],
     },
-
 
     {
       title: "Monitoring",
@@ -120,7 +117,6 @@ const Sidebar = ({
       ],
     },
 
-
     {
       title: "Alerts & Conditions",
 
@@ -157,7 +153,6 @@ const Sidebar = ({
       ],
     },
 
-
     {
       title: "Reporting",
 
@@ -175,7 +170,6 @@ const Sidebar = ({
       ],
     },
 
-
     {
       title: "Account",
 
@@ -191,7 +185,6 @@ const Sidebar = ({
         },
       ],
     },
-
 
     {
       title: "Administration",
@@ -210,27 +203,18 @@ const Sidebar = ({
   ];
 
 
-  const canAccess = (
-    link
-  ) => {
-
-    return link.roles.includes(
-      role
-    );
-
+  const canAccess = (link) => {
+    return link.roles.includes(role);
   };
 
 
   return (
     <>
-
       {isOpen && (
-
         <div
           className="sidebar-overlay"
           onClick={onClose}
         />
-
       )}
 
 
@@ -253,9 +237,7 @@ const Sidebar = ({
             />
           </div>
 
-
           <div>
-
             <div className="brand-name">
               AgriWatch
             </div>
@@ -263,7 +245,6 @@ const Sidebar = ({
             <div className="brand-subtitle">
               Smart Crop Monitoring
             </div>
-
           </div>
 
         </div>
@@ -271,7 +252,13 @@ const Sidebar = ({
 
         {/* NAVIGATION */}
 
-        <nav className="sidebar-nav">
+        <nav
+          className={`sidebar-nav ${
+            role === "admin"
+              ? "sidebar-nav-admin"
+              : "sidebar-nav-standard"
+          }`}
+        >
 
           {navigationSections.map(
             (section) => {
@@ -322,12 +309,10 @@ const Sidebar = ({
                         >
 
                           <span className="nav-icon">
-
                             <Icon
                               size={18}
                               strokeWidth={2}
                             />
-
                           </span>
 
 
@@ -361,14 +346,11 @@ const Sidebar = ({
           >
 
             <span className="logout-icon">
-
               <LogOut
                 size={18}
                 strokeWidth={2}
               />
-
             </span>
-
 
             <span>
               Logout
@@ -379,7 +361,6 @@ const Sidebar = ({
         </div>
 
       </aside>
-
     </>
   );
 };

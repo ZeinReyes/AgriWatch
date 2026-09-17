@@ -37,11 +37,15 @@
   top: 72px;
   left: 0;
   bottom: 0;
+
   width: 260px;
   height: calc(100vh - 72px);
+
   display: flex;
   flex-direction: column;
+
   overflow: hidden;
+
   z-index: 1000;
 }
 
@@ -56,40 +60,51 @@
 
   padding: 12px 14px 20px;
 
-  /*
-   * The navigation needs to scroll when there are
-   * enough sections to exceed the available height.
-   */
-  overflow-y: auto;
   overflow-x: hidden;
-
-  /*
-   * Keeps the navigation visually clean while still
-   * allowing the admin section to remain accessible.
-   */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 
 /* =========================================================
-   SIDEBAR SCROLLBAR
+   STANDARD USERS
    ========================================================= */
 
-.dashboard-layout .sidebar-nav::-webkit-scrollbar {
+.dashboard-layout .sidebar-nav-standard {
+  overflow-y: hidden;
+}
+
+
+/* =========================================================
+   ADMIN USERS
+   ========================================================= */
+
+.dashboard-layout .sidebar-nav-admin {
+  overflow-y: auto;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(255, 255, 255, 0.18)
+    transparent;
+}
+
+
+/* =========================================================
+   ADMIN SCROLLBAR
+   ========================================================= */
+
+.dashboard-layout .sidebar-nav-admin::-webkit-scrollbar {
   width: 5px;
 }
 
-.dashboard-layout .sidebar-nav::-webkit-scrollbar-track {
+.dashboard-layout .sidebar-nav-admin::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.dashboard-layout .sidebar-nav::-webkit-scrollbar-thumb {
+.dashboard-layout .sidebar-nav-admin::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.18);
   border-radius: 10px;
 }
 
-.dashboard-layout .sidebar-nav::-webkit-scrollbar-thumb:hover {
+.dashboard-layout .sidebar-nav-admin::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
 }
 
@@ -106,11 +121,17 @@
   margin-bottom: 0;
 }
 
+
+/* =========================================================
+   SECTION TITLES
+   ========================================================= */
+
 .dashboard-layout .nav-section-title {
   padding: 8px 12px 5px;
 
   font-size: 9px;
   line-height: 1.2;
+
   letter-spacing: 1px;
 }
 
@@ -124,6 +145,7 @@
 
   display: flex;
   align-items: center;
+
   gap: 11px;
 
   padding: 7px 13px;
@@ -155,8 +177,11 @@
 
 .dashboard-layout .nav-label {
   min-width: 0;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
 }
 
@@ -170,7 +195,9 @@
 
   padding: 14px 16px 18px;
 
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top:
+    1px solid
+    rgba(255, 255, 255, 0.08);
 
   background: inherit;
 }
@@ -187,16 +214,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
   gap: 8px;
 
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.1);
+
   border-radius: 9px;
 
-  background: rgba(255, 255, 255, 0.05);
+  background:
+    rgba(255, 255, 255, 0.05);
 
-  color: rgba(255, 255, 255, 0.72);
+  color:
+    rgba(255, 255, 255, 0.72);
 
   font-size: 12px;
+
   cursor: pointer;
 
   transition:
@@ -207,8 +241,12 @@
 
 
 .dashboard-layout .logout-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    rgba(255, 255, 255, 0.1);
+
+  border-color:
+    rgba(255, 255, 255, 0.14);
+
   color: #ffffff;
 }
 
@@ -219,7 +257,10 @@
 
 
 .dashboard-layout .logout-button:focus-visible {
-  outline: 2px solid rgba(145, 212, 158, 0.7);
+  outline:
+    2px solid
+    rgba(145, 212, 158, 0.7);
+
   outline-offset: 2px;
 }
 
@@ -228,7 +269,7 @@
    LOGOUT ICON
    ========================================================= */
 
-.logout-icon {
+.dashboard-layout .logout-icon {
   display: flex;
   align-items: center;
   justify-content: center;
