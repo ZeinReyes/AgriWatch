@@ -1,0 +1,94 @@
+import os
+
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
+class Config:
+
+    # =====================================================
+    # Flask
+    # =====================================================
+
+    SECRET_KEY = os.getenv(
+        "SECRET_KEY",
+        "agriwatch-secret-key"
+    )
+
+    # =====================================================
+    # Database
+    # =====================================================
+
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL"
+    )
+
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "connect_args": {
+            "ssl": {}
+        }
+    }
+
+    # =====================================================
+    # JWT
+    # =====================================================
+
+    JWT_SECRET_KEY = os.getenv(
+        "JWT_SECRET_KEY",
+        "agriwatch-jwt-secret-key"
+    )
+
+    # =====================================================
+    # Brevo Email API
+    # =====================================================
+
+    BREVO_API_KEY = os.getenv(
+        "BREVO_API_KEY"
+    )
+
+    MAIL_FROM = os.getenv(
+        "MAIL_FROM"
+    )
+
+    MAIL_FROM_NAME = os.getenv(
+        "MAIL_FROM_NAME",
+        "AgriWatch"
+    )
+
+    # =====================================================
+    # SIM800A SMS GATEWAY
+    # =====================================================
+
+    # URL of the Raspberry Pi service that controls
+    # the physical SIM800A modem.
+    SIM800A_GATEWAY_URL = os.getenv(
+        "SIM800A_GATEWAY_URL"
+    )
+
+    # Optional shared secret used by the Flask backend
+    # and Raspberry Pi gateway.
+    SIM800A_GATEWAY_TOKEN = os.getenv(
+        "SIM800A_GATEWAY_TOKEN"
+    )
+
+    # =====================================================
+    # OTP
+    # =====================================================
+
+    OTP_EXPIRY_MINUTES = int(
+        os.getenv(
+            "OTP_EXPIRY_MINUTES",
+            "5"
+        )
+    )
+
+    OTP_MAX_ATTEMPTS = int(
+        os.getenv(
+            "OTP_MAX_ATTEMPTS",
+            "5"
+        )
+    )
