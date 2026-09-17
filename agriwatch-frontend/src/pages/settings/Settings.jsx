@@ -13,6 +13,7 @@ import {
   Loader2,
   LockKeyhole,
   Mail,
+  Phone,
   RefreshCw,
   Save,
   ShieldCheck,
@@ -29,54 +30,50 @@ const Settings = () => {
     setSettings,
   ] = useState(null);
 
-
   const [
     fullName,
     setFullName,
   ] = useState("");
 
+  const [
+    phoneNumber,
+    setPhoneNumber,
+  ] = useState("");
 
   const [
     currentPassword,
     setCurrentPassword,
   ] = useState("");
 
-
   const [
     newPassword,
     setNewPassword,
   ] = useState("");
-
 
   const [
     confirmPassword,
     setConfirmPassword,
   ] = useState("");
 
-
   const [
     loading,
     setLoading,
   ] = useState(true);
-
 
   const [
     profileSaving,
     setProfileSaving,
   ] = useState(false);
 
-
   const [
     passwordSaving,
     setPasswordSaving,
   ] = useState(false);
 
-
   const [
     message,
     setMessage,
   ] = useState("");
-
 
   const [
     error,
@@ -84,14 +81,14 @@ const Settings = () => {
   ] = useState("");
 
 
-  // =========================================================
-  // LOAD SETTINGS
-  // =========================================================
-
   useEffect(() => {
     loadSettings();
   }, []);
 
+
+  // =========================================================
+  // LOAD SETTINGS
+  // =========================================================
 
   const loadSettings = async () => {
 
@@ -105,11 +102,9 @@ const Settings = () => {
           "/settings"
         );
 
-
       const data =
         response.data?.settings ||
         null;
-
 
       setSettings(
         data
@@ -117,6 +112,11 @@ const Settings = () => {
 
       setFullName(
         data?.full_name ||
+        ""
+      );
+
+      setPhoneNumber(
+        data?.phone_number ||
         ""
       );
 
@@ -152,11 +152,51 @@ const Settings = () => {
       const trimmedName =
         fullName.trim();
 
+      const trimmedPhone =
+        phoneNumber.trim();
+
+
+      // -----------------------------------------
+      // NAME VALIDATION
+      // -----------------------------------------
 
       if (!trimmedName) {
 
         setError(
           "Full name is required."
+        );
+
+        setMessage("");
+
+        return;
+      }
+
+
+      if (trimmedName.length < 2) {
+
+        setError(
+          "Full name must contain at least 2 characters."
+        );
+
+        setMessage("");
+
+        return;
+      }
+
+
+      // -----------------------------------------
+      // PHONE VALIDATION
+      // -----------------------------------------
+
+      if (
+        trimmedPhone &&
+        !isValidPhilippineMobileNumber(
+          trimmedPhone
+        )
+      ) {
+
+        setError(
+          "Enter a valid Philippine mobile number such as 09171234567 or +639171234567."
         );
 
         setMessage("");
@@ -179,6 +219,10 @@ const Settings = () => {
             {
               full_name:
                 trimmedName,
+
+              phone_number:
+                trimmedPhone ||
+                null,
             }
           );
 
@@ -195,6 +239,10 @@ const Settings = () => {
           })
         );
 
+
+        // -----------------------------------------
+        // UPDATE LOCAL USER STORAGE
+        // -----------------------------------------
 
         const storedUser =
           localStorage.getItem(
@@ -220,6 +268,7 @@ const Settings = () => {
               })
             );
 
+
           } catch (storageError) {
 
             console.error(
@@ -228,20 +277,33 @@ const Settings = () => {
             );
 
           }
+
         }
 
+
+        // -----------------------------------------
+        // UPDATE FORM VALUES
+        // -----------------------------------------
 
         setFullName(
           updatedUser.full_name ||
           trimmedName
         );
 
-
-        setMessage(
-          "Your profile has been updated."
+        setPhoneNumber(
+          updatedUser.phone_number ||
+          trimmedPhone
         );
 
-    } catch (err) {
+
+        setMessage(
+          trimmedPhone
+            ? "Your profile and mobile number have been updated."
+            : "Your profile has been updated."
+        );
+
+
+      } catch (err) {
 
         console.error(
           "Failed to update profile:",
@@ -329,6 +391,7 @@ const Settings = () => {
           "Your password has been changed successfully."
         );
 
+
       } catch (err) {
 
         console.error(
@@ -374,13 +437,16 @@ const Settings = () => {
 
             </div>
 
+
             <h3>
               Loading settings
             </h3>
 
+
             <p>
               Retrieving your account settings.
             </p>
+
 
           </div>
 
@@ -389,6 +455,7 @@ const Settings = () => {
       </DashboardLayout>
 
     );
+
   }
 
 
@@ -416,20 +483,21 @@ const Settings = () => {
 
             </div>
 
+
             <h3>
               Settings unavailable
             </h3>
+
 
             <p>
               {error}
             </p>
 
+
             <button
               type="button"
               className="settings-retry-button"
-              onClick={
-                loadSettings
-              }
+              onClick={loadSettings}
             >
 
               <RefreshCw
@@ -444,6 +512,7 @@ const Settings = () => {
 
             </button>
 
+
           </div>
 
         </div>
@@ -451,6 +520,7 @@ const Settings = () => {
       </DashboardLayout>
 
     );
+
   }
 
 
@@ -496,9 +566,11 @@ const Settings = () => {
               ACCOUNT
             </span>
 
+
             <h1>
               Settings
             </h1>
+
 
             <p>
               Manage your profile and
@@ -511,7 +583,7 @@ const Settings = () => {
 
 
         {/* =========================================
-            MESSAGE
+            SUCCESS MESSAGE
         ========================================== */}
 
         {message && (
@@ -532,6 +604,10 @@ const Settings = () => {
 
         )}
 
+
+        {/* =========================================
+            ERROR MESSAGE
+        ========================================== */}
 
         {error && (
 
@@ -576,6 +652,7 @@ const Settings = () => {
 
               </div>
 
+
               <p>
                 Update the information associated
                 with your AgriWatch account.
@@ -587,6 +664,10 @@ const Settings = () => {
 
 
           <div className="settings-profile-layout">
+
+            {/* =====================================
+                PROFILE CARD
+            ====================================== */}
 
             <div className="settings-profile-card">
 
@@ -604,6 +685,7 @@ const Settings = () => {
                     "User"}
                 </h3>
 
+
                 <span>
                   {formattedRole}
                 </span>
@@ -613,6 +695,10 @@ const Settings = () => {
             </div>
 
 
+            {/* =====================================
+                PROFILE FORM
+            ====================================== */}
+
             <form
               className="settings-form"
               onSubmit={
@@ -620,11 +706,14 @@ const Settings = () => {
               }
             >
 
+              {/* FULL NAME */}
+
               <div className="settings-field">
 
                 <label htmlFor="full_name">
                   Full Name
                 </label>
+
 
                 <input
                   id="full_name"
@@ -645,11 +734,14 @@ const Settings = () => {
               </div>
 
 
+              {/* EMAIL */}
+
               <div className="settings-field">
 
                 <label htmlFor="email_address">
                   Email Address
                 </label>
+
 
                 <div className="settings-input-with-icon">
 
@@ -658,6 +750,7 @@ const Settings = () => {
                     strokeWidth={2}
                     aria-hidden="true"
                   />
+
 
                   <input
                     id="email_address"
@@ -671,6 +764,7 @@ const Settings = () => {
 
                 </div>
 
+
                 <small>
                   Your email address is used
                   for account authentication.
@@ -678,6 +772,55 @@ const Settings = () => {
 
               </div>
 
+
+              {/* MOBILE NUMBER */}
+
+              <div className="settings-field">
+
+                <label htmlFor="phone_number">
+                  Mobile Number
+                </label>
+
+
+                <div className="settings-input-with-icon">
+
+                  <Phone
+                    size={17}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+
+
+                  <input
+                    id="phone_number"
+                    type="tel"
+                    value={
+                      phoneNumber
+                    }
+                    onChange={(event) =>
+                      setPhoneNumber(
+                        event.target.value
+                      )
+                    }
+                    placeholder="09171234567"
+                    maxLength={15}
+                    autoComplete="tel"
+                  />
+
+                </div>
+
+
+                <small>
+                  Used for SMS alerts from the
+                  AgriWatch monitoring system.
+                  You may enter 09XXXXXXXXX or
+                  +639XXXXXXXXX.
+                </small>
+
+              </div>
+
+
+              {/* SAVE */}
 
               <div className="settings-form-actions">
 
@@ -692,6 +835,7 @@ const Settings = () => {
                   {profileSaving ? (
 
                     <>
+
                       <Loader2
                         size={17}
                         className="settings-spin"
@@ -701,11 +845,13 @@ const Settings = () => {
                       <span>
                         Saving...
                       </span>
+
                     </>
 
                   ) : (
 
                     <>
+
                       <Save
                         size={17}
                         strokeWidth={2}
@@ -715,6 +861,7 @@ const Settings = () => {
                       <span>
                         Save Changes
                       </span>
+
                     </>
 
                   )}
@@ -754,6 +901,7 @@ const Settings = () => {
 
               </div>
 
+
               <p>
                 Change your current password
                 to keep your account secure.
@@ -777,6 +925,7 @@ const Settings = () => {
                 Current Password
               </label>
 
+
               <input
                 id="current_password"
                 type="password"
@@ -789,6 +938,7 @@ const Settings = () => {
                   )
                 }
                 placeholder="Enter your current password"
+                autoComplete="current-password"
                 required
               />
 
@@ -800,6 +950,7 @@ const Settings = () => {
               <label htmlFor="new_password">
                 New Password
               </label>
+
 
               <input
                 id="new_password"
@@ -814,8 +965,10 @@ const Settings = () => {
                 }
                 placeholder="At least 8 characters"
                 minLength={8}
+                autoComplete="new-password"
                 required
               />
+
 
               <small>
                 Use at least 8 characters
@@ -831,6 +984,7 @@ const Settings = () => {
                 Confirm New Password
               </label>
 
+
               <input
                 id="confirm_password"
                 type="password"
@@ -844,6 +998,7 @@ const Settings = () => {
                 }
                 placeholder="Repeat your new password"
                 minLength={8}
+                autoComplete="new-password"
                 required
               />
 
@@ -857,6 +1012,7 @@ const Settings = () => {
                 strokeWidth={2}
                 aria-hidden="true"
               />
+
 
               <span>
                 Your password is securely
@@ -880,6 +1036,7 @@ const Settings = () => {
                 {passwordSaving ? (
 
                   <>
+
                     <Loader2
                       size={17}
                       className="settings-spin"
@@ -889,11 +1046,13 @@ const Settings = () => {
                     <span>
                       Updating...
                     </span>
+
                   </>
 
                 ) : (
 
                   <>
+
                     <LockKeyhole
                       size={17}
                       strokeWidth={2}
@@ -903,6 +1062,7 @@ const Settings = () => {
                     <span>
                       Change Password
                     </span>
+
                   </>
 
                 )}
@@ -940,6 +1100,7 @@ const Settings = () => {
 
               </div>
 
+
               <p>
                 Current details and status
                 of your AgriWatch account.
@@ -958,6 +1119,7 @@ const Settings = () => {
                 Account Role
               </span>
 
+
               <strong>
                 {formattedRole}
               </strong>
@@ -971,6 +1133,7 @@ const Settings = () => {
                 Account Status
               </span>
 
+
               <strong className="settings-account-active">
                 Active
               </strong>
@@ -981,8 +1144,24 @@ const Settings = () => {
             <div>
 
               <span className="settings-account-label">
+                Mobile Number
+              </span>
+
+
+              <strong className="settings-account-phone">
+                {phoneNumber ||
+                  "Not configured"}
+              </strong>
+
+            </div>
+
+
+            <div>
+
+              <span className="settings-account-label">
                 Member Since
               </span>
+
 
               <strong>
                 {
@@ -1016,6 +1195,60 @@ const Settings = () => {
 
   );
 };
+
+
+// =========================================================
+// PHONE NUMBER VALIDATION
+// =========================================================
+
+function isValidPhilippineMobileNumber(
+  value
+) {
+
+  const number =
+    String(value || "")
+      .trim()
+      .replace(/[\s()-]/g, "");
+
+
+  if (
+    /^09\d{9}$/.test(
+      number
+    )
+  ) {
+    return true;
+  }
+
+
+  if (
+    /^\+639\d{9}$/.test(
+      number
+    )
+  ) {
+    return true;
+  }
+
+
+  if (
+    /^639\d{9}$/.test(
+      number
+    )
+  ) {
+    return true;
+  }
+
+
+  if (
+    /^9\d{9}$/.test(
+      number
+    )
+  ) {
+    return true;
+  }
+
+
+  return false;
+}
 
 
 export default Settings;
