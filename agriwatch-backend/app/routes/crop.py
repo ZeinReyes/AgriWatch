@@ -13,123 +13,76 @@ from app.models.crop import Crop
 from app.models.farm import Farm
 
 
-crop_bp = Blueprint(
-    "crop",
-    __name__
-)
+crop_bp = Blueprint("crop", __name__)
 
-
-# =====================================================
-# HELPER FUNCTIONS
-# =====================================================
 
 def get_current_user_id():
-
-    return int(
-        get_jwt_identity()
-    )
+    return int(get_jwt_identity())
 
 
 def get_current_role():
-
-    claims = get_jwt()
-
-    return claims.get("role")
+    return get_jwt().get("role")
 
 
-# =====================================================
-# GET CROPS
-# =====================================================
+def user_can_manage_crop(crop, user_id, role):
+    return role == "admin" or (
+        role == "farmer"
+        and crop
+        and crop.farm
+        and crop.farm.owner_id == user_id
+    )
+
 
 @crop_bp.get("")
 @jwt_required()
 def get_crops():
+    current_user_id = get_current_user_id()
+    current_role = get_current_role()
 
-    current_user_id = (
-        get_current_user_id()
-    )
-
-    current_role = (
-        get_current_role()
-    )
-
-
-    if current_role == "admin":
-
+    if current_role in {"admin", "viewer"}:
         crops = (
             Crop.query
             .join(Farm)
-            .order_by(
-                Crop.created_at.desc()
-            )
+            .order_by(Crop.created_at.desc())
             .all()
         )
-
     else:
-
         crops = (
             Crop.query
             .join(Farm)
-            .filter(
-                Farm.owner_id == current_user_id
-            )
-            .order_by(
-                Crop.created_at.desc()
-            )
+            .filter(Farm.owner_id == current_user_id)
+            .order_by(Crop.created_at.desc())
             .all()
         )
-
 
     return jsonify({
         "status": "success",
-        "crops": [
-            crop.to_dict()
-            for crop in crops
-        ]
+        "crops": [crop.to_dict() for crop in crops]
     }), 200
 
-
-# =====================================================
-# GET SINGLE CROP
-# =====================================================
 
 @crop_bp.get("/<int:crop_id>")
 @jwt_required()
 def get_crop(crop_id):
+    current_user_id = get_current_user_id()
+    current_role = get_current_role()
 
-    current_user_id = (
-        get_current_user_id()
-    )
-
-    current_role = (
-        get_current_role()
-    )
-
-
-    crop = db.session.get(
-        Crop,
-        crop_id
-    )
-
+    crop = db.session.get(Crop, crop_id)
 
     if not crop:
-
         return jsonify({
             "status": "error",
             "message": "Crop not found."
         }), 404
 
-
     if (
-        current_role != "admin"
-        and crop.farm.owner_id != current_user_id
+        current_role not in {"admin", "viewer"}
+        and (not crop.farm or crop.farm.owner_id != current_user_id)
     ):
-
         return jsonify({
             "status": "error",
             "message": "You do not have access to this crop."
         }), 403
-
 
     return jsonify({
         "status": "success",
@@ -137,232 +90,90 @@ def get_crop(crop_id):
     }), 200
 
 
-# =====================================================
-# CREATE CROP
-# =====================================================
-
 @crop_bp.post("")
 @jwt_required()
 def create_crop():
+    current_user_id = get_current_user_id()
+    current_role = get_current_role()
 
-    current_user_id = (
-        get_current_user_id()
-    )
+    if current_role == "viewer":
+        return jsonify({
+            "status": "error",
+            "message": "Viewers cannot create crops."
+        }), 403
 
-    data = (
-        request.get_json()
-        or {}
-    )
+    data = request.get_json() or {}
 
-
-    # ---------------------------------------------
-    # INPUTS
-    # ---------------------------------------------
-
-    crop_name = (
-        data.get("crop_name")
-        or ""
-    ).strip()
-
-    variety = (
-        data.get("variety")
-        or ""
-    ).strip()
-
-    planting_date = (
-        data.get("planting_date")
-        or ""
-    ).strip()
-
-    expected_harvest_date = (
-        data.get("expected_harvest_date")
-        or ""
-    ).strip()
-
-    growth_stage = (
-        data.get("growth_stage")
-        or "Seedling"
-    ).strip()
-
-    status = (
-        data.get("status")
-        or "Healthy"
-    ).strip()
-
+    crop_name = (data.get("crop_name") or "").strip()
+    variety = (data.get("variety") or "").strip()
+    planting_date = (data.get("planting_date") or "").strip()
+    expected_harvest_date = (data.get("expected_harvest_date") or "").strip()
+    growth_stage = (data.get("growth_stage") or "Seedling").strip()
+    status = (data.get("status") or "Healthy").strip()
     farm_id = data.get("farm_id")
 
-
-    # ---------------------------------------------
-    # REQUIRED FIELDS
-    # ---------------------------------------------
-
     if not crop_name:
-
-        return jsonify({
-            "status": "error",
-            "message": "Crop name is required."
-        }), 400
-
+        return jsonify({"status": "error", "message": "Crop name is required."}), 400
 
     if not planting_date:
-
-        return jsonify({
-            "status": "error",
-            "message": "Planting date is required."
-        }), 400
-
+        return jsonify({"status": "error", "message": "Planting date is required."}), 400
 
     if farm_id is None:
-
-        return jsonify({
-            "status": "error",
-            "message": "Farm is required."
-        }), 400
-
-
-    # ---------------------------------------------
-    # FARM
-    # ---------------------------------------------
+        return jsonify({"status": "error", "message": "Farm is required."}), 400
 
     try:
-
         farm_id = int(farm_id)
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Invalid farm ID."}), 400
 
-    except (
-        TypeError,
-        ValueError
-    ):
-
-        return jsonify({
-            "status": "error",
-            "message": "Invalid farm ID."
-        }), 400
-
-
-    farm = db.session.get(
-        Farm,
-        farm_id
-    )
-
+    farm = db.session.get(Farm, farm_id)
 
     if not farm:
+        return jsonify({"status": "error", "message": "Farm not found."}), 404
 
-        return jsonify({
-            "status": "error",
-            "message": "Farm not found."
-        }), 404
-
-
-    # ---------------------------------------------
-    # FARM OWNERSHIP
-    # ---------------------------------------------
-
-    if farm.owner_id != current_user_id:
-
+    if current_role != "admin" and farm.owner_id != current_user_id:
         return jsonify({
             "status": "error",
             "message": "You can only add crops to your own farm."
         }), 403
 
-
-    # ---------------------------------------------
-    # PLANTING DATE
-    # ---------------------------------------------
-
     try:
-
-        planting_date_value = date.fromisoformat(
-            planting_date
-        )
-
+        planting_date_value = date.fromisoformat(planting_date)
     except ValueError:
-
-        return jsonify({
-            "status": "error",
-            "message": "Invalid planting date."
-        }), 400
-
-
-    # ---------------------------------------------
-    # HARVEST DATE
-    # ---------------------------------------------
+        return jsonify({"status": "error", "message": "Invalid planting date."}), 400
 
     expected_harvest_date_value = None
-
     if expected_harvest_date:
-
         try:
-
-            expected_harvest_date_value = (
-                date.fromisoformat(
-                    expected_harvest_date
-                )
-            )
-
+            expected_harvest_date_value = date.fromisoformat(expected_harvest_date)
         except ValueError:
-
             return jsonify({
                 "status": "error",
                 "message": "Invalid expected harvest date."
             }), 400
 
-
-    # ---------------------------------------------
-    # DATE VALIDATION
-    # ---------------------------------------------
-
     if (
         expected_harvest_date_value
         and expected_harvest_date_value < planting_date_value
     ):
-
         return jsonify({
             "status": "error",
             "message": "Expected harvest date cannot be before planting date."
         }), 400
 
-
-    # ---------------------------------------------
-    # ALLOWED VALUES
-    # ---------------------------------------------
-
     allowed_growth_stages = {
-        "Seedling",
-        "Vegetative",
-        "Flowering",
-        "Fruit Development",
-        "Maturity",
-        "Harvested"
+        "Seedling", "Vegetative", "Flowering",
+        "Fruit Development", "Maturity", "Harvested"
     }
-
-
     allowed_statuses = {
-        "Healthy",
-        "Needs Attention",
-        "Critical",
-        "Harvested"
+        "Healthy", "Needs Attention", "Critical", "Harvested"
     }
-
 
     if growth_stage not in allowed_growth_stages:
-
-        return jsonify({
-            "status": "error",
-            "message": "Invalid growth stage."
-        }), 400
-
+        return jsonify({"status": "error", "message": "Invalid growth stage."}), 400
 
     if status not in allowed_statuses:
-
-        return jsonify({
-            "status": "error",
-            "message": "Invalid crop status."
-        }), 400
-
-
-    # ---------------------------------------------
-    # CREATE
-    # ---------------------------------------------
+        return jsonify({"status": "error", "message": "Invalid crop status."}), 400
 
     crop = Crop(
         crop_name=crop_name,
@@ -374,11 +185,8 @@ def create_crop():
         farm_id=farm_id
     )
 
-
     db.session.add(crop)
-
     db.session.commit()
-
 
     return jsonify({
         "status": "success",
@@ -387,248 +195,121 @@ def create_crop():
     }), 201
 
 
-# =========================================================
-# UPDATE CROP
-# =========================================================
-
 @crop_bp.put("/<int:crop_id>")
 @jwt_required()
 def update_crop(crop_id):
+    current_user_id = get_current_user_id()
+    current_role = get_current_role()
 
-    current_user_id = int(get_jwt_identity())
-    current_role = get_jwt().get("role")
+    if current_role == "viewer":
+        return jsonify({
+            "status": "error",
+            "message": "Viewers cannot update crops."
+        }), 403
 
     crop = db.session.get(Crop, crop_id)
 
     if not crop:
+        return jsonify({"status": "error", "message": "Crop not found."}), 404
+
+    if not user_can_manage_crop(crop, current_user_id, current_role):
         return jsonify({
             "status": "error",
-            "message": "Crop not found."
-        }), 404
-
-    # -----------------------------------------------------
-    # CHECK ACCESS
-    # -----------------------------------------------------
-
-    if current_role != "admin":
-
-        if crop.farm.owner_id != current_user_id:
-            return jsonify({
-                "status": "error",
-                "message": "You do not have permission to update this crop."
-            }), 403
+            "message": "You do not have permission to update this crop."
+        }), 403
 
     data = request.get_json() or {}
-
-    # -----------------------------------------------------
-    # BASIC FIELDS
-    # -----------------------------------------------------
 
     crop_name = data.get("crop_name")
     variety = data.get("variety")
     planting_date = data.get("planting_date")
-    expected_harvest_date = data.get(
-        "expected_harvest_date"
-    )
+    expected_harvest_date = data.get("expected_harvest_date")
     growth_stage = data.get("growth_stage")
     status = data.get("status")
     farm_id = data.get("farm_id")
 
-    # -----------------------------------------------------
-    # CROP NAME
-    # -----------------------------------------------------
-
     if crop_name is not None:
-
         crop_name = crop_name.strip()
-
         if not crop_name:
-            return jsonify({
-                "status": "error",
-                "message": "Crop name cannot be empty."
-            }), 400
-
+            return jsonify({"status": "error", "message": "Crop name cannot be empty."}), 400
         crop.crop_name = crop_name
 
-    # -----------------------------------------------------
-    # VARIETY
-    # -----------------------------------------------------
-
     if variety is not None:
-
         variety = variety.strip()
-
         crop.variety = variety or None
 
-    # -----------------------------------------------------
-    # PLANTING DATE
-    # -----------------------------------------------------
-
     if planting_date is not None:
-
         try:
-            crop.planting_date = date.fromisoformat(
-                planting_date
-            )
-
+            crop.planting_date = date.fromisoformat(planting_date)
         except ValueError:
-
-            return jsonify({
-                "status": "error",
-                "message": "Invalid planting date."
-            }), 400
-
-    # -----------------------------------------------------
-    # EXPECTED HARVEST DATE
-    # -----------------------------------------------------
+            return jsonify({"status": "error", "message": "Invalid planting date."}), 400
 
     if expected_harvest_date is not None:
-
         if expected_harvest_date == "":
             crop.expected_harvest_date = None
-
         else:
-
             try:
-                crop.expected_harvest_date = date.fromisoformat(
-                    expected_harvest_date
-                )
-
+                crop.expected_harvest_date = date.fromisoformat(expected_harvest_date)
             except ValueError:
-
                 return jsonify({
                     "status": "error",
                     "message": "Invalid expected harvest date."
                 }), 400
-
-    # -----------------------------------------------------
-    # DATE VALIDATION
-    # -----------------------------------------------------
 
     if (
         crop.expected_harvest_date
         and crop.planting_date
         and crop.expected_harvest_date < crop.planting_date
     ):
-
         return jsonify({
             "status": "error",
-            "message": (
-                "Expected harvest date cannot be "
-                "earlier than planting date."
-            )
+            "message": "Expected harvest date cannot be earlier than planting date."
         }), 400
 
-    # -----------------------------------------------------
-    # GROWTH STAGE
-    # -----------------------------------------------------
-
     allowed_growth_stages = {
-        "Seedling",
-        "Vegetative",
-        "Flowering",
-        "Fruit Development",
-        "Maturity",
-        "Harvested"
+        "Seedling", "Vegetative", "Flowering",
+        "Fruit Development", "Maturity", "Harvested"
     }
-
     if growth_stage is not None:
-
         if growth_stage not in allowed_growth_stages:
-
-            return jsonify({
-                "status": "error",
-                "message": "Invalid growth stage."
-            }), 400
-
+            return jsonify({"status": "error", "message": "Invalid growth stage."}), 400
         crop.growth_stage = growth_stage
 
-    # -----------------------------------------------------
-    # STATUS
-    # -----------------------------------------------------
-
     allowed_statuses = {
-        "Healthy",
-        "Needs Attention",
-        "Critical",
-        "Harvested"
+        "Healthy", "Needs Attention", "Critical", "Harvested"
     }
-
     if status is not None:
-
         if status not in allowed_statuses:
-
-            return jsonify({
-                "status": "error",
-                "message": "Invalid crop status."
-            }), 400
-
+            return jsonify({"status": "error", "message": "Invalid crop status."}), 400
         crop.status = status
 
-    # -----------------------------------------------------
-    # FARM
-    # -----------------------------------------------------
-
     if farm_id is not None:
-
         try:
             farm_id = int(farm_id)
-
         except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "Invalid farm ID."}), 400
 
-            return jsonify({
-                "status": "error",
-                "message": "Invalid farm ID."
-            }), 400
-
-        new_farm = db.session.get(
-            Farm,
-            farm_id
-        )
-
+        new_farm = db.session.get(Farm, farm_id)
         if not new_farm:
-
             return jsonify({
                 "status": "error",
                 "message": "Selected farm not found."
             }), 404
 
-        # Non-admin users can only move their crop
-        # to one of their own farms.
-        if (
-            current_role != "admin"
-            and new_farm.owner_id != current_user_id
-        ):
-
+        if current_role != "admin" and new_farm.owner_id != current_user_id:
             return jsonify({
                 "status": "error",
-                "message": (
-                    "You can only move crops "
-                    "to your own farms."
-                )
+                "message": "You can only move crops to your own farms."
             }), 403
 
-        # THIS IS THE IMPORTANT LINE
         crop.farm_id = new_farm.id
 
-    # -----------------------------------------------------
-    # SAVE
-    # -----------------------------------------------------
-
     try:
-
         db.session.commit()
-
     except Exception as error:
-
         db.session.rollback()
-
         print("Crop update error:", error)
-
-        return jsonify({
-            "status": "error",
-            "message": "Unable to update crop."
-        }), 500
+        return jsonify({"status": "error", "message": "Unable to update crop."}), 500
 
     return jsonify({
         "status": "success",
@@ -637,52 +318,31 @@ def update_crop(crop_id):
     }), 200
 
 
-# =====================================================
-# DELETE CROP
-# =====================================================
-
 @crop_bp.delete("/<int:crop_id>")
 @jwt_required()
 def delete_crop(crop_id):
+    current_user_id = get_current_user_id()
+    current_role = get_current_role()
 
-    current_user_id = (
-        get_current_user_id()
-    )
-
-    current_role = (
-        get_current_role()
-    )
-
-
-    crop = db.session.get(
-        Crop,
-        crop_id
-    )
-
-
-    if not crop:
-
+    if current_role == "viewer":
         return jsonify({
             "status": "error",
-            "message": "Crop not found."
-        }), 404
+            "message": "Viewers cannot delete crops."
+        }), 403
 
+    crop = db.session.get(Crop, crop_id)
 
-    if (
-        current_role != "admin"
-        and crop.farm.owner_id != current_user_id
-    ):
+    if not crop:
+        return jsonify({"status": "error", "message": "Crop not found."}), 404
 
+    if not user_can_manage_crop(crop, current_user_id, current_role):
         return jsonify({
             "status": "error",
             "message": "You do not have permission to delete this crop."
         }), 403
 
-
     db.session.delete(crop)
-
     db.session.commit()
-
 
     return jsonify({
         "status": "success",

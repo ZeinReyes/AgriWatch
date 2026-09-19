@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import { useAuth } from "../../context/AuthContext";
 
 import { getFarms } from "../../services/farmService";
 import { getCrops } from "../../services/cropService";
@@ -71,6 +72,8 @@ function getConditionIcon(condition) {
 
 
 function Monitoring() {
+  const { user } = useAuth();
+  const isViewer = user?.role === "viewer";
 
   const [farms, setFarms] = useState([]);
   const [crops, setCrops] = useState([]);
@@ -79,7 +82,6 @@ function Monitoring() {
   const [selectedCropId, setSelectedCropId] = useState("");
 
   const [records, setRecords] = useState([]);
-
   const [form, setForm] = useState(initialForm);
 
   const [loading, setLoading] = useState(true);
@@ -93,16 +95,9 @@ function Monitoring() {
   const [success, setSuccess] = useState("");
 
 
-  // =====================================================
-  // LOAD FARMS + CROPS
-  // =====================================================
-
   useEffect(() => {
-
     const loadData = async () => {
-
       try {
-
         setLoading(true);
         setError("");
 
@@ -113,38 +108,22 @@ function Monitoring() {
 
         setFarms(farmData.farms || []);
         setCrops(cropData.crops || []);
-
       } catch (err) {
-
-        console.error(
-          "Unable to load monitoring data:",
-          err
-        );
-
+        console.error("Unable to load monitoring data:", err);
         setError(
           err.response?.data?.message ||
-          "Unable to load farms and crops."
+            "Unable to load farms and crops."
         );
-
       } finally {
-
         setLoading(false);
-
       }
     };
 
-
     loadData();
-
   }, []);
 
 
-  // =====================================================
-  // FILTER CROPS BY FARM
-  // =====================================================
-
   const availableCrops = useMemo(() => {
-
     if (!selectedFarmId) {
       return crops;
     }
@@ -153,42 +132,25 @@ function Monitoring() {
       (crop) =>
         String(crop.farm_id) === String(selectedFarmId)
     );
-
   }, [crops, selectedFarmId]);
 
 
-  // =====================================================
-  // SELECT FARM
-  // =====================================================
-
   const handleFarmChange = (event) => {
-
     const farmId = event.target.value;
 
     setSelectedFarmId(farmId);
-
     setSelectedCropId("");
-
     setRecords([]);
-
     setError("");
     setSuccess("");
-
   };
 
 
-  // =====================================================
-  // SELECT CROP
-  // =====================================================
-
   const handleCropChange = async (event) => {
-
     const cropId = event.target.value;
 
     setSelectedCropId(cropId);
-
     setRecords([]);
-
     setError("");
     setSuccess("");
 
@@ -197,49 +159,25 @@ function Monitoring() {
     }
 
     try {
-
       setLoadingRecords(true);
-
       const data = await getCropMonitoring(cropId);
-
       setRecords(data.monitoring || []);
-
     } catch (err) {
-
-      console.error(
-        "Unable to load monitoring records:",
-        err
-      );
-
+      console.error("Unable to load monitoring records:", err);
       setError(
         err.response?.data?.message ||
-        "Unable to load monitoring records."
+          "Unable to load monitoring records."
       );
-
     } finally {
-
       setLoadingRecords(false);
-
     }
-
   };
 
 
-  // =====================================================
-  // CURRENT RECORD
-  // =====================================================
+  const latestRecord = records.length > 0 ? records[0] : null;
 
-  const latestRecord = records.length > 0
-    ? records[0]
-    : null;
-
-
-  // =====================================================
-  // FORM CHANGE
-  // =====================================================
 
   const handleChange = (event) => {
-
     const {
       name,
       value,
@@ -249,144 +187,98 @@ function Monitoring() {
 
     setForm((previous) => ({
       ...previous,
-      [name]: type === "checkbox"
-        ? checked
-        : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
-
   };
 
-
-  // =====================================================
-  // OPEN FORM
-  // =====================================================
 
   const openForm = () => {
+    if (isViewer) {
+      return;
+    }
 
     setForm(initialForm);
-
     setError("");
     setSuccess("");
-
     setShowForm(true);
-
   };
 
 
-  // =====================================================
-  // SUBMIT MONITORING
-  // =====================================================
-
   const handleSubmit = async (event) => {
-
     event.preventDefault();
+
+    if (isViewer) {
+      setError("Viewers cannot create monitoring records.");
+      return;
+    }
 
     setError("");
     setSuccess("");
 
     if (!selectedCropId) {
-
-      setError(
-        "Please select a crop first."
-      );
-
+      setError("Please select a crop first.");
       return;
     }
-
 
     if (
       form.soil_moisture === "" &&
       form.crop_temperature === ""
     ) {
-
       setError(
         "Please enter at least one monitoring measurement."
       );
-
       return;
     }
 
-
     const payload = {
-
       crop_id: Number(selectedCropId),
-
       soil_moisture:
         form.soil_moisture === ""
           ? null
           : Number(form.soil_moisture),
-
       crop_temperature:
         form.crop_temperature === ""
           ? null
           : Number(form.crop_temperature),
-
-      pest_detected:
-        form.pest_detected,
-
-      disease_detected:
-        form.disease_detected,
-
-      discoloration_detected:
-        form.discoloration_detected,
-
-      plant_condition:
-        form.plant_condition,
+      pest_detected: form.pest_detected,
+      disease_detected: form.disease_detected,
+      discoloration_detected: form.discoloration_detected,
+      plant_condition: form.plant_condition,
     };
 
-
     try {
-
       setSubmitting(true);
 
-      const data =
-        await createMonitoringRecord(payload);
+      const data = await createMonitoringRecord(payload);
 
       setSuccess(
         data.message ||
-        "Monitoring record added successfully."
+          "Monitoring record added successfully."
       );
 
       setShowForm(false);
-
       setForm(initialForm);
 
+      const refreshed = await getCropMonitoring(selectedCropId);
 
-      const refreshed =
-        await getCropMonitoring(
-          selectedCropId
-        );
-
-      setRecords(
-        refreshed.monitoring || []
-      );
-
+      setRecords(refreshed.monitoring || []);
     } catch (err) {
-
-      console.error(
-        "Unable to create monitoring record:",
-        err
-      );
-
+      console.error("Unable to create monitoring record:", err);
       setError(
         err.response?.data?.message ||
-        "Unable to create monitoring record."
+          "Unable to create monitoring record."
       );
-
     } finally {
-
       setSubmitting(false);
-
     }
-
   };
 
 
-  // =====================================================
-  // DELETE RECORD
-  // =====================================================
-
   const handleDelete = async (record) => {
+    if (isViewer) {
+      setError("Viewers cannot delete monitoring records.");
+      return;
+    }
 
     const confirmed = window.confirm(
       "Are you sure you want to delete this monitoring record?"
@@ -396,99 +288,66 @@ function Monitoring() {
       return;
     }
 
-
     try {
-
       setDeletingId(record.id);
-
       setError("");
       setSuccess("");
 
-      await deleteMonitoringRecord(
-        record.id
-      );
+      await deleteMonitoringRecord(record.id);
 
       setRecords((previous) =>
-        previous.filter(
-          (item) => item.id !== record.id
-        )
+        previous.filter((item) => item.id !== record.id)
       );
 
       setSuccess(
         "Monitoring record deleted successfully."
       );
-
     } catch (err) {
-
-      console.error(
-        "Unable to delete monitoring record:",
-        err
-      );
-
+      console.error("Unable to delete monitoring record:", err);
       setError(
         err.response?.data?.message ||
-        "Unable to delete monitoring record."
+          "Unable to delete monitoring record."
       );
-
     } finally {
-
       setDeletingId(null);
-
     }
-
   };
 
 
-  const selectedCrop =
-    crops.find(
-      (crop) =>
-        String(crop.id) ===
-        String(selectedCropId)
-    );
+  const selectedCrop = crops.find(
+    (crop) =>
+      String(crop.id) === String(selectedCropId)
+  );
 
 
   if (loading) {
-
     return (
       <DashboardLayout>
         <div className="monitoring-page">
-
           <div className="monitoring-loading">
             Loading monitoring...
           </div>
-
         </div>
       </DashboardLayout>
     );
-
   }
 
 
   return (
     <DashboardLayout>
-
       <div className="monitoring-page">
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
         <div className="monitoring-header">
-
           <div>
-
-            <h1>
-              Crop Monitoring
-            </h1>
-
+            <h1>Crop Monitoring</h1>
             <p>
-              Monitor the condition and environmental
-              status of your tomato crops.
+              {isViewer
+                ? "Review crop conditions and environmental monitoring data across the AgriWatch system."
+                : "Monitor the condition and environmental status of your tomato crops."}
             </p>
-
           </div>
 
-          {selectedCropId && (
+          {selectedCropId && !isViewer && (
             <button
               className="monitoring-primary-button"
               onClick={openForm}
@@ -497,13 +356,8 @@ function Monitoring() {
               Add Monitoring
             </button>
           )}
-
         </div>
 
-
-        {/* =================================================
-            MESSAGES
-        ================================================= */}
 
         {error && (
           <div className="monitoring-message error">
@@ -518,180 +372,100 @@ function Monitoring() {
         )}
 
 
-        {/* =================================================
-            FARM / CROP SELECTION
-        ================================================= */}
-
         <section className="monitoring-card selection-card">
-
           <div className="selection-field">
-
-            <label>
-              Farm
-            </label>
-
+            <label>Farm</label>
             <select
               value={selectedFarmId}
               onChange={handleFarmChange}
             >
-
-              <option value="">
-                Select a farm
-              </option>
+              <option value="">Select a farm</option>
 
               {farms.map((farm) => (
-
-                <option
-                  key={farm.id}
-                  value={farm.id}
-                >
+                <option key={farm.id} value={farm.id}>
                   {farm.farm_name}
                 </option>
-
               ))}
-
             </select>
-
           </div>
 
-
           <div className="selection-field">
-
-            <label>
-              Crop
-            </label>
-
+            <label>Crop</label>
             <select
               value={selectedCropId}
               onChange={handleCropChange}
             >
-
-              <option value="">
-                Select a crop
-              </option>
+              <option value="">Select a crop</option>
 
               {availableCrops.map((crop) => (
-
-                <option
-                  key={crop.id}
-                  value={crop.id}
-                >
+                <option key={crop.id} value={crop.id}>
                   {crop.crop_name}
                   {crop.variety
                     ? ` — ${crop.variety}`
                     : ""}
                 </option>
-
               ))}
-
             </select>
-
           </div>
-
         </section>
 
 
         {!selectedCropId ? (
-
           <div className="monitoring-empty">
-
             <div className="monitoring-empty-icon">
               <Sprout size={30} strokeWidth={1.75} />
             </div>
 
-            <h2>
-              Select a crop to begin
-            </h2>
+            <h2>Select a crop to begin</h2>
 
             <p>
-              Choose a farm and crop to view
-              monitoring information.
+              {isViewer
+                ? "Choose a farm and crop to review monitoring information."
+                : "Choose a farm and crop to view monitoring information."}
             </p>
-
           </div>
-
         ) : (
-
           <>
 
-            {/* =================================================
-                CURRENT MONITORING
-            ================================================= */}
-
             <section className="monitoring-section">
-
               <div className="section-heading">
-
                 <div>
-
-                  <h2>
-                    Current Monitoring
-                  </h2>
-
+                  <h2>Current Monitoring</h2>
                   <p>
                     Latest available reading for{" "}
-                    <strong>
-                      {selectedCrop?.crop_name}
-                    </strong>
+                    <strong>{selectedCrop?.crop_name}</strong>
                   </p>
-
                 </div>
-
               </div>
 
-
               {latestRecord ? (
-
                 <div className="monitoring-metrics">
-
                   <div className="metric-card">
-
-                    <span className="metric-label">
-                      Soil Moisture
-                    </span>
-
+                    <span className="metric-label">Soil Moisture</span>
                     <strong className="metric-value">
-
                       {latestRecord.soil_moisture !== null
                         ? `${latestRecord.soil_moisture}%`
                         : "—"}
-
                     </strong>
-
                     <span className="metric-description">
                       Soil moisture level
                     </span>
-
                   </div>
 
-
                   <div className="metric-card">
-
-                    <span className="metric-label">
-                      Crop Temperature
-                    </span>
-
+                    <span className="metric-label">Crop Temperature</span>
                     <strong className="metric-value">
-
                       {latestRecord.crop_temperature !== null
                         ? `${latestRecord.crop_temperature}°C`
                         : "—"}
-
                     </strong>
-
                     <span className="metric-description">
                       Recorded crop temperature
                     </span>
-
                   </div>
 
-
                   <div className="metric-card">
-
-                    <span className="metric-label">
-                      Plant Condition
-                    </span>
-
+                    <span className="metric-label">Plant Condition</span>
                     <strong
                       className={`condition-badge ${getConditionClass(
                         latestRecord.plant_condition
@@ -702,79 +476,50 @@ function Monitoring() {
                       )}
                       {latestRecord.plant_condition}
                     </strong>
-
                     <span className="metric-description">
                       Latest recorded condition
                     </span>
-
                   </div>
-
                 </div>
-
               ) : (
-
                 <div className="monitoring-no-records">
-
-                  <h3>
-                    No monitoring data yet
-                  </h3>
-
+                  <h3>No monitoring data yet</h3>
                   <p>
-                    Add the first monitoring record
-                    for this crop.
+                    {isViewer
+                      ? "No monitoring records are available for this crop."
+                      : "Add the first monitoring record for this crop."}
                   </p>
 
-                  <button
-                    className="monitoring-primary-button"
-                    onClick={openForm}
-                  >
-                    <Plus size={16} strokeWidth={2.25} />
-                    Add Monitoring Record
-                  </button>
-
+                  {!isViewer && (
+                    <button
+                      className="monitoring-primary-button"
+                      onClick={openForm}
+                    >
+                      <Plus size={16} strokeWidth={2.25} />
+                      Add Monitoring Record
+                    </button>
+                  )}
                 </div>
-
               )}
-
             </section>
 
 
-            {/* =================================================
-                DETECTION RESULTS
-            ================================================= */}
-
             {latestRecord && (
-
               <section className="monitoring-section">
-
                 <div className="section-heading">
-
                   <div>
-
-                    <h2>
-                      Detection Results
-                    </h2>
-
-                    <p>
-                      Latest crop condition detections
-                    </p>
-
+                    <h2>Detection Results</h2>
+                    <p>Latest crop condition detections</p>
                   </div>
-
                 </div>
 
-
                 <div className="detection-grid">
-
                   <div className="detection-card">
-
                     <div className="detection-card-heading">
                       <span className="detection-card-icon">
                         <Bug size={15} strokeWidth={1.85} />
                       </span>
-                      <span>
-                        Pest Detection
-                      </span>
+                      <span>Pest Detection</span>
                     </div>
 
                     <strong
@@ -793,19 +538,14 @@ function Monitoring() {
                         ? "Detected"
                         : "Not Detected"}
                     </strong>
-
                   </div>
 
-
                   <div className="detection-card">
-
                     <div className="detection-card-heading">
                       <span className="detection-card-icon">
                         <Microscope size={15} strokeWidth={1.85} />
                       </span>
-                      <span>
-                        Disease Detection
-                      </span>
+                      <span>Disease Detection</span>
                     </div>
 
                     <strong
@@ -824,19 +564,14 @@ function Monitoring() {
                         ? "Detected"
                         : "Not Detected"}
                     </strong>
-
                   </div>
 
-
                   <div className="detection-card">
-
                     <div className="detection-card-heading">
                       <span className="detection-card-icon">
                         <Leaf size={15} strokeWidth={1.85} />
                       </span>
-                      <span>
-                        Discoloration Detection
-                      </span>
+                      <span>Discoloration Detection</span>
                     </div>
 
                     <strong
@@ -855,59 +590,32 @@ function Monitoring() {
                         ? "Detected"
                         : "Not Detected"}
                     </strong>
-
                   </div>
-
                 </div>
-
               </section>
-
             )}
 
 
-            {/* =================================================
-                HISTORY
-            ================================================= */}
-
             <section className="monitoring-section">
-
               <div className="section-heading">
-
                 <div>
-
-                  <h2>
-                    Monitoring History
-                  </h2>
-
-                  <p>
-                    Previous monitoring records
-                  </p>
-
+                  <h2>Monitoring History</h2>
+                  <p>Previous monitoring records</p>
                 </div>
-
               </div>
 
-
               {loadingRecords ? (
-
                 <div className="monitoring-loading">
                   Loading records...
                 </div>
-
               ) : records.length === 0 ? (
-
                 <div className="monitoring-no-records">
                   No monitoring records available.
                 </div>
-
               ) : (
-
                 <div className="monitoring-table-wrapper">
-
                   <table className="monitoring-table">
-
                     <thead>
-
                       <tr>
                         <th>Date</th>
                         <th>Moisture</th>
@@ -916,22 +624,14 @@ function Monitoring() {
                         <th>Disease</th>
                         <th>Discoloration</th>
                         <th>Condition</th>
-                        <th>Action</th>
+                        {!isViewer && <th>Action</th>}
                       </tr>
-
                     </thead>
 
                     <tbody>
-
                       {records.map((record) => (
-
                         <tr key={record.id}>
-
-                          <td>
-                            {formatDate(
-                              record.recorded_at
-                            )}
-                          </td>
+                          <td>{formatDate(record.recorded_at)}</td>
 
                           <td>
                             {record.soil_moisture !== null
@@ -964,7 +664,6 @@ function Monitoring() {
                           </td>
 
                           <td>
-
                             <span
                               className={`condition-badge ${getConditionClass(
                                 record.plant_condition
@@ -975,81 +674,55 @@ function Monitoring() {
                               )}
                               {record.plant_condition}
                             </span>
-
                           </td>
 
-                          <td>
-
-                            <button
-                              className="table-delete-button"
-                              onClick={() =>
-                                handleDelete(record)
-                              }
-                              disabled={
-                                deletingId === record.id
-                              }
-                            >
-                              {deletingId === record.id ? (
-                                "..."
-                              ) : (
-                                <>
-                                  <Trash2 size={13} strokeWidth={2} />
-                                  Delete
-                                </>
-                              )}
-                            </button>
-
-                          </td>
-
+                          {!isViewer && (
+                            <td>
+                              <button
+                                className="table-delete-button"
+                                onClick={() => handleDelete(record)}
+                                disabled={
+                                  deletingId === record.id
+                                }
+                              >
+                                {deletingId === record.id ? (
+                                  "..."
+                                ) : (
+                                  <>
+                                    <Trash2
+                                      size={13}
+                                      strokeWidth={2}
+                                    />
+                                    Delete
+                                  </>
+                                )}
+                              </button>
+                            </td>
+                          )}
                         </tr>
-
                       ))}
-
                     </tbody>
-
                   </table>
-
                 </div>
-
               )}
-
             </section>
-
           </>
-
         )}
 
 
-        {/* =================================================
-            ADD MONITORING MODAL
-        ================================================= */}
-
-        {showForm && (
-
+        {!isViewer && showForm && (
           <div
             className="monitoring-modal-overlay"
             onClick={() => setShowForm(false)}
           >
-
             <div
               className="monitoring-modal"
-              onClick={(event) =>
-                event.stopPropagation()
-              }
+              onClick={(event) => event.stopPropagation()}
             >
-
               <div className="modal-header">
-
                 <div>
-
-                  <h2>
-                    Add Monitoring Record
-                  </h2>
-
-                  <p>
-                    {selectedCrop?.crop_name}
-                  </p>
-
+                  <h2>Add Monitoring Record</h2>
+                  <p>{selectedCrop?.crop_name}</p>
                 </div>
 
                 <button
@@ -1059,20 +732,12 @@ function Monitoring() {
                 >
                   <X size={18} strokeWidth={2} />
                 </button>
-
               </div>
 
-
               <form onSubmit={handleSubmit}>
-
                 <div className="form-grid">
-
                   <div className="form-field">
-
-                    <label>
-                      Soil Moisture (%)
-                    </label>
-
+                    <label>Soil Moisture (%)</label>
                     <input
                       type="number"
                       name="soil_moisture"
@@ -1083,16 +748,10 @@ function Monitoring() {
                       onChange={handleChange}
                       placeholder="e.g. 27.5"
                     />
-
                   </div>
 
-
                   <div className="form-field">
-
-                    <label>
-                      Crop Temperature (°C)
-                    </label>
-
+                    <label>Crop Temperature (°C)</label>
                     <input
                       type="number"
                       name="crop_temperature"
@@ -1101,106 +760,64 @@ function Monitoring() {
                       onChange={handleChange}
                       placeholder="e.g. 36.4"
                     />
-
                   </div>
-
                 </div>
 
-
                 <div className="form-field">
-
-                  <label>
-                    Plant Condition
-                  </label>
+                  <label>Plant Condition</label>
 
                   <select
                     name="plant_condition"
                     value={form.plant_condition}
                     onChange={handleChange}
                   >
-                    <option value="Healthy">
-                      Healthy
-                    </option>
-
+                    <option value="Healthy">Healthy</option>
                     <option value="Needs Attention">
                       Needs Attention
                     </option>
-
-                    <option value="Critical">
-                      Critical
-                    </option>
+                    <option value="Critical">Critical</option>
                   </select>
-
                 </div>
 
-
                 <div className="detection-form-section">
-
-                  <h3>
-                    Detection Results
-                  </h3>
-
+                  <h3>Detection Results</h3>
 
                   <label className="checkbox-field">
-
                     <input
                       type="checkbox"
                       name="pest_detected"
                       checked={form.pest_detected}
                       onChange={handleChange}
                     />
-
-                    <span>
-                      Pest detected
-                    </span>
-
+                    <span>Pest detected</span>
                   </label>
 
-
                   <label className="checkbox-field">
-
                     <input
                       type="checkbox"
                       name="disease_detected"
                       checked={form.disease_detected}
                       onChange={handleChange}
                     />
-
-                    <span>
-                      Disease detected
-                    </span>
-
+                    <span>Disease detected</span>
                   </label>
 
-
                   <label className="checkbox-field">
-
                     <input
                       type="checkbox"
                       name="discoloration_detected"
-                      checked={
-                        form.discoloration_detected
-                      }
+                      checked={form.discoloration_detected}
                       onChange={handleChange}
                     />
-
-                    <span>
-                      Discoloration detected
-                    </span>
-
+                    <span>Discoloration detected</span>
                   </label>
-
                 </div>
 
-
                 <div className="modal-actions">
-
                   <button
                     type="button"
                     className="secondary-button"
-                    onClick={() =>
-                      setShowForm(false)
-                    }
+                    onClick={() => setShowForm(false)}
                   >
                     Cancel
                   </button>
@@ -1210,23 +827,14 @@ function Monitoring() {
                     className="monitoring-primary-button"
                     disabled={submitting}
                   >
-                    {submitting
-                      ? "Saving..."
-                      : "Save Record"}
+                    {submitting ? "Saving..." : "Save Record"}
                   </button>
-
                 </div>
-
               </form>
-
             </div>
-
           </div>
-
         )}
-
       </div>
-
     </DashboardLayout>
   );
 }

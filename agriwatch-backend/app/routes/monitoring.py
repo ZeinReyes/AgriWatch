@@ -61,16 +61,16 @@ def user_can_access_crop(
     user_id = get_current_user_id()
     role = get_current_role()
 
-    # Administrator can access everything
-    if role == "admin":
+    # Administrators and viewers can read all crop data.
+    if role in {"admin", "viewer"}:
         return True
 
     # Crop must belong to a farm
     if not crop or not crop.farm:
         return False
 
-    # Farmer can access their own farm
-    if crop.farm.owner_id == user_id:
+    # Farmers can access crops under their own farms.
+    if role == "farmer" and crop.farm.owner_id == user_id:
         return True
 
     return False
@@ -910,7 +910,7 @@ def get_monitoring_records():
     # ADMIN
     # -----------------------------------------------------
 
-    if role == "admin":
+    if role in {"admin", "viewer"}:
 
         records = (
             query
@@ -961,6 +961,12 @@ def get_monitoring_records():
 )
 @jwt_required()
 def create_monitoring_record():
+
+    if get_current_role() == "viewer":
+        return jsonify({
+            "status": "error",
+            "message": "Viewers cannot create monitoring records."
+        }), 403
 
     data = request.get_json(
         silent=True
@@ -1531,6 +1537,12 @@ def get_monitoring_record(
 def delete_monitoring_record(
     monitoring_id
 ):
+
+    if get_current_role() == "viewer":
+        return jsonify({
+            "status": "error",
+            "message": "Viewers cannot delete monitoring records."
+        }), 403
 
     record = db.session.get(
         MonitoringRecord,

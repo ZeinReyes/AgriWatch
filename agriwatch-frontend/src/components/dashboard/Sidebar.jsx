@@ -92,6 +92,7 @@ const Sidebar = ({
           roles: [
             "admin",
             "farmer",
+            "viewer",
           ],
         },
 
@@ -102,6 +103,7 @@ const Sidebar = ({
           roles: [
             "admin",
             "farmer",
+            "viewer",
           ],
         },
 
@@ -112,6 +114,7 @@ const Sidebar = ({
           roles: [
             "admin",
             "farmer",
+            "viewer",
           ],
         },
       ],
@@ -128,6 +131,7 @@ const Sidebar = ({
           roles: [
             "admin",
             "farmer",
+            "viewer",
           ],
         },
 
@@ -138,6 +142,7 @@ const Sidebar = ({
           roles: [
             "admin",
             "farmer",
+            "viewer",
           ],
         },
 
@@ -148,6 +153,7 @@ const Sidebar = ({
           roles: [
             "admin",
             "farmer",
+            "viewer",
           ],
         },
       ],
@@ -226,8 +232,6 @@ const Sidebar = ({
         }`}
       >
 
-        {/* BRAND */}
-
         <div className="sidebar-brand">
 
           <div className="brand-icon">
@@ -249,8 +253,6 @@ const Sidebar = ({
 
         </div>
 
-
-        {/* NAVIGATION */}
 
         <nav
           className={`sidebar-nav ${
@@ -334,8 +336,6 @@ const Sidebar = ({
 
         </nav>
 
-
-        {/* LOGOUT */}
 
         <div className="sidebar-bottom">
 
