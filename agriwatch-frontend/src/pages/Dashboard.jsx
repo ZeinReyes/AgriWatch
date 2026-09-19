@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Bell,
   BarChart3,
+  FileText,
   Shield,
   CloudOff,
   Sun,
