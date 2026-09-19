@@ -44,6 +44,8 @@ const Dashboard = () => {
 
   const role = user?.role;
 
+  const isViewer = role === "viewer";
+
   const firstName =
     user?.full_name?.split(" ")[0] || "there";
 
@@ -524,6 +526,7 @@ const Dashboard = () => {
               subtitle="Current status of your monitored crops"
               link="/crops"
               linkText="View crops"
+              hideLink={isViewer}
             />
 
             <div className="field-overview-content">
@@ -531,9 +534,9 @@ const Dashboard = () => {
                 <EmptyState
                   icon={<LayoutGrid size={22} strokeWidth={1.75} />}
                   title="No crops yet"
-                  text="Add a tomato crop to start monitoring field status."
-                  link="/crops"
-                  linkText="Manage crops"
+                  text={isViewer ? "No crop records are available to display." : "Add a tomato crop to start monitoring field status."}
+                  link={isViewer ? undefined : "/crops"}
+                  linkText={isViewer ? undefined : "Manage crops"}
                 />
               ) : (
                 <>
@@ -594,6 +597,7 @@ const Dashboard = () => {
               subtitle="Latest warnings and monitoring events"
               link="/alerts"
               linkText="View all"
+              hideLink={isViewer}
             />
 
             {loading ? (
@@ -603,8 +607,8 @@ const Dashboard = () => {
                 icon={<CheckCircle2 size={22} strokeWidth={1.75} />}
                 title="No alerts"
                 text="Your crops currently have no recorded alerts."
-                link="/alerts"
-                linkText="View alerts"
+                link={isViewer ? undefined : "/alerts"}
+                linkText={isViewer ? undefined : "View alerts"}
               />
             ) : (
               <div className="dashboard-alert-list">
@@ -670,6 +674,7 @@ const Dashboard = () => {
               subtitle="Recent readings from crop monitoring"
               link="/monitoring"
               linkText="View monitoring"
+              hideLink={isViewer}
             />
 
             {loading ? (
@@ -678,9 +683,9 @@ const Dashboard = () => {
               <EmptyState
                 icon={<Activity size={22} strokeWidth={1.75} />}
                 title="No trend data yet"
-                text="Add monitoring records to start seeing environmental trends."
-                link="/monitoring"
-                linkText="Add monitoring"
+                text={isViewer ? "Monitoring trends will appear when data is available." : "Add monitoring records to start seeing environmental trends."}
+                link={isViewer ? undefined : "/monitoring"}
+                linkText={isViewer ? undefined : "Add monitoring"}
               />
             ) : (
               <EnvironmentalTrendChart
@@ -698,6 +703,7 @@ const Dashboard = () => {
               subtitle="Overall health of monitored crops"
               link="/crops"
               linkText="View crops"
+              hideLink={isViewer}
             />
 
             <div className="health-content">
@@ -839,15 +845,16 @@ const Dashboard = () => {
               subtitle="Current status by monitored crop"
               link="/monitoring"
               linkText="View details"
+              hideLink={isViewer}
             />
 
             {crops.length === 0 ? (
               <EmptyState
                 icon={<Sprout size={22} strokeWidth={1.75} />}
                 title="No monitored crops"
-                text="Add a crop and record monitoring data to populate this section."
-                link="/crops"
-                linkText="Manage crops"
+                text={isViewer ? "No crop monitoring records are available to display." : "Add a crop and record monitoring data to populate this section."}
+                link={isViewer ? undefined : "/crops"}
+                linkText={isViewer ? undefined : "Manage crops"}
               />
             ) : (
               <div className="crop-monitoring-list">
@@ -885,7 +892,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {crops.length > 5 && (
+            {!isViewer && crops.length > 5 && (
               <Link
                 className="panel-bottom-link"
                 to="/crops"
@@ -901,6 +908,7 @@ const Dashboard = () => {
               subtitle="Latest condition findings"
               link="/monitoring"
               linkText="View details"
+              hideLink={isViewer}
             />
 
             {recentDetection ? (
@@ -972,8 +980,8 @@ const Dashboard = () => {
                 icon={<CheckCircle2 size={22} strokeWidth={1.75} />}
                 title="No detections recorded"
                 text="Detection results will appear here when monitoring data is available."
-                link="/monitoring"
-                linkText="Add monitoring"
+                link={isViewer ? undefined : "/monitoring"}
+                linkText={isViewer ? undefined : "Add monitoring"}
               />
             )}
           </div>
@@ -984,6 +992,7 @@ const Dashboard = () => {
               subtitle="Current notification overview"
               link="/alerts"
               linkText="View all alerts"
+              hideLink={isViewer}
             />
 
             <div className="alert-summary-tabs">
@@ -1040,12 +1049,14 @@ const Dashboard = () => {
               )}
             </div>
 
-            <Link
-              className="panel-bottom-link centered"
-              to="/alerts"
-            >
-              View all alerts
-            </Link>
+            {!isViewer && (
+              <Link
+                className="panel-bottom-link centered"
+                to="/alerts"
+              >
+                View all alerts
+              </Link>
+            )}
           </div>
         </section>
 
@@ -1056,77 +1067,102 @@ const Dashboard = () => {
         <section className="dashboard-panel quick-actions-panel">
           <div className="panel-header">
             <div>
-              <h2>Quick Actions</h2>
+              <h2>
+                {isViewer ? "Quick Access" : "Quick Actions"}
+              </h2>
               <p>
-                Common AgriWatch functions
+                {isViewer
+                  ? "Available viewer functions"
+                  : "Common AgriWatch functions"}
               </p>
             </div>
           </div>
 
-          <div className="quick-actions">
-            {role !== "viewer" && (
+          <div
+            className={`quick-actions ${
+              isViewer ? "quick-actions-viewer" : ""
+            }`}
+          >
+            {isViewer ? (
               <Link
-                to="/monitoring"
+                to="/reports"
                 className="quick-action"
               >
                 <span>
-                  <Droplet size={17} strokeWidth={1.75} />
+                  <FileText size={17} strokeWidth={1.75} />
                 </span>
                 <div>
-                  <strong>
-                    Add Monitoring
-                  </strong>
+                  <strong>View Reports</strong>
                   <small>
-                    Record crop conditions
+                    Review available reports
                   </small>
                 </div>
               </Link>
+            ) : (
+              <>
+                <Link
+                  to="/monitoring"
+                  className="quick-action"
+                >
+                  <span>
+                    <Droplet size={17} strokeWidth={1.75} />
+                  </span>
+                  <div>
+                    <strong>
+                      Add Monitoring
+                    </strong>
+                    <small>
+                      Record crop conditions
+                    </small>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/alerts"
+                  className="quick-action"
+                >
+                  <span>
+                    <Bell size={17} strokeWidth={1.75} />
+                  </span>
+                  <div>
+                    <strong>View Alerts</strong>
+                    <small>
+                      Review crop warnings
+                    </small>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/crops"
+                  className="quick-action"
+                >
+                  <span>
+                    <Leaf size={17} strokeWidth={1.75} />
+                  </span>
+                  <div>
+                    <strong>My Crops</strong>
+                    <small>
+                      Manage tomato crops
+                    </small>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/analytics"
+                  className="quick-action"
+                >
+                  <span>
+                    <BarChart3 size={17} strokeWidth={1.75} />
+                  </span>
+                  <div>
+                    <strong>Analytics</strong>
+                    <small>
+                      Review monitoring trends
+                    </small>
+                  </div>
+                </Link>
+              </>
             )}
-
-            <Link
-              to="/alerts"
-              className="quick-action"
-            >
-              <span>
-                <Bell size={17} strokeWidth={1.75} />
-              </span>
-              <div>
-                <strong>View Alerts</strong>
-                <small>
-                  Review crop warnings
-                </small>
-              </div>
-            </Link>
-
-            <Link
-              to="/crops"
-              className="quick-action"
-            >
-              <span>
-                <Leaf size={17} strokeWidth={1.75} />
-              </span>
-              <div>
-                <strong>My Crops</strong>
-                <small>
-                  Manage tomato crops
-                </small>
-              </div>
-            </Link>
-
-            <Link
-              to="/analytics"
-              className="quick-action"
-            >
-              <span>
-                <BarChart3 size={17} strokeWidth={1.75} />
-              </span>
-              <div>
-                <strong>Analytics</strong>
-                <small>
-                  Review monitoring trends
-                </small>
-              </div>
-            </Link>
           </div>
         </section>
 
@@ -1493,7 +1529,7 @@ const EmptyState = ({
     <strong>{title}</strong>
     <span>{text}</span>
 
-    {link && (
+    {link && linkText && (
       <Link
         to={link}
         className="empty-action"

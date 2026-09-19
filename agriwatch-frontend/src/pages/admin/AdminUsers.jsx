@@ -5,6 +5,15 @@ import {
 } from "react";
 
 import {
+  Users,
+  Sprout,
+  Eye,
+  CheckCircle2,
+  CircleAlert,
+  Search,
+} from "lucide-react";
+
+import {
   getUsers,
   updateUserRole,
   updateUserStatus,
@@ -18,6 +27,7 @@ import { useAuth } from "../../context/AuthContext";
 const AdminUsers = () => {
   const { user: currentUser } =
     useAuth();
+
 
   const [users, setUsers] =
     useState([]);
@@ -56,11 +66,13 @@ const AdminUsers = () => {
       setUsers(
         data.users || []
       );
+
     } catch (error) {
       setError(
         error.response?.data?.message ||
           "Unable to load users."
       );
+
     } finally {
       setLoading(false);
     }
@@ -113,6 +125,7 @@ const AdminUsers = () => {
         );
       }
     );
+
   }, [
     users,
     search,
@@ -134,6 +147,7 @@ const AdminUsers = () => {
     setError("");
 
     try {
+
       const data =
         await updateUserRole(
           userId,
@@ -151,12 +165,16 @@ const AdminUsers = () => {
       );
 
     } catch (error) {
+
       setError(
         error.response?.data?.message ||
           "Unable to update user role."
       );
+
     } finally {
+
       setUpdatingId(null);
+
     }
   };
 
@@ -174,6 +192,7 @@ const AdminUsers = () => {
     setError("");
 
     try {
+
       const data =
         await updateUserStatus(
           userId,
@@ -191,12 +210,16 @@ const AdminUsers = () => {
       );
 
     } catch (error) {
+
       setError(
         error.response?.data?.message ||
           "Unable to update user status."
       );
+
     } finally {
+
       setUpdatingId(null);
+
     }
   };
 
@@ -229,11 +252,15 @@ const AdminUsers = () => {
 
   return (
     <DashboardLayout>
+
       <div className="admin-users-page">
 
         {/* HEADER */}
+
         <div className="page-header">
+
           <div>
+
             <div className="page-eyebrow">
               ADMINISTRATION
             </div>
@@ -246,28 +273,50 @@ const AdminUsers = () => {
               Manage AgriWatch users,
               roles, and account access.
             </p>
+
           </div>
+
         </div>
 
 
         {/* ERROR */}
+
         {error && (
-          <div className="admin-alert-error">
-            <span>!</span>
-            {error}
+          <div
+            className="admin-alert-error"
+            role="alert"
+          >
+
+            <CircleAlert
+              size={18}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+
+            <span>
+              {error}
+            </span>
+
           </div>
         )}
 
 
         {/* STATS */}
+
         <div className="admin-user-stats">
 
           <div className="admin-stat-card">
+
             <div className="admin-stat-icon">
-              👥
+              <Users
+                size={21}
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
             </div>
 
             <div>
+
               <div className="admin-stat-value">
                 {totalUsers}
               </div>
@@ -275,16 +324,24 @@ const AdminUsers = () => {
               <div className="admin-stat-label">
                 Total users
               </div>
+
             </div>
+
           </div>
 
 
           <div className="admin-stat-card">
+
             <div className="admin-stat-icon">
-              🌱
+              <Sprout
+                size={21}
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
             </div>
 
             <div>
+
               <div className="admin-stat-value">
                 {farmers}
               </div>
@@ -292,16 +349,24 @@ const AdminUsers = () => {
               <div className="admin-stat-label">
                 Farmers
               </div>
+
             </div>
+
           </div>
 
 
           <div className="admin-stat-card">
+
             <div className="admin-stat-icon">
-              👁
+              <Eye
+                size={21}
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
             </div>
 
             <div>
+
               <div className="admin-stat-value">
                 {viewers}
               </div>
@@ -309,16 +374,24 @@ const AdminUsers = () => {
               <div className="admin-stat-label">
                 Viewers
               </div>
+
             </div>
+
           </div>
 
 
           <div className="admin-stat-card">
+
             <div className="admin-stat-icon">
-              ✓
+              <CheckCircle2
+                size={21}
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
             </div>
 
             <div>
+
               <div className="admin-stat-value">
                 {activeUsers}
               </div>
@@ -326,18 +399,22 @@ const AdminUsers = () => {
               <div className="admin-stat-label">
                 Active accounts
               </div>
+
             </div>
+
           </div>
 
         </div>
 
 
         {/* USERS CARD */}
+
         <div className="admin-users-card">
 
           <div className="admin-users-card-header">
 
             <div>
+
               <h2>
                 AgriWatch Accounts
               </h2>
@@ -346,16 +423,23 @@ const AdminUsers = () => {
                 {filteredUsers.length} users
                 displayed
               </p>
+
             </div>
 
           </div>
 
 
           {/* FILTERS */}
+
           <div className="admin-filters">
 
             <div className="admin-search">
-              <span>⌕</span>
+
+              <Search
+                size={16}
+                strokeWidth={1.9}
+                aria-hidden="true"
+              />
 
               <input
                 type="text"
@@ -367,6 +451,7 @@ const AdminUsers = () => {
                   )
                 }
               />
+
             </div>
 
 
@@ -378,6 +463,7 @@ const AdminUsers = () => {
                 )
               }
             >
+
               <option value="all">
                 All roles
               </option>
@@ -393,6 +479,7 @@ const AdminUsers = () => {
               <option value="viewer">
                 Viewers
               </option>
+
             </select>
 
 
@@ -404,6 +491,7 @@ const AdminUsers = () => {
                 )
               }
             >
+
               <option value="all">
                 All status
               </option>
@@ -415,24 +503,36 @@ const AdminUsers = () => {
               <option value="inactive">
                 Inactive
               </option>
+
             </select>
 
           </div>
 
 
           {/* TABLE */}
+
           <div className="admin-table-wrapper">
 
             {loading ? (
+
               <div className="admin-loading">
+
                 <span className="button-spinner admin-spinner" />
+
                 Loading users...
+
               </div>
+
             ) : filteredUsers.length === 0 ? (
 
               <div className="admin-empty">
-                <div>
-                  🔍
+
+                <div className="admin-empty-icon">
+                  <Search
+                    size={24}
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
                 </div>
 
                 <h3>
@@ -443,6 +543,7 @@ const AdminUsers = () => {
                   Try adjusting your search
                   or filters.
                 </p>
+
               </div>
 
             ) : (
@@ -450,7 +551,9 @@ const AdminUsers = () => {
               <table className="admin-users-table">
 
                 <thead>
+
                   <tr>
+
                     <th>
                       User
                     </th>
@@ -470,8 +573,11 @@ const AdminUsers = () => {
                     <th>
                       Actions
                     </th>
+
                   </tr>
+
                 </thead>
+
 
                 <tbody>
 
@@ -486,13 +592,16 @@ const AdminUsers = () => {
                         updatingId ===
                         user.id;
 
+
                       return (
                         <tr
                           key={user.id}
                         >
 
                           {/* USER */}
+
                           <td>
+
                             <div className="admin-user-cell">
 
                               <div className="admin-user-avatar">
@@ -502,7 +611,9 @@ const AdminUsers = () => {
                               </div>
 
                               <div>
+
                                 <div className="admin-user-name">
+
                                   {user.full_name}
 
                                   {isCurrentUser && (
@@ -510,18 +621,22 @@ const AdminUsers = () => {
                                       You
                                     </span>
                                   )}
+
                                 </div>
 
                                 <div className="admin-user-email">
                                   {user.email}
                                 </div>
+
                               </div>
 
                             </div>
+
                           </td>
 
 
                           {/* ROLE */}
+
                           <td>
 
                             {user.role ===
@@ -546,8 +661,7 @@ const AdminUsers = () => {
                                 ) =>
                                   handleRoleChange(
                                     user.id,
-                                    event.target
-                                      .value
+                                    event.target.value
                                   )
                                 }
                               >
@@ -568,6 +682,7 @@ const AdminUsers = () => {
 
 
                           {/* STATUS */}
+
                           <td>
 
                             <span
@@ -577,20 +692,24 @@ const AdminUsers = () => {
                                   : "status-badge status-inactive"
                               }
                             >
+
                               <span className="status-dot" />
 
                               {user.is_active
                                 ? "Active"
                                 : "Inactive"}
+
                             </span>
 
                           </td>
 
 
                           {/* DATE */}
+
                           <td>
 
                             <span className="admin-date">
+
                               {user.created_at
                                 ? new Date(
                                     user.created_at
@@ -603,12 +722,14 @@ const AdminUsers = () => {
                                     }
                                   )
                                 : "—"}
+
                             </span>
 
                           </td>
 
 
                           {/* ACTION */}
+
                           <td>
 
                             {user.role ===
@@ -621,6 +742,7 @@ const AdminUsers = () => {
                             ) : (
 
                               <button
+                                type="button"
                                 className={
                                   user.is_active
                                     ? "user-action-button deactivate"
@@ -636,11 +758,13 @@ const AdminUsers = () => {
                                   )
                                 }
                               >
+
                                 {isUpdating
                                   ? "Updating..."
                                   : user.is_active
                                   ? "Deactivate"
                                   : "Activate"}
+
                               </button>
 
                             )}
@@ -649,6 +773,7 @@ const AdminUsers = () => {
 
                         </tr>
                       );
+
                     }
                   )}
 
@@ -663,8 +788,10 @@ const AdminUsers = () => {
         </div>
 
       </div>
+
     </DashboardLayout>
   );
 };
+
 
 export default AdminUsers;
