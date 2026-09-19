@@ -76,7 +76,6 @@ import Reports from "./pages/reports/Reports";
 ===================================================== */
 
 import Dashboard from "./pages/Dashboard";
-
 import Settings from "./pages/settings/Settings";
 
 
@@ -88,7 +87,6 @@ const PlaceholderPage = ({
   title,
   description,
 }) => {
-
   return (
     <div
       style={{
@@ -96,7 +94,6 @@ const PlaceholderPage = ({
         fontFamily: "Poppins, sans-serif",
       }}
     >
-
       <h1>
         {title}
       </h1>
@@ -105,7 +102,6 @@ const PlaceholderPage = ({
         {description ||
           "This section is under development."}
       </p>
-
     </div>
   );
 };
@@ -116,7 +112,6 @@ const PlaceholderPage = ({
 ===================================================== */
 
 const App = () => {
-
   return (
     <BrowserRouter>
 
@@ -184,7 +179,7 @@ const App = () => {
 
           {/* =================================================
               CROP MONITORING
-              ADMIN + FARMER
+              ADMIN + FARMER + VIEWER
           ================================================= */}
 
           <Route
@@ -195,6 +190,7 @@ const App = () => {
                   allowedRoles={[
                     "admin",
                     "farmer",
+                    "viewer",
                   ]}
                 >
                   <Monitoring />
@@ -204,20 +200,47 @@ const App = () => {
           />
 
 
+          {/* =================================================
+              SENSOR DATA
+              ADMIN + FARMER + VIEWER
+          ================================================= */}
+
           <Route
             path="/sensor-data"
             element={
               <ProtectedRoute>
-                <SensorData />
+                <RoleRoute
+                  allowedRoles={[
+                    "admin",
+                    "farmer",
+                    "viewer",
+                  ]}
+                >
+                  <SensorData />
+                </RoleRoute>
               </ProtectedRoute>
             }
           />
+
+
+          {/* =================================================
+              PEST & DISEASE
+              ADMIN + FARMER + VIEWER
+          ================================================= */}
 
           <Route
             path="/pest-disease"
             element={
               <ProtectedRoute>
-                <PestDisease />
+                <RoleRoute
+                  allowedRoles={[
+                    "admin",
+                    "farmer",
+                    "viewer",
+                  ]}
+                >
+                  <PestDisease />
+                </RoleRoute>
               </ProtectedRoute>
             }
           />
@@ -225,7 +248,7 @@ const App = () => {
 
           {/* =================================================
               ALERTS
-              ADMIN + FARMER
+              ADMIN + FARMER + VIEWER
           ================================================= */}
 
           <Route
@@ -236,6 +259,7 @@ const App = () => {
                   allowedRoles={[
                     "admin",
                     "farmer",
+                    "viewer",
                   ]}
                 >
                   <Alerts />
@@ -247,7 +271,7 @@ const App = () => {
 
           {/* =================================================
               WEATHER
-              ADMIN + FARMER
+              ADMIN + FARMER + VIEWER
           ================================================= */}
 
           <Route
@@ -258,6 +282,7 @@ const App = () => {
                   allowedRoles={[
                     "admin",
                     "farmer",
+                    "viewer",
                   ]}
                 >
                   <Weather />
@@ -269,7 +294,7 @@ const App = () => {
 
           {/* =================================================
               IRRIGATION
-              ADMIN + FARMER
+              ADMIN + FARMER + VIEWER
           ================================================= */}
 
           <Route
@@ -280,6 +305,7 @@ const App = () => {
                   allowedRoles={[
                     "admin",
                     "farmer",
+                    "viewer",
                   ]}
                 >
                   <Irrigation />
@@ -321,7 +347,12 @@ const App = () => {
             path="/settings"
             element={
               <ProtectedRoute>
-                <RoleRoute allowedRoles={["admin", "farmer"]}>
+                <RoleRoute
+                  allowedRoles={[
+                    "admin",
+                    "farmer",
+                  ]}
+                >
                   <Settings />
                 </RoleRoute>
               </ProtectedRoute>
